@@ -1,138 +1,132 @@
-Zorvik AI
-Zorvik AI is a web-based AI chat application that merges an interactive frontend with a powerful backend. It features Gemini API-powered responses, next-word prediction, and Firebase-based prompt storage — all within a sleek, responsive UI.
+# Zorvik AI
 
-🚀 Features
-AI-Powered Chat: Responsive interface backed by the Gemini API.
+Zorvik AI is a web-based AI chat application that combines a sleek, interactive frontend with a powerful backend. The frontend, built with HTML, CSS, and JavaScript, integrates with the Gemini API for intelligent responses. The backend, a FastAPI-based tokenization server hosted on Vercel, provides next-word prediction and prompt storage using Firebase Firestore. This project supports rich text formatting, code snippets, and LaTeX-rendered mathematical formulas, offering a seamless user experience.
 
-Next-Word Prediction: Real-time suggestions via a FastAPI server (/predict endpoint).
+## Features
 
-Prompt Storage: Store prompts and trigram data in Firebase (/store endpoint).
+* **AI-Powered Chat**: Engage with Zorvik AI via a responsive chat interface, powered by the Gemini API.
+* **Next-Word Prediction**: Real-time text suggestions using a custom tokenization server (`/predict` endpoint).
+* **Prompt Storage**: Store user prompts and trigram data in Firebase for improved predictions (`/store` endpoint).
+* **Code and Commands**: Display and copy code snippets or shell commands with syntax highlighting.
+* **Mathematical Formulas**: Render LaTeX formulas using KaTeX for technical responses.
+* **Responsive UI**: Modern, dark-themed interface with animations, built with Poppins and Roboto fonts.
+* **Vercel-Hosted Backend**: Serverless deployment of the tokenization server with CORS support.
 
-Code & Commands: Syntax-highlighted code snippets with copy buttons.
+## Project Structure
 
-Math Support: Render LaTeX formulas using KaTeX.
-
-Responsive UI: Clean, dark-themed UI with Google Fonts (Poppins, Roboto).
-
-Serverless Backend: FastAPI server deployed to Vercel with full CORS support.
-
-📁 Project Structure
-bash
-Copy
-Edit
+```
 Zorvik-AI/
 ├── README.md
 ├── config.js              # Gemini API configuration
 ├── index.html             # Frontend HTML
-├── script.js              # Chat & prediction logic
-├── styles.css             # UI styling
+├── script.js              # Frontend logic for chat and predictions
+├── styles.css             # Frontend styling
 ├── tokenization-server/
-│   ├── README.md
+│   ├── README.md          # Tokenization server documentation
 │   ├── requirements.txt   # Python dependencies
-│   ├── vercel.json        # Vercel config
-│   └── api/
-│       ├── __init__.py
-│       ├── main.py        # FastAPI entry point
-│       ├── predict.py     # Prediction logic
-│       └── firebase_utils.py # Firebase Firestore helper
-🔧 Prerequisites
-Frontend
-Modern web browser (Chrome, Firefox, etc.)
+│   ├── vercel.json        # Vercel deployment configuration
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── main.py        # FastAPI server for /predict and /store
+│   │   ├── predict.py     # Next-word prediction logic
+│   │   ├── firebase_utils.py # Firebase Firestore integration
+```
 
-Internet access for CDN dependencies
+## Prerequisites
 
-Backend
-Python 3.8+
+### Frontend:
 
-Firebase project with Firestore enabled
+* Modern web browser (e.g., Chrome, Firefox)
+* Internet access for CDN dependencies
 
-Vercel account for deployment
+### Backend:
 
-Services
-Gemini API key
+* Python 3.8+
+* Firebase account with Firestore enabled
+* Vercel account for hosting the tokenization server
 
-Firebase service account JSON
+### Services:
 
-⚙️ Setup Instructions
-🔹 Frontend
-Clone the Repository
+* Gemini API key for AI responses
+* Firebase service account JSON for prompt storage
 
-bash
-Copy
-Edit
-git clone https://github.com/ItsMeVikashKumarSingh/Zorvik-AI.git
-cd Zorvik-AI
-Update API Key
-Edit config.js and replace:
+## Setup Instructions
 
-js
-Copy
-Edit
-API_KEY: 'your-gemini-api-key'
-Serve Locally
+### Frontend
 
-bash
-Copy
-Edit
-python -m http.server 8000
-Visit: http://localhost:8000
+1. **Clone the Repository:**
 
-Or deploy to Netlify/Vercel/etc.
+   ```bash
+   git clone https://github.com/ItsMeVikashKumarSingh/Zorvik-AI.git
+   cd Zorvik-AI
+   ```
 
-🔹 Tokenization Server
-Navigate to Directory
+2. **Update API Key:**
+   Open `config.js` and replace the API\_KEY placeholder:
 
-bash
-Copy
-Edit
-cd tokenization-server
-Install Dependencies
+   ```javascript
+   API_KEY: 'your-gemini-api-key'
+   ```
 
-bash
-Copy
-Edit
-pip install -r requirements.txt
-pip install pydantic python-dotenv
-Configure Firebase
+3. **Serve the Frontend:**
 
-Create a Firebase project, enable Firestore.
+   ```bash
+   python -m http.server 8000
+   ```
 
-Download service account JSON.
+   Or deploy to a hosting service (e.g., Netlify, Vercel).
 
-Set the environment variable:
+   Open [http://localhost:8000](http://localhost:8000) in a browser.
 
-bash
-Copy
-Edit
-export FIREBASE_CREDENTIALS='{"type": "service_account", ...}'
-Run Locally (Optional)
+### Tokenization Server
 
-bash
-Copy
-Edit
-uvicorn api.main:app --reload
-Visit: http://localhost:8000
+1. **Navigate to Server Directory:**
 
-Deploy to Vercel
+   ```bash
+   cd tokenization-server
+   ```
 
-Ensure vercel.json exists.
+2. **Install Dependencies:**
 
-Push the tokenization-server/ folder to a Git repo.
+   ```bash
+   pip install -r requirements.txt
+   pip install pydantic python-dotenv
+   ```
 
-Run:
+3. **Configure Firebase:**
 
-bash
-Copy
-Edit
-vercel --prod
-Add FIREBASE_CREDENTIALS to Vercel’s Environment Variables.
+   * Create a Firebase project and enable Firestore.
+   * Download the service account key as JSON.
+   * Set the environment variable:
 
-🌐 Vercel Configuration
-vercel.json:
+     ```bash
+     export FIREBASE_CREDENTIALS='{"type": "service_account", ...}'
+     ```
 
-json
-Copy
-Edit
+4. **Run Locally (Optional):**
+
+   ```bash
+   uvicorn api.main:app --reload
+   ```
+
+   Access at [http://localhost:8000](http://localhost:8000)
+
+5. **Deploy to Vercel:**
+
+   * Ensure `vercel.json` is present in `tokenization-server`.
+   * Push the `tokenization-server` directory to a Git repository.
+   * Deploy:
+
+     ```bash
+     vercel --prod
+     ```
+   * Set `FIREBASE_CREDENTIALS` in Vercel’s dashboard.
+
+## Vercel Configuration
+
+The `vercel.json` in `tokenization-server/` configures the serverless deployment:
+
+```json
 {
   "version": 2,
   "builds": [
@@ -148,123 +142,132 @@ Edit
     {"src": "/(.*)", "dest": "/api/main.py"}
   ]
 }
-💬 Usage
-Frontend
-Open in browser.
+```
 
-Type your message and press Enter or click Send.
+## Usage
 
-Suggestions appear as you type (from /predict endpoint).
+### Access the Application
 
-Press Tab to accept suggestions.
+* Open the frontend in a browser.
+* Type a question in the textarea and click "Send" or press Enter.
 
-Response Output
-Includes text, code, or LaTeX.
+### Next-Word Prediction
 
-Code blocks and commands have copy buttons.
+* As you type, suggestions appear (powered by `https://your-vercel-domain/api/predict`).
+* Press Tab to accept a suggestion.
 
-🧪 API Endpoints
-GET /
-Check API status.
+### View Responses
 
-json
-Copy
-Edit
+* Responses may include text, code, or formulas.
+* Copy buttons are available for code/commands.
+
+### API Endpoints
+
+#### GET /
+
+Check API status:
+
+```json
 {
   "status": "OK",
   "message": "Welcome to the Banking Prediction API!",
-  "endpoints": {...},
+  "endpoints": { ... },
   "firebase_configured": true
 }
-POST /predict
-Predict next words:
+```
 
-json
-Copy
-Edit
+#### POST /predict
+
+Request:
+
+```json
 {"prompt": "hello world"}
+```
+
 Response:
 
-json
-Copy
-Edit
+```json
 {"next_words": ["how", "are", "you"]}
-POST /store
-Store prompt in Firebase:
+```
 
-json
-Copy
-Edit
+#### POST /store
+
+Request:
+
+```json
 {"prompt": "hello world"}
+```
+
 Response:
 
-json
-Copy
-Edit
+```json
 {"status": "stored"}
-📦 Example API Requests
-bash
-Copy
-Edit
-# Check status
+```
+
+## Example API Requests
+
+```bash
+# Check API status
 curl https://your-vercel-domain/api
 
-# Predict
+# Predict next words
 curl -X POST https://your-vercel-domain/api/predict \
   -H "Content-Type: application/json" \
   -d '{"prompt": "hello world"}'
 
-# Store
+# Store a prompt
 curl -X POST https://your-vercel-domain/api/store \
   -H "Content-Type: application/json" \
   -d '{"prompt": "hello world"}'
-📚 Dependencies
-Frontend
-KaTeX – formula rendering (v0.16.4)
+```
 
-Marked – Markdown parsing
+## Dependencies
 
-DOMPurify – HTML sanitization
+### Frontend:
 
-Google Fonts: Poppins & Roboto
+* KaTeX (0.16.4) for formula rendering
+* Marked (latest) for Markdown parsing
+* DOMPurify (2.4.9) for HTML sanitization
+* Poppins and Roboto fonts via Google Fonts
 
-Backend
-fastapi – API framework
+### Backend:
 
-uvicorn – ASGI server
+* `fastapi`: API framework
+* `uvicorn`: ASGI server
+* `firebase-admin`: Firestore integration
+* `pydantic`: Data validation
+* `python-dotenv`: Environment variables (optional)
 
-firebase-admin – Firebase SDK
+## Notes
 
-pydantic – Data validation
+* The tokenization server is accessible at `https://predict-iota.vercel.app` (as referenced in `script.js`).
+* The original `tokenization-server/README.md` mentioned a `/tokenize` endpoint, which is not implemented. The active endpoints are `/predict` and `/store`.
+* Ensure Firebase Firestore rules allow writes to `prompts` and `prompts_trigrams` collections.
 
-python-dotenv – Optional env support
+## Contributing
 
-📌 Notes
-Tokenization server is live at:
-https://predict-iota.vercel.app (referenced in script.js).
+1. Fork the repository
+2. Create a feature branch:
 
-Endpoint /tokenize is not implemented; only /predict and /store are active.
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+3. Commit changes:
 
-Ensure Firestore rules permit writes to prompts and prompts_trigrams.
+   ```bash
+   git commit -m "Add your feature"
+   ```
+4. Push to the branch:
 
-🤝 Contributing
-Fork the repository.
+   ```bash
+   git push origin feature/your-feature
+   ```
+5. Open a pull request
 
-Create a feature branch:
-git checkout -b feature/your-feature
+## License
 
-Commit changes:
-git commit -m "Add your feature"
+\[Add your license here, e.g., MIT License]
 
-Push to GitHub:
-git push origin feature/your-feature
+## Contact
 
-Open a Pull Request.
-
-📄 License
-[Add your license here, e.g., MIT License]
-
-📬 Contact
-For questions or support, contact Team Zorvik
-📧 [insert contact email or support link]
-
+For support, contact Team Zorvik at \[insert contact email or link].
