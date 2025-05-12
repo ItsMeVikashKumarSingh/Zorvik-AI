@@ -8,5 +8,5 @@ window.API_CONFIG = {
         temperature: 0.7,
         topP: 0.9
     },
-    API_KEY: 'AIzaSyDbCWSbNUI8I4Sc8_5XS68xD9dpCUzpFec' // Replace with actual key
+    API_KEY: 'your-api-key' // Replace with actual key
 };
