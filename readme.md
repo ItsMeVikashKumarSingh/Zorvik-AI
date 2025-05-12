@@ -264,10 +264,6 @@ curl -X POST https://your-vercel-domain/api/store \
    ```
 5. Open a pull request
 
-## License
-
-\[Add your license here, e.g., MIT License]
-
 ## Contact
 
-For support, contact Team Zorvik at \[insert contact email or link].
+For support, contact Team Zorvik at \[vikashkumarsingh8352@gmail.com].
