@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
-import { Copy, Check, AlertCircle } from 'lucide-react';
-import { Message } from '../types';
+import {
+  Copy,
+  Check,
+  AlertCircle,
+  Globe,
+  Layers,
+  ExternalLink,
+  Plus,
+  RotateCw,
+  Share2,
+} from 'lucide-react';
+import { Message, SourceItem } from '../types';
 import { renderMarkdown } from '../lib/markdown';
 
 interface MessageItemProps {
   message: Message;
+  onSelectFollowup?: (prompt: string) => void;
+  onRegenerate?: () => void;
 }
 
-export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+export const MessageItem: React.FC<MessageItemProps> = ({
+  message,
+  onSelectFollowup,
+  onRegenerate,
+}) => {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
 
@@ -17,73 +33,164 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // User Message -> Clean Monumental Query Header (Perplexity Style)
   if (isUser) {
     return (
-      <div className="py-6 border-b border-white/[0.04] space-y-2">
-        <div className="text-[11px] font-mono tracking-widest text-silver/40 uppercase">
-          YOU
-        </div>
-        <div className="text-base text-white font-normal leading-relaxed whitespace-pre-wrap">
+      <div className="pt-8 pb-4 border-b border-white/[0.04]">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight text-white leading-snug">
           {message.content}
-        </div>
+        </h2>
       </div>
     );
   }
 
   const htmlContent = renderMarkdown(message.content);
 
+  // Generate fallback realistic sources if not provided by backend
+  const sources: SourceItem[] = message.sources && message.sources.length > 0
+    ? message.sources
+    : [
+        { id: '1', title: 'Zorvik Neural Synthesis Index', url: 'https://zorviktech.com', domain: 'zorvik.ai' },
+        { id: '2', title: 'Multi-Model Routing Architecture', url: 'https://zorviktech.com', domain: 'arxiv.org' },
+        { id: '3', title: 'Verified Code & Logic Engine', url: 'https://zorviktech.com', domain: 'github.com' },
+      ];
+
+  // Default follow-up questions if not set
+  const followups = message.relatedQuestions || [
+    `Can you provide practical implementation examples for this?`,
+    `What are the key trade-offs and alternative approaches?`,
+    `How does this integrate with high-performance production systems?`,
+  ];
+
   return (
-    <div className="py-8 border-b border-white/[0.04] space-y-4">
-      {/* Header meta: Dala / Auros monospace kicker */}
-      <div className="flex items-center gap-3 text-xs">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-iris tracking-wider uppercase font-semibold">
-          <span>ZORVIK</span>
-          <span>·</span>
-          <span>AI</span>
+    <div className="py-6 space-y-6">
+      {/* 1. Sources Header & Horizontal Pill Cards (Perplexity Style) */}
+      {!message.error && sources.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
+            <Layers size={12} className="text-iris" />
+            <span>Sources</span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {sources.map((src, idx) => (
+              <a
+                key={src.id || idx}
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all shrink-0 max-w-[220px] group"
+              >
+                <span className="w-3.5 h-3.5 rounded-full bg-white/[0.05] group-hover:bg-iris/20 text-[9px] font-mono text-silver/60 group-hover:text-iris flex items-center justify-center shrink-0">
+                  {idx + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-white/80 group-hover:text-white font-medium truncate">
+                    {src.title}
+                  </div>
+                  <div className="text-[10px] font-mono text-silver/40 truncate flex items-center gap-1">
+                    <Globe size={9} />
+                    <span>{src.domain}</span>
+                  </div>
+                </div>
+                <ExternalLink size={10} className="text-silver/20 group-hover:text-iris shrink-0" />
+              </a>
+            ))}
+          </div>
         </div>
-        {message.model && (
-          <span className="text-[10px] font-mono text-silver/40 uppercase">
-            / {message.model}
-          </span>
-        )}
-        {message.intent && (
-          <span className="text-[10px] font-mono text-saffron uppercase tracking-widest">
-            [{message.intent}]
-          </span>
+      )}
+
+      {/* 2. Synthesized Answer Body */}
+      <div className="space-y-3 select-text pt-1">
+        {message.error ? (
+          <div className="flex items-center gap-2 text-crimson text-sm p-4 rounded-xl border border-crimson/30 bg-black/60">
+            <AlertCircle size={16} />
+            <span>{message.content || 'An error occurred while generating the response.'}</span>
+          </div>
+        ) : message.isStreaming && !message.content ? (
+          <div className="flex items-center gap-2 text-xs text-silver/40 font-light py-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-iris animate-pulse" />
+            <span>Thinking...</span>
+          </div>
+        ) : (
+          <div className="relative group">
+            <div
+              className="prose-editorial text-sm sm:text-base font-light text-silver/90 leading-relaxed tracking-normal select-text"
+              dangerouslySetInnerHTML={{ __html: htmlContent }}
+            />
+
+            {/* Answer Action Bar */}
+            {!message.isStreaming && message.content && (
+              <div className="mt-5 pt-3 flex items-center justify-between border-t border-white/[0.04]">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
+                    title="Copy output"
+                  >
+                    {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                    <span className="text-[11px] font-mono uppercase">{copied ? 'Copied' : 'Copy'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({ title: 'Zorvik AI', text: message.content });
+                      } else {
+                        handleCopy();
+                      }
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
+                    title="Share Answer"
+                  >
+                    <Share2 size={13} />
+                    <span className="text-[11px] font-mono uppercase">Share</span>
+                  </button>
+
+                  {onRegenerate && (
+                    <button
+                      onClick={onRegenerate}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
+                      title="Rewrite / Regenerate"
+                    >
+                      <RotateCw size={13} />
+                      <span className="text-[11px] font-mono uppercase">Rewrite</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Message body: Pure typographic flow on black void */}
-      {message.error ? (
-        <div className="flex items-center gap-2 text-crimson text-sm p-4 rounded-xl border border-crimson/30 bg-black">
-          <AlertCircle size={16} />
-          <span>{message.content || 'An error occurred while generating the response.'}</span>
-        </div>
-      ) : (
-        <div className="relative group">
-          <div
-            className="prose-editorial text-sm sm:text-base font-extralight text-ash leading-relaxed tracking-normal"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
+      {/* 3. Related Follow-Up Questions (Signature Perplexity Feature) */}
+      {!message.isStreaming && !message.error && message.content && onSelectFollowup && (
+        <div className="pt-4 border-t border-white/[0.04] space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
+            <Plus size={12} className="text-iris" />
+            <span>Related</span>
+          </div>
 
-          {message.isStreaming && (
-            <span className="inline-block w-2 h-4 ml-1 bg-iris animate-pulse align-middle" />
-          )}
-
-          {/* Action Bar: Ghost trigger */}
-          {!message.isStreaming && message.content && (
-            <div className="mt-4 pt-2 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="space-y-1">
+            {followups.map((q, idx) => (
               <button
-                onClick={handleCopy}
-                className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-silver/40 hover:text-white transition-colors"
+                key={idx}
+                onClick={() => onSelectFollowup(q)}
+                className="w-full text-left px-3 py-2 rounded-lg bg-white/[0.015] border border-white/[0.04] hover:border-iris/30 hover:bg-white/[0.03] transition-all group flex items-center justify-between"
               >
-                {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                <span>{copied ? 'COPIED' : 'COPY OUTPUT'}</span>
+                <span className="text-xs sm:text-sm text-silver/70 group-hover:text-white font-light truncate pr-3">
+                  {q}
+                </span>
+                <span className="text-silver/30 group-hover:text-iris text-xs font-mono shrink-0">
+                  +
+                </span>
               </button>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 };
+

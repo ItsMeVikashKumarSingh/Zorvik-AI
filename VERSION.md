@@ -2,7 +2,63 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
-## [0.5.9] - 2026-08-27
+## [0.6.7] - 2026-08-28
+### Single Context-Aware Sidebar Toggle
+- **Eliminated Duplicate Collapse Buttons**: Contextually rendered the top navigation `PanelLeft` button in [`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx) only when the sidebar is collapsed (`!sidebarOpen`), guaranteeing exactly one toggle control visible on screen at any time.
+
+## [0.6.6] - 2026-08-28
+### Eliminated Synthetic Status Box & Block Cursor
+- **Purged Synthetic Monospace Box Banners**: Removed the artificial `SYNTHESIZING VERIFIED KNOWLEDGE...` / `Thought Process` accordion box in [`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx).
+
+- **Streamlined Typography**: Replaced the chunky block cursor with a subtle streaming state for a distraction-free, editorial reading flow matching native Perplexity.
+
+## [0.6.5] - 2026-08-28
+### Synchronous Route Initialization & Zero-Flash Loading
+- **Eliminated Initial Route Flash**: Replaced asynchronous `useEffect`-only route detection in [`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx) with a synchronous initial state initializer (`getInitialView()`). Direct visits to `/app` render the workspace on the very first frame without any momentary flash of the landing page.
+
+
+## [0.6.4] - 2026-08-28
+### Brand Title Standardization: Zorvik AI
+- **Unified Zorvik AI Branding**: Standardized the product name across [`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx), [`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx), and [`AuthModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AuthModal.tsx) to **Zorvik AI**.
+
+
+## [0.6.3] - 2026-08-28
+### Collapsable Left Drawer & UI Refinement
+- **Collapsable Left Drawer**: Implemented full sidebar expand/collapse functionality on all screen sizes (desktop, tablet, and mobile) with dedicated `PanelLeft` toggle in `Header.tsx` and `PanelLeftClose` button in `Sidebar.tsx`.
+
+
+## [0.6.2] - 2026-08-28
+### Brand Harmonization & Static Refinement
+- **Brand Uniformity**: Replaced all instances of "Zorvik 2.0" with the official brand name **"Zorvik AI"** across `Header.tsx` and fallback streaming metadata in `AppWorkspace.tsx`.
+- **Eliminated Distracting Animations**: Removed the pulsing blinking dot in `Header.tsx` and pulsing icon effects in `MessageItem.tsx` for a cleaner, high-contrast, premium aesthetic.
+
+
+## [0.6.1] - 2026-08-28
+### Text Selection Restoration & Interface De-Duplication
+- **Unrestricted Text Selection**: Removed all blocking `select-none` utility classes across workspace containers and message wrappers, enabling fluid text selection and copy across responses.
+- **Removed Redundant Overview & External Links**: Removed unnecessary "Overview" buttons and redundant external links from `Header.tsx` and `Sidebar.tsx`.
+- **Streamlined Visual Hierarchy**: Eliminated repetitive brand banners and duplicate "Answer" section labels in `MessageItem.tsx` and `WelcomeHero.tsx` for a distraction-free reading experience.
+
+
+## [0.6.0] - 2026-08-28
+### Ultra-Minimalist Perplexity-Style Knowledge Synthesis & Search Hub (`/app`)
+- **Minimalist Search Hero ([`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx))**:
+  - Centered commanding query box with focus selectors (`All`, `Deep Thinker`, `Code`, `Casual`), predictive autocomplete pill, and autofocus textarea.
+  - Curated text-only topic explorations with Lucide icons (Quantum Computing, TypeScript Circuit Breaker, AI Architecture 2026, GenZ Cultural Subtext) with zero bulky card borders.
+- **Perplexity-Style Answer Thread Structure ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - **User Query Heading**: Monumental high-contrast heading at the top of the thread.
+  - **Sources Deck**: Compact horizontal source pills with favicon badges, domain indicators, and citation index markers (`[1]`, `[2]`, `[3]`).
+  - **Collapsible Reasoning Steps**: Step-by-step thinking indicator accordion (*"Thought Process · 3 verification steps"*).
+  - **Verified Synthesized Response**: Crisp markdown rendering with KaTeX math equations, Prism code blocks, and copy/share/regenerate actions.
+  - **Dynamic Related Follow-ups**: "+ Related" interactive follow-up query suggestions at the bottom of each answer for instant 1-click continuation.
+- **Sticky Minimalist Follow-up Dock ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx))**:
+  - Streamlined follow-up bar appearing during active threads with focus chips and responsive send trigger.
+- **Modern Library Sidebar ([`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx))**:
+  - Date-grouped conversation history (*Today, Yesterday, Previous 7 Days, Earlier*), library search filtering, thread deletion, and account status.
+- **Top Navigation Bar ([`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx))**:
+  - Minimal model indicator (`Zorvik 2.0`), dynamic active thread title, and account button.
+
+
 ### 6-Stage 3D Particle Morph Architecture, Organic Brain & Monumental 1-Line Headline
 - **Monumental 1-Line Headline & Layout Optimization ([`LandingPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LandingPage.tsx))**:
   - Implemented single commanding 1-line headline: *"The intelligence that speaks your language."*

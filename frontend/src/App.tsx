@@ -3,27 +3,25 @@ import { LandingPage } from './components/LandingPage';
 import { AppWorkspace } from './components/AppWorkspace';
 import { LegalPage, LegalPageType } from './components/LegalPage';
 
+const getInitialView = (): 'landing' | 'app' | LegalPageType => {
+  if (typeof window === 'undefined') return 'landing';
+  const path = window.location.pathname;
+  if (path === '/app' || path === '/chat' || path.startsWith('/app/')) {
+    return 'app';
+  }
+  if (path === '/privacy') return 'privacy';
+  if (path === '/terms') return 'terms';
+  if (path === '/security') return 'security';
+  return 'landing';
+};
+
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'app' | LegalPageType>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'app' | LegalPageType>(getInitialView);
 
   useEffect(() => {
-    // Check initial route
-    const path = window.location.pathname;
-    if (path === '/app' || path === '/chat' || path.startsWith('/app/')) {
-      setCurrentView('app');
-    } else if (path === '/privacy') {
-      setCurrentView('privacy');
-    } else if (path === '/terms') {
-      setCurrentView('terms');
-    } else if (path === '/security') {
-      setCurrentView('security');
-    } else {
-      setCurrentView('landing');
-    }
-
     const handlePopState = () => {
       const p = window.location.pathname;
-      if (p === '/app' || p === '/chat') {
+      if (p === '/app' || p === '/chat' || p.startsWith('/app/')) {
         setCurrentView('app');
       } else if (p === '/privacy') {
         setCurrentView('privacy');

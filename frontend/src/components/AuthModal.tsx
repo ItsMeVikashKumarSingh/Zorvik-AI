@@ -84,9 +84,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onUserUpd
 
         {/* Brand */}
         <div className="flex items-center gap-1.5 mb-3">
-          <span className="font-semibold tracking-wider text-white text-sm">ZORVIK</span>
-          <span className="text-iris font-mono text-xs">·</span>
-          <span className="text-iris font-mono text-xs uppercase tracking-widest">ACCOUNT</span>
+          <span className="font-semibold tracking-wider text-white text-base">Zorvik AI</span>
         </div>
 
         <p className="text-xs text-silver/70 mb-5 font-light">
