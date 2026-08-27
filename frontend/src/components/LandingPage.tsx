@@ -128,17 +128,17 @@ print(response.content)`,
 
       <main className="relative z-10 flex-1">
         {/* HERO SECTION (Part 1: 3D Volumetric Human on the Right) */}
-        <section className="pt-24 sm:pt-28 pb-20 px-6 sm:px-12 lg:px-16 max-w-[1440px] mx-auto min-h-[85vh] flex items-center" id="hero">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center w-full">
+        <section className="pt-24 sm:pt-28 pb-20 px-6 sm:px-10 lg:px-14 max-w-[1440px] mx-auto min-h-[85vh] flex items-center" id="hero">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center w-full">
             {/* Left Column: Monolithic Heading & Narrative */}
-            <div className="lg:col-span-8 space-y-8">
+            <div className="lg:col-span-7 space-y-6 sm:space-y-8">
               <div className="space-y-4">
                 <div className="overflow-hidden pb-3 sm:pb-4 pt-1">
                   <motion.h1
                     initial="hidden"
                     animate="visible"
                     variants={lineRevealVariants}
-                    className="text-3xl sm:text-5xl md:text-6xl lg:text-[62px] xl:text-[72px] font-normal text-bone-white tracking-monumental leading-[1.12] pb-1"
+                    className="text-3xl sm:text-4xl md:text-5xl lg:text-[44px] xl:text-[54px] 2xl:text-[64px] font-normal text-bone-white tracking-monumental leading-[1.12] pb-1"
                   >
                     The intelligence that speaks your language.
                   </motion.h1>
@@ -149,7 +149,7 @@ print(response.content)`,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.0, delay: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
-                className="text-lg sm:text-xl md:text-2xl text-silver-mist font-extralight max-w-2xl leading-relaxed"
+                className="text-base sm:text-lg md:text-xl text-silver-mist font-extralight max-w-xl leading-relaxed"
               >
                 Built for creators. Engineered for enterprise. Direct factual clarity, native cultural fluency, and rigorous verified logic on demand. Sub-50ms streaming with persistent memory.
               </motion.p>
@@ -158,7 +158,7 @@ print(response.content)`,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.0, delay: 0.45, ease: [0.16, 1, 0.3, 1] as const }}
-                className="pt-4 flex flex-wrap items-center gap-6"
+                className="pt-2 flex flex-wrap items-center gap-5"
               >
                 <button
                   onClick={onLaunchApp}
@@ -179,8 +179,8 @@ print(response.content)`,
               </motion.div>
             </div>
 
-            {/* Right Column: 3D Volumetric Viewport Container */}
-            <div id="hero-anchor" className="hidden lg:flex lg:col-span-4 min-h-[580px] pointer-events-none" />
+            {/* Right Column: 3D Volumetric Viewport Container (5 Columns for generous breathing room) */}
+            <div id="hero-anchor" className="hidden lg:flex lg:col-span-5 min-h-[500px] pointer-events-none" />
           </div>
         </section>
 

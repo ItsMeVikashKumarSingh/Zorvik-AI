@@ -954,8 +954,8 @@ export const ConstellationCanvas: React.FC = () => {
 
       let w1 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0;
       let targetCenterX = heroPos.x;
-      let targetCenterY = heroPos.y;
-      let targetScaleFactor = isMobile ? 1.15 : (heroPos.isVisible ? Math.max(1.3, Math.min(1.85, (heroPos.width / 340) * 1.5)) : 1.68);
+      let targetCenterY = Math.min(height * 0.54, Math.max(height * 0.44, heroPos.y));
+      let targetScaleFactor = isMobile ? 1.15 : (heroPos.isVisible ? Math.max(1.15, Math.min(1.48, (heroPos.width / 380) * 1.35)) : 1.35);
       let stageRotationY = 0;
       let stageRotationX = 0;
 
@@ -982,8 +982,8 @@ export const ConstellationCanvas: React.FC = () => {
         if (viewCenter <= c1) {
           // STAGE 1: HERO (Human in Right Grid Column, pointing Left)
           targetCenterX = heroPos.x;
-          targetCenterY = heroPos.y;
-          targetScaleFactor = Math.max(1.3, Math.min(1.85, (heroPos.width / 340) * 1.5));
+          targetCenterY = Math.min(height * 0.54, Math.max(height * 0.44, heroPos.y));
+          targetScaleFactor = heroPos.isVisible ? Math.max(1.15, Math.min(1.48, (heroPos.width / 380) * 1.35)) : 1.35;
           stageRotationY = Math.sin(tick * 0.3) * 0.04;
           w1 = 1;
         } else if (viewCenter < c2) {
@@ -992,7 +992,7 @@ export const ConstellationCanvas: React.FC = () => {
           const st = t * t * (3 - 2 * t);
           targetCenterX = heroPos.x + st * (featPos.x - heroPos.x);
           targetCenterY = heroPos.y + st * (featPos.y - heroPos.y);
-          targetScaleFactor = Math.max(1.3, Math.min(1.85, (heroPos.width / 340) * 1.5));
+          targetScaleFactor = heroPos.isVisible ? Math.max(1.15, Math.min(1.48, (heroPos.width / 380) * 1.35)) : 1.35;
           stageRotationY = st * Math.PI + Math.sin(tick * 0.3) * 0.04;
           w1 = 1;
         } else if (viewCenter < c3) {
@@ -1000,8 +1000,8 @@ export const ConstellationCanvas: React.FC = () => {
           const rawT = (viewCenter - c2) / (c3 - c2);
           if (rawT < 0.40) {
             targetCenterX = featPos.x;
-            targetCenterY = featPos.y;
-            targetScaleFactor = Math.max(1.3, Math.min(1.85, (featPos.width / 340) * 1.5));
+            targetCenterY = Math.min(height * 0.54, Math.max(height * 0.44, featPos.y));
+            targetScaleFactor = featPos.isVisible ? Math.max(1.15, Math.min(1.48, (featPos.width / 380) * 1.35)) : 1.35;
             stageRotationY = Math.PI + Math.sin(tick * 0.3) * 0.04;
             w1 = 1;
           } else {
