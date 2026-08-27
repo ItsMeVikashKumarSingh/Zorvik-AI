@@ -5,8 +5,6 @@ import { Zap, Sparkles, Brain, Layers, Check, Copy } from 'lucide-react';
 interface IntelligenceMode {
   id: 'concise' | 'genz' | 'engineering' | 'combined';
   label: string;
-  badge: string;
-  badgeColor: string;
   icon: React.ReactNode;
   userPrompt: string;
   aiResponse: string;
@@ -17,8 +15,6 @@ const MODES: IntelligenceMode[] = [
   {
     id: 'concise',
     label: 'To The Point',
-    badge: 'DIRECT · ZERO FLUFF',
-    badgeColor: 'text-cyan bg-cyan/10 border-cyan/30',
     icon: <Zap size={15} className="text-cyan" />,
     userPrompt: 'What is a zero-knowledge proof in the simplest terms?',
     aiResponse: 'A cryptographic method where one party proves to another that a statement is true, without revealing any secret information beyond the validity itself.',
@@ -27,18 +23,19 @@ const MODES: IntelligenceMode[] = [
   {
     id: 'genz',
     label: 'Gen Z Slang & Emojis',
-    badge: 'NATIVE CULTURAL FLUENCY',
-    badgeColor: 'text-saffron-spark bg-saffron-spark/10 border-saffron-spark/30',
     icon: <Sparkles size={15} className="text-saffron-spark" />,
-    userPrompt: 'bro really pushed to master on friday 5pm with no tests and went offline 💀💅',
-    aiResponse: "nah that's actually generational criminal behavior lowkey 😭🙏 blud left a live hand grenade in production and went into witness protection. one unhandled promise rejection and the whole company's weekend is permanently cooked on god 🍳💀",
+    userPrompt: "it's 11:55 PM, my 10-page research paper is due at 11:59, and my document is completely blank. am i cooked blud 😭💀",
+    aiResponse: `nah we're about to pull off the most generational finesse of all time fr 😭💀
+
+1. Take any random image on your desktop, rename it to 'Final_Paper.pdf', and submit it right now so Canvas registers an on-time corrupted file error 💀
+2. Drop the rubric here and go to sleep. I'll cook the entire 10-page paper with Harvard citations overnight.
+
+Wake up at 8 AM, act furious at Adobe Acrobat, and email the professor 'so sorry the portal glitched!' with infinite aura on god 😭🙏`,
     highlights: [],
   },
   {
     id: 'engineering',
     label: 'Complex Engineering',
-    badge: 'RATIONALE & VERIFIED CODE',
-    badgeColor: 'text-electric-iris bg-electric-iris/10 border-electric-iris/30',
     icon: <Brain size={15} className="text-electric-iris" />,
     userPrompt: 'Implement a high-performance token bucket rate limiter in TypeScript with sliding expiration.',
     aiResponse: `\`\`\`typescript
@@ -81,8 +78,6 @@ export class TokenBucketLimiter {
   {
     id: 'combined',
     label: 'Combined (Hybrid Synthesis)',
-    badge: 'WIT + COMPLEX LOGIC',
-    badgeColor: 'text-deep-verdant bg-deep-verdant/10 border-deep-verdant/30',
     icon: <Layers size={15} className="text-deep-verdant" />,
     userPrompt: 'Our database queries take 14 seconds and our team lead is having a breakdown 😭',
     aiResponse: `Not the full table scan doing cardio across 2 million unindexed rows 💀 blud is executing nested loops on every join like it's 1999.
@@ -159,48 +154,38 @@ export const GenZSimulator: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="rounded-2xl bg-void/80 border border-white/[0.08] backdrop-blur-xl overflow-hidden shadow-2xl"
+          className="rounded-2xl bg-void/80 border border-white/[0.08] backdrop-blur-xl overflow-hidden shadow-2xl p-6 sm:p-8 space-y-6"
         >
-          {/* Card Top Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
-            <div className="flex items-center gap-3">
-              <span className={`px-2.5 py-1 rounded-full text-[11px] font-mono tracking-wider uppercase border font-semibold ${activeMode.badgeColor}`}>
-                {activeMode.badge}
-              </span>
-            </div>
+          {/* User Prompt */}
+          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1.5">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-ash-gray font-semibold">
+              USER PROMPT
+            </span>
+            <p className="text-base text-bone-white font-normal">
+              "{activeMode.userPrompt}"
+            </p>
+          </div>
 
-            <div className="flex items-center gap-4">
+          {/* AI Response Output */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-electric-iris font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-electric-iris" />
+                <span>ZORVIK AI RESPONSE</span>
+              </div>
+
               <button
                 onClick={handleCopy}
                 className="flex items-center gap-1.5 text-xs font-mono text-ash-gray hover:text-bone-white transition-colors cursor-pointer"
                 title="Copy response"
               >
-                {copied ? <Check size={14} className="text-electric-iris" /> : <Copy size={14} />}
+                {copied ? <Check size={13} className="text-electric-iris" /> : <Copy size={13} />}
                 <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
-          </div>
 
-          <div className="p-6 sm:p-8 space-y-6">
-            {/* User Prompt */}
-            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1.5">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-ash-gray font-semibold">
-                USER PROMPT
-              </span>
-              <p className="text-base text-bone-white font-normal">
-                "{activeMode.userPrompt}"
-              </p>
-            </div>
-
-            {/* AI Response Output */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-electric-iris font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-electric-iris" />
-                <span>ZORVIK AI RESPONSE</span>
-              </div>
-              <div className="p-5 rounded-xl bg-void border border-white/[0.06] text-sm text-silver-mist font-mono leading-relaxed whitespace-pre-wrap">
-                {activeMode.aiResponse}
-              </div>
+            <div className="p-5 rounded-xl bg-void border border-white/[0.06] text-sm text-silver-mist font-mono leading-relaxed whitespace-pre-wrap">
+              {activeMode.aiResponse}
             </div>
           </div>
         </motion.div>

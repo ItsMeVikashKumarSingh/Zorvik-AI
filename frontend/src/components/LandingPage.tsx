@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ConstellationCanvas } from './ConstellationCanvas';
 import { GenZSimulator } from './GenZSimulator';
-import { Check, Copy, ExternalLink } from 'lucide-react';
+import { LegalModal, LegalTab } from './LegalModal';
+import { Check, Copy, ExternalLink, Github, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 
 interface LandingPageProps {
   onLaunchApp: () => void;
+  onNavigateLegal?: (type: 'privacy' | 'terms' | 'security') => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp, onNavigateLegal }) => {
   const [activeCodeTab, setActiveCodeTab] = useState<'curl' | 'js' | 'python'>('curl');
   const [copied, setCopied] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
 
   const codeSnippets = {
     curl: `curl -X POST https://ai.zorviktech.com/api/v1/chat \\
@@ -125,37 +128,19 @@ print(response.content)`,
 
       <main className="relative z-10 flex-1">
         {/* HERO SECTION (Part 1: 3D Volumetric Human on the Right) */}
-        <section className="pt-24 sm:pt-28 pb-20 px-6 sm:px-12 max-w-7xl mx-auto min-h-[85vh] flex items-center" id="hero">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-6 items-center w-full">
+        <section className="pt-24 sm:pt-28 pb-20 px-6 sm:px-12 lg:px-16 max-w-[1440px] mx-auto min-h-[85vh] flex items-center" id="hero">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center w-full">
             {/* Left Column: Monolithic Heading & Narrative */}
-            <div className="lg:col-span-7 space-y-8">
-              <div className="space-y-1">
-                <div className="overflow-hidden">
+            <div className="lg:col-span-8 space-y-8">
+              <div className="space-y-4">
+                <div className="overflow-hidden pb-3 sm:pb-4 pt-1">
                   <motion.h1
                     initial="hidden"
                     animate="visible"
                     variants={lineRevealVariants}
-                    className="text-5xl sm:text-7xl md:text-8xl lg:text-[92px] font-normal text-bone-white tracking-monumental leading-[0.94]"
+                    className="text-3xl sm:text-5xl md:text-6xl lg:text-[62px] xl:text-[72px] font-normal text-bone-white tracking-monumental leading-[1.12] pb-1"
                   >
-                    Your workplace has the answer.
-                  </motion.h1>
-                </div>
-                <div className="overflow-hidden">
-                  <motion.h1
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                      hidden: { y: '110%', rotate: 4, opacity: 0 },
-                      visible: {
-                        y: '0%',
-                        rotate: 0,
-                        opacity: 1,
-                        transition: { duration: 1.1, delay: 0.1, ease: [0.16, 1, 0.3, 1] as const },
-                      },
-                    }}
-                    className="text-5xl sm:text-7xl md:text-8xl lg:text-[92px] font-normal text-silver-mist tracking-monumental leading-[0.94]"
-                  >
-                    Just ask Zorvik for it.
+                    The intelligence that speaks your language.
                   </motion.h1>
                 </div>
               </div>
@@ -164,9 +149,9 @@ print(response.content)`,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.0, delay: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
-                className="text-xl sm:text-2xl text-silver-mist font-extralight max-w-2xl leading-relaxed"
+                className="text-lg sm:text-xl md:text-2xl text-silver-mist font-extralight max-w-2xl leading-relaxed"
               >
-                Distributed intelligence visualized as living knowledge. Autonomous multi-model reasoning, sub-50ms instant streaming, and deep neural memory—crafted on black velvet.
+                Built for creators. Engineered for enterprise. Direct factual clarity, native cultural fluency, and rigorous verified logic on demand. Sub-50ms streaming with persistent memory.
               </motion.p>
 
               <motion.div
@@ -195,7 +180,7 @@ print(response.content)`,
             </div>
 
             {/* Right Column: 3D Volumetric Viewport Container */}
-            <div className="hidden lg:flex lg:col-span-5 min-h-[580px] pointer-events-none" />
+            <div className="hidden lg:flex lg:col-span-4 min-h-[580px] pointer-events-none" />
           </div>
         </section>
 
@@ -203,17 +188,17 @@ print(response.content)`,
         <section id="features" className="py-32 px-6 sm:px-12 border-t border-white/[0.04] max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             {/* Left Column: 3D Viewport space where human has walked and points Right */}
-            <div className="hidden lg:flex lg:col-span-5 min-h-[520px] pointer-events-none" />
+            <div className="hidden lg:flex lg:col-span-4 min-h-[520px] pointer-events-none" />
 
             {/* Right Column: Capabilities Narrative & Matrix */}
-            <div className="lg:col-span-7 space-y-8">
+            <div className="lg:col-span-8 space-y-8">
               <div className="space-y-4">
                 <h2 className="text-4xl sm:text-5xl lg:text-6xl font-normal text-bone-white tracking-monumental leading-[1.02]">
                   Instant response. <br />
                   <span className="text-silver-mist">Zero friction. Infinite depth.</span>
                 </h2>
                 <p className="text-lg text-silver-mist font-extralight leading-relaxed">
-                  Built from the ground up for modern individuals, creators, and developers seeking immediate answers without bloated interfaces.
+                  Built from the ground up for modern creators, builders, and developers seeking immediate answers without bloated interfaces.
                 </p>
               </div>
 
@@ -232,7 +217,7 @@ print(response.content)`,
                     Autonomous Reasoning
                   </div>
                   <p className="text-base text-silver-mist font-extralight leading-relaxed">
-                    Intelligently adapts to your prompt's depth—executing quick factual summaries or multi-step logic proofs automatically.
+                    Intelligently adapts to your prompt depth, executing quick factual summaries or multi-step logic proofs automatically.
                   </p>
                 </div>
 
@@ -400,8 +385,8 @@ print(response.content)`,
           </div>
         </section>
 
-        {/* SECTION 6: THE CATHEDRAL VELVET CTA (Stage 5: Exact 3D Circuit-Traced Zorvik AI Logo) */}
-        <section className="py-36 border-t border-white/[0.04] px-6 sm:px-12 text-center max-w-4xl mx-auto relative">
+        {/* SECTION 6: THE CATHEDRAL VELVET CTA (3D Volumetric Neural Mind Centerpiece) */}
+        <section id="cta" className="pt-52 pb-36 border-t border-white/[0.04] px-6 sm:px-12 text-center max-w-4xl mx-auto relative">
           {/* Top-Right & Bottom-Left Decorative Circuit SVG Lines matching the Logo Card */}
           <div className="absolute top-8 right-8 w-28 h-28 pointer-events-none opacity-20 hidden md:block">
             <svg viewBox="0 0 100 100" fill="none" stroke="#22d3ee" strokeWidth="1.5">
@@ -438,40 +423,185 @@ print(response.content)`,
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 py-16 px-6 sm:px-12 border-t border-white/[0.04] text-xs font-mono text-ash-gray bg-void/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-bone-white text-sm">ZORVIK ΛI</span>
-              <span>·</span>
-              <span className="text-saffron-spark">Answers on Demand.</span>
-            </div>
-            <p className="text-silver-mist/60 font-extralight max-w-md">
-              Autonomous intelligence platform and enterprise solution. Built by Team Zorvik for speed, depth, and reliability.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-8 text-ash-gray">
-            <a href="https://zorviktech.com" target="_blank" rel="noopener noreferrer" className="hover:text-bone-white transition-colors">
-              Zorvik Tech Home
-            </a>
-            <a href="https://zorviktech.com/contact" target="_blank" rel="noopener noreferrer" className="hover:text-bone-white transition-colors">
-              Contact Enterprise Team
-            </a>
-            <a href="https://zorviktech.com/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-bone-white transition-colors">
-              Privacy
-            </a>
-            <a href="https://zorviktech.com/terms" target="_blank" rel="noopener noreferrer" className="hover:text-bone-white transition-colors">
-              Terms
-            </a>
-          </div>
+      {/* FOOTER (Liquid-Glass Theme) */}
+      <footer className="relative z-20 mx-4 md:mx-8 overflow-hidden rounded-t-[40px] border border-white/[0.08] bg-void/80 backdrop-blur-2xl pt-16 pb-10 shadow-2xl">
+        {/* Ambient subtle violet & cyan glow */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute bottom-0 left-1/2 h-[220px] w-[450px] -translate-x-1/2 rounded-full bg-electric-iris/8 blur-[100px]" />
+          <div className="absolute top-0 right-1/4 h-[150px] w-[300px] rounded-full bg-cyan/5 blur-[90px]" />
         </div>
 
-        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-white/[0.04] text-silver-mist/40">
-          © 2026 Zorvik Tech. All rights reserved.
+        <div className="relative z-10 mx-auto max-w-7xl px-6 sm:px-10">
+          <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
+            {/* 1. Brand & Socials */}
+            <div className="space-y-4 lg:col-span-1">
+              <div className="flex items-center gap-3">
+                <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-void">
+                  <img src="/zorvik-logo.jpg" alt="Zorvik Logo" className="h-full w-full object-cover" />
+                </div>
+                <span className="font-mono text-base font-bold tracking-tight text-bone-white">
+                  ZORVIK <span className="text-saffron-spark font-light">ΛI</span>
+                </span>
+              </div>
+              <p className="text-xs text-silver-mist/70 font-extralight leading-relaxed max-w-xs">
+                The intelligence that speaks your language. Autonomous reasoning, cultural fluency, and enterprise speed on demand.
+              </p>
+
+              {/* Social Buttons */}
+              <div className="flex items-center gap-2 pt-2">
+                <a
+                  href="https://github.com/zorvik-tech"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.03] text-ash-gray hover:text-bone-white hover:border-electric-iris/40 hover:bg-electric-iris/10 transition-all"
+                  aria-label="GitHub"
+                >
+                  <Github size={13} />
+                </a>
+                <a
+                  href="https://twitter.com/zorviktech"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.03] text-ash-gray hover:text-bone-white hover:border-cyan/40 hover:bg-cyan/10 transition-all"
+                  aria-label="Twitter"
+                >
+                  <Twitter size={13} />
+                </a>
+                <a
+                  href="https://linkedin.com/company/zorvik-tech"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.03] text-ash-gray hover:text-bone-white hover:border-electric-iris/40 hover:bg-electric-iris/10 transition-all"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin size={13} />
+                </a>
+                <a
+                  href="https://instagram.com/zorviktech"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.03] text-ash-gray hover:text-bone-white hover:border-saffron-spark/40 hover:bg-saffron-spark/10 transition-all"
+                  aria-label="Instagram"
+                >
+                  <Instagram size={13} />
+                </a>
+              </div>
+            </div>
+
+            {/* 2. Platform Capabilities */}
+            <div>
+              <h4 className="mb-4 font-mono text-xs font-semibold tracking-wider uppercase text-bone-white">
+                Capabilities
+              </h4>
+              <ul className="space-y-2.5 text-xs text-silver-mist/75 font-extralight">
+                <li>
+                  <button onClick={onLaunchApp} className="hover:text-bone-white transition-colors cursor-pointer text-left">
+                    Launch Workspace
+                  </button>
+                </li>
+                <li>
+                  <a href="#features" className="hover:text-bone-white transition-colors">
+                    Core Intelligence
+                  </a>
+                </li>
+                <li>
+                  <a href="#memory" className="hover:text-bone-white transition-colors">
+                    Persistent Memory
+                  </a>
+                </li>
+                <li>
+                  <a href="#enterprise" className="hover:text-bone-white transition-colors">
+                    Developer API
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* 3. Governance & Legal (Independent Platform Policies) */}
+            <div>
+              <h4 className="mb-4 font-mono text-xs font-semibold tracking-wider uppercase text-bone-white">
+                Governance
+              </h4>
+              <ul className="space-y-2.5 text-xs text-silver-mist/75 font-extralight">
+                <li>
+                  <button
+                    onClick={() => onNavigateLegal ? onNavigateLegal('privacy') : setLegalModalTab('privacy')}
+                    className="hover:text-bone-white transition-colors cursor-pointer text-left"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onNavigateLegal ? onNavigateLegal('terms') : setLegalModalTab('terms')}
+                    className="hover:text-bone-white transition-colors cursor-pointer text-left"
+                  >
+                    Terms of Service
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onNavigateLegal ? onNavigateLegal('security') : setLegalModalTab('security')}
+                    className="hover:text-bone-white transition-colors cursor-pointer text-left"
+                  >
+                    Security Architecture
+                  </button>
+                </li>
+                <li>
+                  <a href="https://zorvik.tech" target="_blank" rel="noopener noreferrer" className="hover:text-bone-white transition-colors inline-flex items-center gap-1">
+                    Zorvik Tech <ExternalLink size={10} className="text-ash-gray" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* 4. Direct Contact */}
+            <div>
+              <h4 className="mb-4 font-mono text-xs font-semibold tracking-wider uppercase text-bone-white">
+                Direct Contact
+              </h4>
+              <ul className="space-y-3 text-xs text-silver-mist/75 font-extralight">
+                <li className="flex items-center gap-2.5">
+                  <Mail size={14} className="text-cyan shrink-0" />
+                  <a href="mailto:hello@zorviktech.com" className="hover:text-bone-white transition-colors">
+                    hello@zorviktech.com
+                  </a>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Phone size={14} className="text-cyan shrink-0" />
+                  <a href="tel:+918409792083" className="hover:text-bone-white transition-colors">
+                    +918409792083
+                  </a>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <MapPin size={14} className="text-cyan shrink-0 mt-0.5" />
+                  <span className="leading-snug">Sherpur Bahori, Mahua, Vaishali, Bihar</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/[0.06] pt-6 font-mono text-[10px] text-ash-gray">
+            <p>© {new Date().getFullYear()} ZORVIK TECH. ALL RIGHTS RESERVED.</p>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                SYSTEMS OPERATIONAL
+              </span>
+              <span className="text-white/20">·</span>
+              <span>EST. 2024</span>
+            </div>
+          </div>
         </div>
       </footer>
+
+      {/* Standalone Independent Legal Modal */}
+      <LegalModal
+        isOpen={legalModalTab !== null}
+        initialTab={legalModalTab || 'privacy'}
+        onClose={() => setLegalModalTab(null)}
+      />
     </div>
   );
 };

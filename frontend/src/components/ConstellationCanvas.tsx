@@ -53,24 +53,29 @@ export const ConstellationCanvas: React.FC = () => {
       s2X: number;
       s2Y: number;
       s2Z: number;
-      // Stage 3: Particle Collision Stream & Singularity
+      // Stage 3: Deep Memory (Organic 3D Anatomical Human Brain)
       s3X: number;
       s3Y: number;
       s3Z: number;
       s3Phase: number;
-      // Stage 4: 3D Handshake
+      // Stage 4: Intelligence (3D Quantum Multi-Model Gyroscope)
       s4X: number;
       s4Y: number;
       s4Z: number;
-      // Stage 5: Exact Circuit-Traced Zorvik AI Logo
+      // Stage 5: Enterprise API (3D High-Throughput Stream Pipeline)
       s5X: number;
       s5Y: number;
       s5Z: number;
+      // Stage 6: Cathedral CTA (3D Circuit-Traced Zorvik Monolith)
+      s6X: number;
+      s6Y: number;
+      s6Z: number;
 
       color: string;
       s3Color: string;
       s4Color: string;
       s5Color: string;
+      s6Color: string;
       size: number;
       isSpark: boolean;
       isBrainCore?: boolean;
@@ -84,7 +89,7 @@ export const ConstellationCanvas: React.FC = () => {
       i2: number;
       color?: string;
       isRing?: boolean;
-      stageMask?: number; // Bitmask for which stages edge is active
+      stageMask?: number;
     }
 
     const nodes: AnatomicalNode[] = [];
@@ -117,10 +122,14 @@ export const ConstellationCanvas: React.FC = () => {
         s5X: 0,
         s5Y: 0,
         s5Z: 0,
+        s6X: 0,
+        s6Y: 0,
+        s6Z: 0,
         color,
         s3Color: '#22d3ee',
         s4Color: '#8052ff',
-        s5Color: '#ffb829',
+        s5Color: '#22d3ee',
+        s6Color: '#ffb829',
         size,
         isSpark,
         isBrainCore,
@@ -283,13 +292,22 @@ export const ConstellationCanvas: React.FC = () => {
     // -------------------------------------------------------------------------
     // 4. ARMS & HANDS (Stage 1 Left Pointing vs Stage 2 Right Pointing)
     // -------------------------------------------------------------------------
-    // Left Arm (Stage 1: Sharply extended to Left pointing at hero headline)
+    // Left Arm (Stage 1: Sharply extended to Left pointing at hero headline; Stage 2: Relaxed at side)
     const armDefsL = [
       { y: -78, x: -12, z: 32, rx: 6.5, rz: 6.5 },
       { y: -68, x: -28, z: 28, rx: 5.8, rz: 5.8 },
       { y: -58, x: -44, z: 24, rx: 5.2, rz: 5.2 },
       { y: -50, x: -62, z: 20, rx: 4.6, rz: 4.6 },
       { y: -44, x: -80, z: 16, rx: 3.8, rz: 3.8 },
+    ];
+
+    // Stage 2 Relaxed positions for Left Arm
+    const armDefsL_Stage2 = [
+      { y: -76, x: -2, z: 34, rx: 6.5, rz: 6.5 },
+      { y: -62, x: -7, z: 35, rx: 5.8, rz: 5.8 },
+      { y: -48, x: -12, z: 33, rx: 5.2, rz: 5.2 },
+      { y: -34, x: -17, z: 30, rx: 4.6, rz: 4.6 },
+      { y: -20, x: -21, z: 27, rx: 3.8, rz: 3.8 },
     ];
 
     let prevArmRingL: number[] | null = null;
@@ -310,13 +328,22 @@ export const ConstellationCanvas: React.FC = () => {
     addEdge(handL, indexTipL);
     addEdge(handL, thumbTipL);
 
-    // Right Arm (Stage 1 relaxed at side, Stage 2 extended to Right pointing)
+    // Right Arm (Stage 1: Relaxed at side; Stage 2: Sharply extended to Right pointing at capabilities)
     const armDefsR = [
       { y: -76, x: 2, z: -34, rx: 6.5, rz: 6.5 },
       { y: -62, x: 7, z: -35, rx: 5.8, rz: 5.8 },
       { y: -48, x: 12, z: -33, rx: 5.2, rz: 5.2 },
       { y: -34, x: 17, z: -30, rx: 4.6, rz: 4.6 },
       { y: -20, x: 21, z: -27, rx: 3.8, rz: 3.8 },
+    ];
+
+    // Stage 2 Extended positions for Right Arm
+    const armDefsR_Stage2 = [
+      { y: -78, x: 12, z: -32, rx: 6.5, rz: 6.5 },
+      { y: -68, x: 28, z: -28, rx: 5.8, rz: 5.8 },
+      { y: -58, x: 44, z: -24, rx: 5.2, rz: 5.2 },
+      { y: -50, x: 62, z: -20, rx: 4.6, rz: 4.6 },
+      { y: -44, x: 80, z: -16, rx: 3.8, rz: 3.8 },
     ];
 
     let prevArmRingR: number[] | null = null;
@@ -391,8 +418,57 @@ export const ConstellationCanvas: React.FC = () => {
     }
     addEdge(heelR, toeR);
 
-    // Fill surface density
+    // Initialize base nodes' s2 positions
     const baseNodeCount = nodes.length;
+    for (let i = 0; i < baseNodeCount; i++) {
+      nodes[i].s2X = nodes[i].s1X;
+      nodes[i].s2Y = nodes[i].s1Y;
+      nodes[i].s2Z = nodes[i].s1Z;
+    }
+
+    // Apply Stage 2 Left Arm Morph (Relaxes at side)
+    for (let r = 0; r < armRingsL.length; r++) {
+      const ring = armRingsL[r];
+      const ad = armDefsL_Stage2[r];
+      for (let s = 0; s < ring.length; s++) {
+        const theta = (s / ring.length) * Math.PI * 2;
+        nodes[ring[s]].s2X = ad.x + Math.cos(theta) * ad.rx;
+        nodes[ring[s]].s2Y = ad.y;
+        nodes[ring[s]].s2Z = ad.z + Math.sin(theta) * ad.rz;
+      }
+    }
+    nodes[handL].s2X = -26;
+    nodes[handL].s2Y = -9;
+    nodes[handL].s2Z = 25;
+
+    nodes[indexTipL].s2X = -32;
+    nodes[indexTipL].s2Y = -1;
+    nodes[indexTipL].s2Z = 24;
+
+    nodes[thumbTipL].s2X = -24;
+    nodes[thumbTipL].s2Y = -12;
+    nodes[thumbTipL].s2Z = 28;
+
+    // Apply Stage 2 Right Arm Morph (Sharply points rightwards at features)
+    for (let r = 0; r < armRingsR.length; r++) {
+      const ring = armRingsR[r];
+      const ad = armDefsR_Stage2[r];
+      for (let s = 0; s < ring.length; s++) {
+        const theta = (s / ring.length) * Math.PI * 2;
+        nodes[ring[s]].s2X = ad.x + Math.cos(theta) * ad.rx;
+        nodes[ring[s]].s2Y = ad.y;
+        nodes[ring[s]].s2Z = ad.z + Math.sin(theta) * ad.rz;
+      }
+    }
+    nodes[handR].s2X = 92;
+    nodes[handR].s2Y = -40;
+    nodes[handR].s2Z = -14;
+
+    nodes[fingersR].s2X = 114; // Crisp extended pointer index finger
+    nodes[fingersR].s2Y = -36;
+    nodes[fingersR].s2Z = -12;
+
+    // Fill surface density (Interpolating both Stage 1 and Stage 2 positions)
     const TOTAL_TARGET = 520;
     for (let i = baseNodeCount; i < TOTAL_TARGET; i++) {
       const randEdge = edges[i % edges.length];
@@ -407,206 +483,285 @@ export const ConstellationCanvas: React.FC = () => {
       const hY = (1 - t) * n1.s1Y + t * n2.s1Y + jy;
       const hZ = (1 - t) * n1.s1Z + t * n2.s1Z + jz;
 
+      const s2X = (1 - t) * n1.s2X + t * n2.s2X + jx;
+      const s2Y = (1 - t) * n1.s2Y + t * n2.s2Y + jy;
+      const s2Z = (1 - t) * n1.s2Z + t * n2.s2Z + jz;
+
       const isSpk = Math.random() < 0.22;
       const col = isSpk ? '#ffb829' : chromaticColors[i % chromaticColors.length];
-      addNode(hX, hY, hZ, col, isSpk, isSpk ? 2.3 : 1.6);
+      const idx = addNode(hX, hY, hZ, col, isSpk, isSpk ? 2.3 : 1.6);
+      nodes[idx].s2X = s2X;
+      nodes[idx].s2Y = s2Y;
+      nodes[idx].s2Z = s2Z;
     }
 
     const TOTAL_NODES = nodes.length;
 
     // -------------------------------------------------------------------------
-    // STAGE 2 MAPPING: Human Walks to Left & Right Arm Points Right
+    // STAGE 3 MAPPING: ORGANIC 3D ANATOMICAL HUMAN BRAIN (Deep Memory)
+    // Continuous cortical gyral surface, deep sagittal fissure, temporal lobes,
+    // cerebellum & brainstem.
     // -------------------------------------------------------------------------
-    for (let i = 0; i < TOTAL_NODES; i++) {
-      const n = nodes[i];
-      // Invert arm pointing kinematics in Stage 2: Right arm points right, left arm relaxes
-      if (i === indexTipL || i === handL || i === thumbTipL) {
-        n.s2X = -22 + (Math.random() - 0.5) * 6;
-        n.s2Y = -12 + (Math.random() - 0.5) * 6;
-        n.s2Z = 18;
-      } else if (i === fingersR || i === handR) {
-        n.s2X = 112; // Pointing Right
-        n.s2Y = -38;
-        n.s2Z = -12;
-      } else {
-        n.s2X = n.s1X;
-        n.s2Y = n.s1Y;
-        n.s2Z = n.s1Z;
-      }
+    const edgesBrain: { i1: number; i2: number; color?: string }[] = [];
+    const cerebrumCount = Math.floor(TOTAL_NODES * 0.76);
+
+    for (let i = 0; i < cerebrumCount; i++) {
+      const isLeft = i % 2 === 0;
+      const hemiSign = isLeft ? -1 : 1;
+      const hemiIdx = Math.floor(i / 2);
+      const hemiTotal = Math.floor(cerebrumCount / 2);
+
+      const phi = Math.acos(1 - 2 * (hemiIdx / hemiTotal));
+      const theta = Math.PI * (1 + Math.sqrt(5)) * hemiIdx;
+
+      // Biological cortical gyri & sulci convoluted fold harmonics
+      const gyri = 1 + 0.16 * Math.sin(8 * theta + 2 * phi) * Math.cos(5 * phi) + 0.08 * Math.cos(12 * theta);
+      
+      const isFrontal = Math.sin(theta) > 0;
+      const frontScale = isFrontal ? 1.14 : 0.94;
+      const isTemporal = phi > 1.6 && phi < 2.5;
+      const tempScale = isTemporal ? 1.20 : 1.0;
+
+      const rx = 54 * gyri * tempScale;
+      const ry = 46 * gyri;
+      const rz = 68 * gyri * frontScale;
+
+      const fissureGap = 7.0;
+      const rawX = Math.abs(Math.sin(phi) * Math.cos(theta)) * rx;
+      const brainX = hemiSign * (fissureGap + rawX);
+      const brainY = -12 + Math.cos(phi) * ry;
+      const brainZ = Math.sin(phi) * Math.sin(theta) * rz;
+
+      nodes[i].s3X = brainX;
+      nodes[i].s3Y = brainY;
+      nodes[i].s3Z = brainZ;
+      nodes[i].s3Color = isLeft ? '#22d3ee' : '#8b5cf6';
+      nodes[i].s3Phase = (i * 0.42) % (Math.PI * 2);
     }
 
-    // -------------------------------------------------------------------------
-    // STAGE 3 MAPPING: 3D DUAL-LOBE NEURAL CORE & QUANTUM MEMORY ORB
-    // (Referencing flagship neural brain constellation from index.html)
-    // Fibonacci distribution with organic dual-lobe brain contour modulation
-    // -------------------------------------------------------------------------
-    for (let i = 0; i < TOTAL_NODES; i++) {
-      const phi = Math.acos(1 - (2 * (i + 0.5)) / TOTAL_NODES);
-      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+    // Cerebellum: 2 distinct sub-occipital lobes
+    const cbStart = cerebrumCount;
+    const cbCount = Math.floor(TOTAL_NODES * 0.12);
+    for (let i = cbStart; i < cbStart + cbCount; i++) {
+      const isLeft = i % 2 === 0;
+      const hemiSign = isLeft ? -1 : 1;
+      const cbIdx = i - cbStart;
+      const phi = Math.acos(1 - 2 * (cbIdx / cbCount));
+      const theta = Math.PI * (1 + Math.sqrt(5)) * cbIdx;
 
-      // Organic dual-lobe brain contour modulation
-      const lobeWarp = 1 + 0.16 * Math.sin(phi * 3) * Math.cos(theta * 2);
-      const depthJitter = 0.88 + ((i * 13) % 100) * 0.0024;
-      const r = 105 * lobeWarp * depthJitter;
+      const cbX = hemiSign * (16 + Math.abs(Math.sin(phi) * Math.cos(theta)) * 20);
+      const cbY = 22 + Math.cos(phi) * 16;
+      const cbZ = -44 + Math.sin(phi) * Math.sin(theta) * 20;
 
-      nodes[i].s3X = r * Math.sin(phi) * Math.cos(theta);
-      nodes[i].s3Y = r * Math.cos(phi);
-      nodes[i].s3Z = r * Math.sin(phi) * Math.sin(theta);
-      nodes[i].s3Color = chromaticColors[i % chromaticColors.length];
+      nodes[i].s3X = cbX;
+      nodes[i].s3Y = cbY;
+      nodes[i].s3Z = cbZ;
+      nodes[i].s3Color = '#a855f7';
+      nodes[i].s3Phase = (i * 0.5) % (Math.PI * 2);
     }
 
-    // -------------------------------------------------------------------------
-    // STAGE 4 MAPPING: REALISTIC 3D VOLUMETRIC CYBER HANDSHAKE
-    // Left Cyber Hand (Cyan #22d3ee) & Right Cyber Hand (Gold #ffb829)
-    // meeting, interlocking, and clasping firmly in 3D perspective
-    // -------------------------------------------------------------------------
-    // -------------------------------------------------------------------------
-    // STAGE 4 MAPPING: REALISTIC 3D ANATOMICAL HUMAN HANDSHAKE
-    // -------------------------------------------------------------------------
-    // STAGE 4 MAPPING: TRUE 3D VOLUMETRIC POINT-CLOUD HUMAN HANDSHAKE
-    // Left Hand (Cyan #22d3ee) & Right Hand (Gold #ffb829)
-    // Completely organic 3D particle volume (No artificial circles or cages):
-    // 1. Solid Tapering Forearm (50 particles)
-    // 2. Anatomical Palm Body & Thenar Pad (60 particles)
-    // 3. 5 Volumetric Fingers (Thumb + 4 Fingers, 30 particles each = 150 particles)
-    // -------------------------------------------------------------------------
-    for (let i = 0; i < TOTAL_NODES; i++) {
-      const isLeft = i < TOTAL_NODES / 2;
-      const subIdx = i % (TOTAL_NODES / 2); // 0 to 259
-      const side = isLeft ? -1 : 1;
-      const armColor = isLeft ? '#22d3ee' : '#ffb829';
+    // Brainstem: Descending cylinder
+    const stemStart = cbStart + cbCount;
+    const stemCount = Math.floor(TOTAL_NODES * 0.06);
+    for (let i = stemStart; i < stemStart + stemCount; i++) {
+      const t = (i - stemStart) / stemCount;
+      const angle = t * 8 * Math.PI;
+      const rad = 8 - t * 3;
+      nodes[i].s3X = Math.cos(angle) * rad;
+      nodes[i].s3Y = 18 + t * 45;
+      nodes[i].s3Z = -14 + Math.sin(angle) * rad;
+      nodes[i].s3Color = '#38bdf8';
+      nodes[i].s3Phase = (i * 0.7) % (Math.PI * 2);
+    }
 
-      // Deterministic pseudo-random seed per node
-      const seed1 = Math.sin(i * 997.1 + 13.7) * 0.5 + 0.5;
-      const seed2 = Math.cos(i * 613.3 + 71.9) * 0.5 + 0.5;
-      const seed3 = Math.sin(i * 389.7 + 43.1) * 0.5 + 0.5;
+    // Central Corpus Callosum Core
+    const coreStart = stemStart + stemCount;
+    for (let i = coreStart; i < TOTAL_NODES; i++) {
+      const t = (i - coreStart) / Math.max(1, TOTAL_NODES - coreStart);
+      nodes[i].s3X = (t - 0.5) * 32;
+      nodes[i].s3Y = -10 + Math.sin(t * Math.PI) * 12;
+      nodes[i].s3Z = (Math.random() - 0.5) * 44;
+      nodes[i].s3Color = '#ffb829';
+      nodes[i].isBrainCore = true;
+      nodes[i].s3Phase = (i * 0.6) % (Math.PI * 2);
+    }
 
-      if (subIdx < 50) {
-        // 1. Solid Organic Forearm (Filled volumetric cylinder, not hollow rings)
-        const t = subIdx / 50; // Progress from arm edge (x=±170) to wrist (x=±45)
-        const armX = side * (170 - t * 125);
-        const radius = (15 - t * 3.5) * Math.sqrt(seed1); // Solid interior fill
-        const angle = seed2 * Math.PI * 2;
-
-        nodes[i].s4X = armX;
-        nodes[i].s4Y = Math.sin(angle) * (radius * 0.85);
-        nodes[i].s4Z = Math.cos(angle) * radius + side * 3;
-        nodes[i].s4Color = armColor;
-      } else if (subIdx < 110) {
-        // 2. Anatomical Palm Body & Thenar Muscle Bed (Solid 3D block)
-        const u = seed1; // Wrist to knuckle (x: ±45 -> ±12)
-        const v = (seed2 - 0.5) * 2; // Across palm (-14 to +14)
-        const w = (seed3 - 0.5) * 2; // Palm thickness (-6 to +6)
-
-        const palmX = side * (45 - u * 33);
-        const palmY = v * 13;
-        const palmZ = side * (4 - u * 2) + w * 5;
-
-        nodes[i].s4X = palmX;
-        nodes[i].s4Y = palmY;
-        nodes[i].s4Z = palmZ;
-        nodes[i].s4Color = isLeft ? '#8052ff' : '#ffb829';
-      } else {
-        // 3. 5 Volumetric Articulated Digits (Thumb + Index, Middle, Ring, Pinky - 30 nodes each)
-        const digitIdx = Math.floor((subIdx - 110) / 30); // 0=Thumb, 1=Index, 2=Middle, 3=Ring, 4=Pinky
-        const s = ((subIdx - 110) % 30) / 30; // 0.0 (Base) -> 1.0 (Fingertip)
-        const rThickness = 3.2 * Math.sqrt(seed1); // Solid cylindrical finger core
-        const crossAngle = seed2 * Math.PI * 2;
-        const offY = Math.sin(crossAngle) * rThickness;
-        const offZ = Math.cos(crossAngle) * rThickness;
-
-        if (digitIdx === 0) {
-          // THUMB: Arches naturally over the top of the opposing index web
-          const thumbAngle = s * Math.PI * 0.82;
-          const tx = side * (34 - Math.sin(thumbAngle) * 24);
-          const ty = -8 - Math.sin(thumbAngle) * 16 + offY;
-          const tz = side * (10 - Math.cos(thumbAngle) * 16) + offZ;
-          nodes[i].s4X = tx;
-          nodes[i].s4Y = ty;
-          nodes[i].s4Z = tz;
-          nodes[i].s4Color = '#ffffff'; // High-contrast white thumb
-        } else {
-          // 4 FINGERS: Wrap around the opposing hand's palm in depth
-          const fingerHeights = [-9, -3, 3, 9];
-          const baseHeight = fingerHeights[digitIdx - 1];
-          const baseKnuckleX = side * 12;
-
-          if (isLeft) {
-            // Left fingers wrap BEHIND right hand (z: 4 -> -18 -> -12)
-            const fAngle = s * Math.PI * 0.95;
-            const fx = baseKnuckleX + Math.sin(fAngle) * 34;
-            const fz = 4 - Math.sin(fAngle) * 20 + offZ;
-            nodes[i].s4X = fx;
-            nodes[i].s4Y = baseHeight + offY;
-            nodes[i].s4Z = fz;
-          } else {
-            // Right fingers wrap IN FRONT around left hand (z: -4 -> +18 -> +12)
-            const fAngle = s * Math.PI * 0.95;
-            const fx = baseKnuckleX - Math.sin(fAngle) * 34;
-            const fz = -4 + Math.sin(fAngle) * 20 + offZ;
-            nodes[i].s4X = fx;
-            nodes[i].s4Y = baseHeight + offY;
-            nodes[i].s4Z = fz;
-          }
-          nodes[i].s4Color = armColor;
+    // Connect Brain Gyri Filaments (k-NN mesh on same hemisphere)
+    for (let i = 0; i < cerebrumCount; i++) {
+      const p1 = nodes[i];
+      const isLeft = i % 2 === 0;
+      for (let j = i + 2; j < Math.min(i + 14, cerebrumCount); j += 2) {
+        const p2 = nodes[j];
+        const dist = Math.hypot(p1.s3X - p2.s3X, p1.s3Y - p2.s3Y, p1.s3Z - p2.s3Z);
+        if (dist < 26) {
+          edgesBrain.push({
+            i1: i,
+            i2: j,
+            color: isLeft ? 'rgba(34, 211, 238, 0.40)' : 'rgba(139, 92, 246, 0.40)',
+          });
         }
       }
     }
+
     // -------------------------------------------------------------------------
-    // STAGE 5 MAPPING: 3D VOLUMETRIC NEURAL MIND / CEREBRAL CONSCIOUSNESS MATRIX
-    // Dual Left & Right cerebral hemispheres with cortical gyri folds, longitudinal fissure,
-    // corpus callosum bridge, and inner glowing synaptic core.
+    // STAGE 4 MAPPING: 3D QUANTUM NEURAL GYROSCOPE (Adaptive Intelligence)
+    // Three orthogonal concentric rotating rings + central multi-model core
     // -------------------------------------------------------------------------
-    for (let i = 0; i < TOTAL_NODES; i++) {
-      const p = i / TOTAL_NODES;
-      const isLeftHemisphere = i % 2 === 0;
-      const hemiSign = isLeftHemisphere ? -1 : 1;
+    const edgesGyro: { i1: number; i2: number; color?: string }[] = [];
+    const gyroRing1Count = Math.floor(TOTAL_NODES * 0.28);
+    const gyroRing2Count = Math.floor(TOTAL_NODES * 0.28);
+    const gyroRing3Count = Math.floor(TOTAL_NODES * 0.28);
 
-      if (p < 0.80) {
-        // 1. Dual Cerebral Hemispheres with Cortical Gyri & Sulci Folds
-        const phi = Math.acos(1 - 2 * (i / (TOTAL_NODES * 0.80)));
-        const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+    // Ring 1 (XY Plane - Electric Iris)
+    for (let i = 0; i < gyroRing1Count; i++) {
+      const ang = (i / gyroRing1Count) * Math.PI * 2;
+      nodes[i].s4X = Math.cos(ang) * 68;
+      nodes[i].s4Y = Math.sin(ang) * 68;
+      nodes[i].s4Z = 0;
+      nodes[i].s4Color = '#8052ff';
+      edgesGyro.push({ i1: i, i2: (i + 1) % gyroRing1Count, color: 'rgba(128, 82, 255, 0.45)' });
+    }
 
-        // Biological cortical gyri undulation harmonics
-        const gyriFolds = 1 + 0.15 * Math.sin(6 * theta) * Math.cos(5 * phi) + 0.08 * Math.cos(8 * phi);
-        const rx = 68 * gyriFolds;
-        const ry = 58 * gyriFolds;
-        const rz = 78 * gyriFolds;
+    // Ring 2 (YZ Plane - Neon Cyan)
+    const r2Start = gyroRing1Count;
+    for (let i = r2Start; i < r2Start + gyroRing2Count; i++) {
+      const ang = ((i - r2Start) / gyroRing2Count) * Math.PI * 2;
+      nodes[i].s4X = 0;
+      nodes[i].s4Y = Math.cos(ang) * 56;
+      nodes[i].s4Z = Math.sin(ang) * 56;
+      nodes[i].s4Color = '#22d3ee';
+      edgesGyro.push({ i1: i, i2: r2Start + ((i - r2Start + 1) % gyroRing2Count), color: 'rgba(34, 211, 238, 0.45)' });
+    }
 
-        // Longitudinal fissure gap between left and right hemispheres
-        const rawX = Math.abs(Math.sin(phi) * Math.cos(theta)) * rx;
-        const brainX = hemiSign * (5 + rawX);
-        const brainY = -8 + Math.cos(phi) * ry;
-        const brainZ = Math.sin(phi) * Math.sin(theta) * rz;
+    // Ring 3 (XZ Plane - Deep Verdant)
+    const r3Start = r2Start + gyroRing2Count;
+    for (let i = r3Start; i < r3Start + gyroRing3Count; i++) {
+      const ang = ((i - r3Start) / gyroRing3Count) * Math.PI * 2;
+      nodes[i].s4X = Math.cos(ang) * 44;
+      nodes[i].s4Y = 0;
+      nodes[i].s4Z = Math.sin(ang) * 44;
+      nodes[i].s4Color = '#10b981';
+      edgesGyro.push({ i1: i, i2: r3Start + ((i - r3Start + 1) % gyroRing3Count), color: 'rgba(16, 185, 129, 0.45)' });
+    }
 
-        nodes[i].s5X = brainX;
-        nodes[i].s5Y = brainY;
-        nodes[i].s5Z = brainZ;
-        nodes[i].s5Color = isLeftHemisphere ? '#22d3ee' : '#8052ff';
-      } else if (p < 0.92) {
-        // 2. Corpus Callosum & Central Neural Thalamus Bridge
-        const t = (p - 0.80) / 0.12;
-        const bridgeX = (t - 0.5) * 40;
-        const bridgeY = -5 + Math.sin(t * Math.PI) * 14;
-        const bridgeZ = (Math.random() - 0.5) * 45;
+    // Core Reasoning Matrix (Pulsating Saffron Core)
+    const gyroCoreStart = r3Start + gyroRing3Count;
+    for (let i = gyroCoreStart; i < TOTAL_NODES; i++) {
+      const u = (i - gyroCoreStart) / Math.max(1, TOTAL_NODES - gyroCoreStart);
+      const phi = Math.acos(1 - 2 * u);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * (i - gyroCoreStart);
+      nodes[i].s4X = Math.sin(phi) * Math.cos(theta) * 16;
+      nodes[i].s4Y = Math.cos(phi) * 16;
+      nodes[i].s4Z = Math.sin(phi) * Math.sin(theta) * 16;
+      nodes[i].s4Color = '#ffb829';
+    }
 
-        nodes[i].s5X = bridgeX;
-        nodes[i].s5Y = bridgeY;
-        nodes[i].s5Z = bridgeZ;
-        nodes[i].s5Color = '#ffb829'; // Saffron Synaptic Core
-        nodes[i].isBrainCore = true;
-      } else {
-        // 3. Brainstem & Descending Spinal Axon Column
-        const t = (p - 0.92) / 0.08;
-        const stemY = 25 + t * 45; // y: 25 -> 70
-        const stemRadius = 12 - t * 5;
-        const stemAngle = t * 14 * Math.PI;
+    // -------------------------------------------------------------------------
+    // STAGE 5 MAPPING: 3D HIGH-THROUGHPUT STREAM PIPELINE (Enterprise API)
+    // Distributed server node cylinder + double-helix data stream
+    // -------------------------------------------------------------------------
+    const edgesPipeline: { i1: number; i2: number; color?: string }[] = [];
+    const pipeOuterCount = Math.floor(TOTAL_NODES * 0.65);
+    const pipeHelixCount = TOTAL_NODES - pipeOuterCount;
 
-        nodes[i].s5X = Math.cos(stemAngle) * stemRadius;
-        nodes[i].s5Y = stemY;
-        nodes[i].s5Z = -12 + Math.sin(stemAngle) * stemRadius;
-        nodes[i].s5Color = '#22d3ee';
+    // Outer Server Node Columns (8 vertical columns along radius 58)
+    const COLS = 8;
+    const ptsPerCol = Math.floor(pipeOuterCount / COLS);
+    for (let c = 0; c < COLS; c++) {
+      const colAng = (c / COLS) * Math.PI * 2;
+      const cx = Math.cos(colAng) * 58;
+      const cz = Math.sin(colAng) * 58;
+      for (let p = 0; p < ptsPerCol; p++) {
+        const idx = c * ptsPerCol + p;
+        const y = -58 + (p / (ptsPerCol - 1)) * 116;
+        nodes[idx].s5X = cx;
+        nodes[idx].s5Y = y;
+        nodes[idx].s5Z = cz;
+        nodes[idx].s5Color = c % 2 === 0 ? '#22d3ee' : '#8052ff';
+
+        if (p < ptsPerCol - 1) {
+          edgesPipeline.push({ i1: idx, i2: idx + 1, color: 'rgba(34, 211, 238, 0.40)' });
+        }
       }
+    }
+
+    // Inner Double Helix Stream
+    for (let i = pipeOuterCount; i < TOTAL_NODES; i++) {
+      const t = (i - pipeOuterCount) / pipeHelixCount;
+      const strand = i % 2 === 0 ? 0 : Math.PI;
+      const ang = t * 4 * Math.PI + strand;
+      nodes[i].s5X = Math.cos(ang) * 26;
+      nodes[i].s5Y = -52 + t * 104;
+      nodes[i].s5Z = Math.sin(ang) * 26;
+      nodes[i].s5Color = '#ffb829';
+
+      if (i + 2 < TOTAL_NODES) {
+        edgesPipeline.push({ i1: i, i2: i + 2, color: 'rgba(255, 184, 41, 0.50)' });
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // STAGE 6 MAPPING: 3D CIRCUIT ZORVIK MONOLITH (Cathedral CTA)
+    // Hexagonal Diamond Shield & Sculptural 'Z' Monolith
+    // -------------------------------------------------------------------------
+    const edgesMonolith: { i1: number; i2: number; color?: string }[] = [];
+    const shieldCount = Math.floor(TOTAL_NODES * 0.50);
+    const zCount = Math.floor(TOTAL_NODES * 0.35);
+
+    // Outer Hexagonal Circuit Shield
+    for (let i = 0; i < shieldCount; i++) {
+      const t = i / shieldCount;
+      const ang = t * Math.PI * 2;
+      const zOffset = Math.sin(t * 12) * 16;
+      nodes[i].s6X = Math.cos(ang) * 66;
+      nodes[i].s6Y = Math.sin(ang) * 66;
+      nodes[i].s6Z = zOffset;
+      nodes[i].s6Color = '#22d3ee';
+
+      if (i < shieldCount - 1) {
+        edgesMonolith.push({ i1: i, i2: i + 1, color: 'rgba(34, 211, 238, 0.45)' });
+      }
+    }
+
+    // Inner Sculptural 'Z' Circuit
+    for (let i = shieldCount; i < shieldCount + zCount; i++) {
+      const t = (i - shieldCount) / zCount;
+      let zx = 0;
+      let zy = 0;
+      if (t < 0.33) {
+        // Top bar: left to right
+        const u = t / 0.33;
+        zx = -36 + u * 72;
+        zy = -40;
+      } else if (t < 0.66) {
+        // Diagonal: top-right to bottom-left
+        const u = (t - 0.33) / 0.33;
+        zx = 36 - u * 72;
+        zy = -40 + u * 80;
+      } else {
+        // Bottom bar: left to right
+        const u = (t - 0.66) / 0.34;
+        zx = -36 + u * 72;
+        zy = 40;
+      }
+      nodes[i].s6X = zx;
+      nodes[i].s6Y = zy;
+      nodes[i].s6Z = Math.sin(t * 6) * 10;
+      nodes[i].s6Color = '#ffb829';
+
+      if (i < shieldCount + zCount - 1) {
+        edgesMonolith.push({ i1: i, i2: i + 1, color: 'rgba(255, 184, 41, 0.60)' });
+      }
+    }
+
+    // Ascended Core Singularity
+    for (let i = shieldCount + zCount; i < TOTAL_NODES; i++) {
+      const u = (i - (shieldCount + zCount)) / (TOTAL_NODES - (shieldCount + zCount));
+      const ang = u * Math.PI * 4;
+      nodes[i].s6X = Math.cos(ang) * (u * 22);
+      nodes[i].s6Y = Math.sin(ang) * (u * 22);
+      nodes[i].s6Z = (Math.random() - 0.5) * 20;
+      nodes[i].s6Color = '#8052ff';
     }
 
     // Ambient floating stardust
@@ -707,7 +862,7 @@ export const ConstellationCanvas: React.FC = () => {
       // Smooth scroll lerp (responsive synchronization)
       smoothScrollY += (targetScrollY - smoothScrollY) * 0.12;
 
-      // Ambient background stardust
+      // Ambient background multi-chromatic cosmic stardust
       for (const ap of ambientParticles) {
         ap.x += ap.vx;
         ap.y += ap.vy;
@@ -715,9 +870,13 @@ export const ConstellationCanvas: React.FC = () => {
         if (ap.x > width) ap.x = 0;
         if (ap.y < 0) ap.y = height;
         if (ap.y > height) ap.y = 0;
+        
+        const pulse = 0.5 + 0.5 * Math.sin(tick * 2 + ap.x);
         ctx.fillStyle = ap.color;
-        ctx.globalAlpha = ap.alpha;
-        ctx.fillRect(ap.x, ap.y, ap.size, ap.size);
+        ctx.globalAlpha = ap.alpha * pulse;
+        ctx.beginPath();
+        ctx.arc(ap.x, ap.y, ap.size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       // Smooth camera dampening + drag rotation inertia
@@ -729,143 +888,135 @@ export const ConstellationCanvas: React.FC = () => {
       const isMobile = width < 1024;
 
       // =========================================================================
-      // ROCK-SOLID SECTION-CENTERED 5-STAGE CHOREOGRAPHY
+      // ROCK-SOLID SECTION-CENTERED 6-STAGE CHOREOGRAPHY
       // Stage 1: Hero (Right side, pointing Left at headline)
       // Stage 2: Capabilities (Walks to Far Left, points Right at cards)
-      // Stage 3: Deep Memory (3D Particle Collision / Singularity Burst)
-      // Stage 4: Enterprise API (3D Cyber Handshake Connection)
-      // Stage 5: Cathedral CTA (Exact 3D Circuit Zorvik AI Logo Before Footer)
+      // Stage 3: Deep Memory (Organic 3D Anatomical Brain)
+      // Stage 4: Intelligence (3D Quantum Multi-Model Gyroscope)
+      // Stage 5: Enterprise API (3D High-Throughput Stream Pipeline)
+      // Stage 6: Cathedral CTA (3D Circuit-Traced Zorvik Monolith)
       // =========================================================================
 
       const vh = height;
-      const heroEl = document.querySelector('main > section:first-of-type') || document.querySelector('section');
+      const heroEl = document.getElementById('hero') || document.querySelector('section');
       const featuresEl = document.getElementById('features');
       const memoryEl = document.getElementById('memory');
+      const intelEl = document.getElementById('intelligence');
       const enterpriseEl = document.getElementById('enterprise');
-      const allSections = document.querySelectorAll('section');
-      const ctaEl = allSections.length > 0 ? (allSections[allSections.length - 1] as HTMLElement) : null;
+      const ctaEl = document.getElementById('cta');
 
-      // Calculate section midpoints in document space
-      const c1 = heroEl ? (heroEl as HTMLElement).offsetTop + (heroEl as HTMLElement).offsetHeight * 0.45 : vh * 0.5;
-      const c2 = featuresEl ? featuresEl.offsetTop + featuresEl.offsetHeight * 0.45 : c1 + vh;
-      const c3 = memoryEl ? memoryEl.offsetTop + memoryEl.offsetHeight * 0.45 : c2 + vh;
-      const c4 = enterpriseEl ? enterpriseEl.offsetTop + enterpriseEl.offsetHeight * 0.45 : c3 + vh * 1.5;
-      const c5 = ctaEl ? ctaEl.offsetTop + ctaEl.offsetHeight * 0.45 : c4 + vh;
+      const getElementMetrics = (el: HTMLElement | null, fallbackTop: number, fallbackHeight: number) => {
+        if (!el) return { center: fallbackTop + fallbackHeight * 0.5, top: fallbackTop, height: fallbackHeight };
+        const rect = el.getBoundingClientRect();
+        const top = rect.top + window.scrollY;
+        const h = rect.height || fallbackHeight;
+        return { center: top + h * 0.45, top, height: h };
+      };
+
+      const m1 = getElementMetrics(heroEl as HTMLElement | null, 0, vh);
+      const m2 = getElementMetrics(featuresEl as HTMLElement | null, vh, vh);
+      const m3 = getElementMetrics(memoryEl as HTMLElement | null, vh * 2, vh);
+      const m4 = getElementMetrics(intelEl as HTMLElement | null, vh * 3, vh);
+      const m5 = getElementMetrics(enterpriseEl as HTMLElement | null, vh * 4, vh);
+      const m6 = getElementMetrics(ctaEl as HTMLElement | null, vh * 5, vh);
+
+      const c1 = m1.center;
+      const c2 = m2.center;
+      const c3 = m3.center;
+      const c4 = m4.center;
+      const c5 = m5.center;
+      const c6 = m6.center;
 
       // Current viewport focus center in document space
       const viewCenter = smoothScrollY + vh * 0.5;
 
-      let targetCenterX = width * 0.76;
+      let w1 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0;
+      let targetCenterX = width * 0.73;
       let targetCenterY = height * 0.50;
       let targetScaleFactor = isMobile ? 1.15 : 1.68;
       let stageRotationY = 0;
-
-      let w1 = 1;
-      let w2 = 0;
-      let w3 = 0;
-      let w4 = 0;
-      let w5 = 0;
+      let stageRotationX = 0;
 
       if (isMobile) {
         targetCenterX = width * 0.5;
-        targetCenterY = height * 0.36;
+        targetCenterY = height * 0.30;
         targetScaleFactor = 1.15;
         const maxScroll = Math.max(document.body.scrollHeight - vh, 1);
         stageRotationY = (smoothScrollY / maxScroll) * Math.PI * 2;
         if (viewCenter < c2) {
           const t = Math.min(1, Math.max(0, (viewCenter - c1) / (c2 - c1)));
-          w1 = 1 - t; w2 = t; w3 = 0; w4 = 0; w5 = 0;
+          w1 = 1 - t; w3 = t;
         } else if (viewCenter < c3) {
           const t = Math.min(1, Math.max(0, (viewCenter - c2) / (c3 - c2)));
-          w1 = 0; w2 = 1 - t; w3 = t; w4 = 0; w5 = 0;
+          w3 = 1 - t; w4 = t;
         } else if (viewCenter < c4) {
           const t = Math.min(1, Math.max(0, (viewCenter - c3) / (c4 - c3)));
-          w1 = 0; w2 = 0; w3 = 1 - t; w4 = t; w5 = 0;
+          w4 = 1 - t; w5 = t;
         } else {
-          const t = Math.min(1, Math.max(0, (viewCenter - c4) / (c5 - c4)));
-          w1 = 0; w2 = 0; w3 = 0; w4 = 1 - t; w5 = t;
+          const t = Math.min(1, Math.max(0, (viewCenter - c4) / (c6 - c4)));
+          w5 = 1 - t; w6 = t;
         }
       } else {
         if (viewCenter <= c1) {
-          // STAGE 1: HERO (Human fully on Right, pointing Left at headline)
-          targetCenterX = width * 0.76;
+          // STAGE 1: HERO (Human on Right, pointing Left)
+          targetCenterX = width * 0.73;
           targetCenterY = height * 0.50;
-          stageRotationY = 0 + Math.sin(tick * 0.5) * 0.05;
-          w1 = 1; w2 = 0; w3 = 0; w4 = 0; w5 = 0;
+          stageRotationY = Math.sin(tick * 0.5) * 0.05;
+          w1 = 1;
         } else if (viewCenter < c2) {
-          // TRANSITION HERO -> CAPABILITIES (Human walks from Right to Far Left)
-          const rawT = (viewCenter - c1) / (c2 - c1);
-          const t = Math.min(1, Math.max(0, rawT));
+          // TRANSITION HERO -> CAPABILITIES (Human walks Right -> Left & turns 180 deg)
+          const t = Math.min(1, Math.max(0, (viewCenter - c1) / (c2 - c1)));
           const st = t * t * (3 - 2 * t);
-          targetCenterX = width * 0.76 - st * width * 0.60; // 0.76 -> 0.16
+          targetCenterX = width * 0.73 - st * width * 0.51; // 0.73 -> 0.22
           targetCenterY = height * 0.50;
-          stageRotationY = st * Math.PI * 0.40 + Math.sin(tick * 0.5) * 0.05;
-          w1 = 1 - st; w2 = st; w3 = 0; w4 = 0; w5 = 0;
+          stageRotationY = st * Math.PI + Math.sin(tick * 0.5) * 0.05;
+          w1 = 1;
         } else if (viewCenter < c3) {
-          // CAPABILITIES SECTION: Holds Stage 2 (Far Left) then transitions to Memory
+          // SECTION 1 (Capabilities) -> SECTION 2 (Deep Memory Brain)
           const rawT = (viewCenter - c2) / (c3 - c2);
-          if (rawT < 0.45) {
-            // Holds Stage 2 steady while reading Section 2
-            targetCenterX = width * 0.16;
+          if (rawT < 0.40) {
+            targetCenterX = width * 0.22;
             targetCenterY = height * 0.50;
-            stageRotationY = Math.PI * 0.40 + Math.sin(tick * 0.5) * 0.05;
-            w1 = 0; w2 = 1; w3 = 0; w4 = 0; w5 = 0;
+            stageRotationY = Math.PI + Math.sin(tick * 0.5) * 0.05;
+            w1 = 1;
           } else {
-            // Transitions to Stage 3 (Collision Singularity in Center)
-            const t = (rawT - 0.45) / 0.55;
+            const t = (rawT - 0.40) / 0.60;
             const st = t * t * (3 - 2 * t);
-            targetCenterX = width * 0.16 + st * width * 0.34; // 0.16 -> 0.50
-            targetCenterY = height * 0.50;
-            targetScaleFactor = 1.68 + Math.sin(t * Math.PI) * 0.25;
-            stageRotationY = Math.PI * 0.40 + st * Math.PI * 0.60 + tick * 0.2;
-            w1 = 0; w2 = 1 - st; w3 = st; w4 = 0; w5 = 0;
+            targetCenterX = width * 0.22 + st * width * 0.28; // 0.22 -> 0.50
+            targetCenterY = height * 0.50 - st * height * 0.15; // 0.50 -> 0.35
+            stageRotationY = Math.PI + st * (tick * 0.16);
+            w1 = 1 - st;
+            w3 = st;
           }
         } else if (viewCenter < c4) {
-          // MEMORY / INTELLIGENCE: Holds Stage 3 (Collision Singularity) then transitions to Handshake
-          const rawT = (viewCenter - c3) / (c4 - c3);
-          if (rawT < 0.45) {
-            // Holds Stage 3 steady in Center
-            targetCenterX = width * 0.50;
-            targetCenterY = height * 0.50;
-            stageRotationY = Math.PI + tick * 0.25;
-            w1 = 0; w2 = 0; w3 = 1; w4 = 0; w5 = 0;
-          } else {
-            // Transitions to Stage 4 (3D Handshake in Center)
-            const t = (rawT - 0.45) / 0.55;
-            const st = t * t * (3 - 2 * t);
-            targetCenterX = width * 0.50;
-            targetCenterY = height * 0.50;
-            targetScaleFactor = 1.68 + st * 0.06;
-            stageRotationY = Math.PI + st * 0.2;
-            w1 = 0; w2 = 0; w3 = 1 - st; w4 = st; w5 = 0;
-          }
-        } else if (viewCenter < c5) {
-          // ENTERPRISE: Holds Stage 4 (3D Handshake) then transitions to Mind
-          const rawT = (viewCenter - c4) / (c5 - c4);
-          if (rawT < 0.45) {
-            // Holds Stage 4 steady (Hands clasped in Center, Isometric Perspective)
-            targetCenterX = width * 0.50;
-            targetCenterY = height * 0.50;
-            targetScaleFactor = 1.74;
-            stageRotationY = 0.42 + Math.sin(tick * 0.4) * 0.03;
-            w1 = 0; w2 = 0; w3 = 0; w4 = 1; w5 = 0;
-          } else {
-            // Transitions to Stage 5 (3D Volumetric Neural Mind)
-            const t = (rawT - 0.45) / 0.55;
-            const st = t * t * (3 - 2 * t);
-            targetCenterX = width * 0.50;
-            targetCenterY = height * 0.48;
-            targetScaleFactor = 1.74 - st * 0.04;
-            stageRotationY = (1 - st) * 0.42 + st * (tick * 0.18);
-            w1 = 0; w2 = 0; w3 = 0; w4 = 1 - st; w5 = st;
-          }
-        } else {
-          // STAGE 5: Cathedral CTA (3D Volumetric Neural Mind Floating Above CTA)
+          // SECTION 2 (Deep Memory Brain) -> SECTION 3 (Intelligence Quantum Gyroscope)
+          const t = Math.min(1, Math.max(0, (viewCenter - c3) / (c4 - c3)));
+          const st = t * t * (3 - 2 * t);
           targetCenterX = width * 0.50;
-          targetCenterY = height * 0.48;
-          targetScaleFactor = 1.70;
-          stageRotationY = tick * 0.18;
-          w1 = 0; w2 = 0; w3 = 0; w4 = 0; w5 = 1;
+          targetCenterY = height * 0.35;
+          stageRotationY = tick * (0.16 + st * 0.18);
+          stageRotationX = Math.sin(tick * 0.8) * 0.15 * st;
+          w3 = 1 - st;
+          w4 = st;
+        } else if (viewCenter < c5) {
+          // SECTION 3 (Intelligence Gyroscope) -> SECTION 4 (Enterprise API Server Pipeline)
+          const t = Math.min(1, Math.max(0, (viewCenter - c4) / (c5 - c4)));
+          const st = t * t * (3 - 2 * t);
+          targetCenterX = width * 0.50 - st * width * 0.24; // 0.50 -> 0.26 (Left of code snippet)
+          targetCenterY = height * 0.35 + st * height * 0.15; // 0.35 -> 0.50
+          stageRotationY = tick * 0.28;
+          w4 = 1 - st;
+          w5 = st;
+        } else {
+          // SECTION 4 (Enterprise Pipeline) -> SECTION 5 (Cathedral Zorvik Monolith)
+          const t = Math.min(1, Math.max(0, (viewCenter - c5) / (c6 - c5)));
+          const st = t * t * (3 - 2 * t);
+          targetCenterX = width * 0.26 + st * width * 0.24; // 0.26 -> 0.50
+          targetCenterY = height * 0.50 - st * height * 0.18; // 0.50 -> 0.32 (Above logo)
+          targetScaleFactor = 1.68 + st * 0.18;
+          stageRotationY = tick * 0.22;
+          w5 = 1 - st;
+          w6 = st;
         }
       }
 
@@ -886,7 +1037,6 @@ export const ConstellationCanvas: React.FC = () => {
 
       // Breathing oscillation & 3D Isometric View
       const breathScale = 1.0 + Math.sin(tick * 1.8) * 0.015;
-      const stageRotationX = w4 * 0.26 + w5 * 0.14;
       const totalAngleX = angleX + stageRotationX + 0.03 * Math.sin(tick);
       const totalAngleY = angleY + stageRotationY;
 
@@ -905,87 +1055,68 @@ export const ConstellationCanvas: React.FC = () => {
         let s3DynY = n.s3Y;
         let s3DynZ = n.s3Z;
         if (w3 > 0.01) {
-          const pulse = Math.sin(tick * 5 + n.s3Phase);
-          s3DynX += Math.cos(tick * 3 + n.s3Phase) * 6;
-          s3DynY += Math.sin(tick * 3 + n.s3Phase) * 6;
-          s3DynZ += pulse * 8;
+          const pulse = Math.sin(tick * 4 + n.s3Phase);
+          s3DynX += Math.cos(tick * 2.5 + n.s3Phase) * 2.5;
+          s3DynY += Math.sin(tick * 2.5 + n.s3Phase) * 2.5;
+          s3DynZ += pulse * 3;
         }
 
-        let s4DynY = n.s4Y;
-        if (w4 > 0.01) {
-          s4DynY += Math.sin(tick * 3.2) * 5; // Natural rhythmic handshake pumping
-        }
+        // Weighted morph across all active section states
+        const curX = n.s1X * w1 + s3DynX * w3 + n.s4X * w4 + n.s5X * w5 + n.s6X * w6;
+        const curY = n.s1Y * w1 + s3DynY * w3 + n.s4Y * w4 + n.s5Y * w5 + n.s6Y * w6;
+        const curZ = n.s1Z * w1 + s3DynZ * w3 + n.s4Z * w4 + n.s5Z * w5 + n.s6Z * w6;
 
-        const fx = w1 * n.s1X + w2 * n.s2X + w3 * s3DynX + w4 * n.s4X + w5 * n.s5X;
-        const fy = w1 * n.s1Y + w2 * n.s2Y + w3 * s3DynY + w4 * s4DynY + w5 * n.s5Y;
-        const fz = w1 * n.s1Z + w2 * n.s2Z + w3 * s3DynZ + w4 * n.s4Z + w5 * n.s5Z;
+        // Apply 3D matrix rotation around Y & X axes
+        const rx1 = curX * cosY + curZ * sinY;
+        const rz1 = -curX * sinY + curZ * cosY;
 
-        const px = fx * targetScaleFactor * breathScale;
-        const py = fy * targetScaleFactor * breathScale;
-        const pz = fz * targetScaleFactor * breathScale;
+        const ry1 = curY * cosX - rz1 * sinX;
+        const rz2 = curY * sinX + rz1 * cosX;
 
-        // 3D Matrix Rotation
-        const x1 = px * cosY - pz * sinY;
-        const z1 = pz * cosY + px * sinY;
-        const y1 = py * cosX - z1 * sinX;
-        const z2 = z1 * cosX + py * sinX;
+        const dynamicScale = Math.min(width, height) / (isMobile ? 540 : 840);
+        const scale = (fov / (fov + rz2 + 320)) * targetScaleFactor * breathScale * dynamicScale;
+        const projX = targetCenterX + rx1 * scale;
+        const projY = targetCenterY + ry1 * scale;
 
-        const scale = fov / (fov + z2 + 320);
-        const projX = targetCenterX + x1 * scale;
-        const projY = targetCenterY + y1 * scale;
-
-        let activeColor = n.color;
-        if (w5 > 0.5) activeColor = n.s5Color;
-        else if (w4 > 0.5) activeColor = n.s4Color;
-        else if (w3 > 0.5) activeColor = n.s3Color;
+        // Morph node color between stages
+        let finalColor = n.color;
+        if (w3 > 0.5) finalColor = n.s3Color;
+        else if (w4 > 0.5) finalColor = n.s4Color;
+        else if (w5 > 0.5) finalColor = n.s5Color;
+        else if (w6 > 0.5) finalColor = n.s6Color;
 
         let nodeSize = n.size;
-        if (n.isBrainCore) {
+        if (n.isBrainCore && w3 > 0.2) {
           nodeSize = (1.6 + Math.sin(tick * 4 + n.rotAngle) * 0.9) * (isMobile ? 0.9 : 1.1);
-        } else if (n.isCircuitNode && w5 > 0.3) {
-          nodeSize = 3.4 * (isMobile ? 0.9 : 1.1);
         }
 
         return {
           projX,
           projY,
           scale,
-          z: z2,
-          color: activeColor,
+          z: rz2,
+          color: finalColor,
           size: nodeSize * scale * (isMobile ? 0.9 : 1.15),
           rot: n.rotAngle,
           isSpark: n.isSpark,
           isBrainCore: n.isBrainCore,
-          isCircuitNode: n.isCircuitNode,
           originalY: n.s1Y,
         };
       });
 
-      // Stage 1 Laser Beam from pointing left index fingertip
-      if (w1 > 0.4 && indexTipL < projected.length) {
+      // Holographic Laser Pointer Beam from extended index fingertip (Hero & Capabilities)
+      if (w1 > 0.3 && indexTipL < projected.length) {
         const pFinger = projected[indexTipL];
-        const grad = ctx.createLinearGradient(pFinger.projX, pFinger.projY, 0, pFinger.projY);
+        const isFacingRight = Math.cos(stageRotationY) < 0;
+        const targetX = isFacingRight ? width : 0;
+        const grad = ctx.createLinearGradient(pFinger.projX, pFinger.projY, targetX, pFinger.projY);
         grad.addColorStop(0, `rgba(34, 211, 238, ${0.75 * w1})`);
         grad.addColorStop(1, 'rgba(128, 82, 255, 0)');
         ctx.strokeStyle = grad;
         ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(pFinger.projX, pFinger.projY);
-        ctx.lineTo(0, pFinger.projY);
-        ctx.stroke();
-      }
-
-      // Stage 2 Laser Beam from pointing right fingers
-      if (w2 > 0.4 && fingersR < projected.length) {
-        const pFingerR = projected[fingersR];
-        const grad = ctx.createLinearGradient(pFingerR.projX, pFingerR.projY, width, pFingerR.projY);
-        grad.addColorStop(0, `rgba(255, 184, 41, ${0.75 * w2})`);
-        grad.addColorStop(1, 'rgba(128, 82, 255, 0)');
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.moveTo(pFingerR.projX, pFingerR.projY);
-        ctx.lineTo(width, pFingerR.projY);
+        ctx.lineTo(targetX, pFinger.projY);
         ctx.stroke();
       }
 
@@ -993,9 +1124,9 @@ export const ConstellationCanvas: React.FC = () => {
       const scanlineProgress = (tick * 0.45) % 1;
       const scanlineY = -180 + scanlineProgress * 360;
 
-      // 1. Draw Wireframe Mesh with Depth Attenuation
-      if (w1 + w2 > 0.25) {
-        const humanWeight = w1 + w2;
+      // 1. Draw Wireframe Meshes with Depth Attenuation
+      // A. Cyber Human Wireframe
+      if (w1 > 0.15) {
         for (const edge of edges) {
           const p1 = projected[edge.i1];
           const p2 = projected[edge.i2];
@@ -1004,7 +1135,7 @@ export const ConstellationCanvas: React.FC = () => {
           const avgZ = (p1.z + p2.z) * 0.5;
           const depthFactor = Math.max(0.12, Math.min(1.0, (avgZ + 120) / 240));
           const baseAlpha = edge.isRing ? 0.48 : 0.28;
-          const finalAlpha = baseAlpha * depthFactor * Math.min(p1.scale, p2.scale) * humanWeight;
+          const finalAlpha = baseAlpha * depthFactor * Math.min(p1.scale, p2.scale) * w1;
 
           const nearScanline = Math.abs(p1.originalY - scanlineY) < 18;
           const scanlineAlpha = nearScanline ? finalAlpha * 2.2 : finalAlpha;
@@ -1016,110 +1147,33 @@ export const ConstellationCanvas: React.FC = () => {
           ctx.lineTo(p2.projX, p2.projY);
           ctx.stroke();
         }
-      } else if (w3 > 0.25) {
-        // Stage 3 3D Neural Constellation Synaptic Wireframe (from index.html)
-        ctx.lineWidth = 0.7;
-        for (let i = 0; i < projected.length; i += 3) {
-          const p1 = projected[i];
-          for (let j = i + 1; j < Math.min(i + 5, projected.length); j++) {
-            const p2 = projected[j];
-            const dist = Math.hypot(p1.projX - p2.projX, p1.projY - p2.projY);
-            if (dist < 46) {
-              const alpha = (1 - dist / 46) * 0.42 * w3;
-              ctx.strokeStyle = `rgba(128, 82, 255, ${alpha})`;
-              ctx.beginPath();
-              ctx.moveTo(p1.projX, p1.projY);
-              ctx.lineTo(p2.projX, p2.projY);
-              ctx.stroke();
-            }
-          }
-        }
-      } else if (w4 > 0.25) {
-        // Stage 4 Dedicated 3D Volumetric Handshake Point-Cloud Filament Mesh
+      }
+
+      // B. Organic 3D Brain Wireframe (Deep Memory)
+      if (w3 > 0.15) {
         ctx.lineWidth = 0.85;
-        const half = Math.floor(projected.length / 2);
+        for (const edge of edgesBrain) {
+          const p1 = projected[edge.i1];
+          const p2 = projected[edge.i2];
+          if (!p1 || !p2) continue;
 
-        // 1. Left Hand Volumetric Point-Cloud Filaments (Cyan)
-        for (let i = 0; i < half; i += 2) {
-          const p1 = projected[i];
-          for (let j = i + 1; j < Math.min(i + 8, half); j++) {
-            const p2 = projected[j];
-            const dist = Math.hypot(p1.projX - p2.projX, p1.projY - p2.projY);
-            if (dist < 26) {
-              const alpha = (1 - dist / 26) * 0.55 * w4;
-              ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
-              ctx.beginPath();
-              ctx.moveTo(p1.projX, p1.projY);
-              ctx.lineTo(p2.projX, p2.projY);
-              ctx.stroke();
-            }
-          }
+          const avgZ = (p1.z + p2.z) * 0.5;
+          const depthFactor = Math.max(0.18, Math.min(1.0, (avgZ + 120) / 240));
+          ctx.strokeStyle = edge.color || `rgba(139, 92, 246, ${0.45 * depthFactor * w3})`;
+          ctx.beginPath();
+          ctx.moveTo(p1.projX, p1.projY);
+          ctx.lineTo(p2.projX, p2.projY);
+          ctx.stroke();
         }
 
-        // 2. Right Hand Volumetric Point-Cloud Filaments (Gold)
-        for (let i = half; i < projected.length; i += 2) {
-          const p1 = projected[i];
-          for (let j = i + 1; j < Math.min(i + 8, projected.length); j++) {
-            const p2 = projected[j];
-            const dist = Math.hypot(p1.projX - p2.projX, p1.projY - p2.projY);
-            if (dist < 26) {
-              const alpha = (1 - dist / 26) * 0.55 * w4;
-              ctx.strokeStyle = `rgba(255, 184, 41, ${alpha})`;
-              ctx.beginPath();
-              ctx.moveTo(p1.projX, p1.projY);
-              ctx.lineTo(p2.projX, p2.projY);
-              ctx.stroke();
-            }
-          }
-        }
-
-        // 3. Interlocking Clasp Synaptic Arcs (Where Left & Right hands grip)
-        for (let i = 110; i < half; i += 5) {
-          const pL = projected[i];
-          for (let j = half + 110; j < projected.length; j += 7) {
-            const pR = projected[j];
-            const dist = Math.hypot(pL.projX - pR.projX, pL.projY - pR.projY);
-            if (dist < 38) {
-              const alpha = (1 - dist / 38) * 0.65 * w4;
-              ctx.strokeStyle = i % 2 === 0 ? `rgba(128, 82, 255, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
-              ctx.beginPath();
-              ctx.moveTo(pL.projX, pL.projY);
-              ctx.lineTo(pR.projX, pR.projY);
-              ctx.stroke();
-            }
-          }
-        }
-      } else if (w5 > 0.25) {
-        // Stage 5 Dedicated 3D Neural Mind & Synaptic Filament Network
-        ctx.lineWidth = 0.9;
-        const total = projected.length;
-
-        // 1. Cortical Gyri Synaptic Mesh
-        for (let i = 0; i < Math.floor(total * 0.80); i += 2) {
-          const p1 = projected[i];
-          const isLeft = i % 2 === 0;
-          for (let j = i + 2; j < Math.min(i + 8, Math.floor(total * 0.80)); j += 2) {
-            const p2 = projected[j];
-            const dist = Math.hypot(p1.projX - p2.projX, p1.projY - p2.projY);
-            if (dist < 42) {
-              const alpha = (1 - dist / 42) * 0.45 * w5;
-              ctx.strokeStyle = isLeft ? `rgba(34, 211, 238, ${alpha})` : `rgba(128, 82, 255, ${alpha})`;
-              ctx.beginPath();
-              ctx.moveTo(p1.projX, p1.projY);
-              ctx.lineTo(p2.projX, p2.projY);
-              ctx.stroke();
-            }
-          }
-        }
-
-        // 2. Corpus Callosum Inter-Hemispheric Firing Synapses
-        for (let i = 0; i < 30; i++) {
-          const pL = projected[(i * 6) % Math.floor(total * 0.40) * 2];
-          const pR = projected[((i * 6) % Math.floor(total * 0.40) * 2) + 1];
+        // Inter-Hemispheric Corpus Callosum Firing Synapses
+        for (let i = 0; i < 28; i++) {
+          const pL = projected[(i * 6) % Math.floor(cerebrumCount * 0.5) * 2];
+          const pR = projected[((i * 6) % Math.floor(cerebrumCount * 0.5) * 2) + 1];
           if (pL && pR) {
             const dist = Math.hypot(pL.projX - pR.projX, pL.projY - pR.projY);
-            if (dist < 85) {
-              const alpha = (1 - dist / 85) * 0.65 * w5;
+            if (dist < 72) {
+              const alpha = (1 - dist / 72) * 0.70 * w3;
               ctx.strokeStyle = `rgba(255, 184, 41, ${alpha})`;
               ctx.lineWidth = 1.1;
               ctx.beginPath();
@@ -1129,22 +1183,56 @@ export const ConstellationCanvas: React.FC = () => {
             }
           }
         }
+      }
 
-        // 3. Central Synaptic Core & Brainstem Axons
-        for (let i = Math.floor(total * 0.80); i < total - 1; i++) {
-          const p1 = projected[i];
-          const p2 = projected[i + 1];
-          if (p1 && p2) {
-            const dist = Math.hypot(p1.projX - p2.projX, p1.projY - p2.projY);
-            if (dist < 48) {
-              ctx.strokeStyle = `rgba(34, 211, 238, ${0.60 * w5})`;
-              ctx.lineWidth = 1.2;
-              ctx.beginPath();
-              ctx.moveTo(p1.projX, p1.projY);
-              ctx.lineTo(p2.projX, p2.projY);
-              ctx.stroke();
-            }
-          }
+      // C. Quantum Gyroscope Wireframe (Adaptive Intelligence)
+      if (w4 > 0.15) {
+        ctx.lineWidth = 1.0;
+        for (const edge of edgesGyro) {
+          const p1 = projected[edge.i1];
+          const p2 = projected[edge.i2];
+          if (!p1 || !p2) continue;
+          const avgZ = (p1.z + p2.z) * 0.5;
+          const depthFactor = Math.max(0.2, Math.min(1.0, (avgZ + 120) / 240));
+          ctx.strokeStyle = edge.color || `rgba(128, 82, 255, ${0.5 * depthFactor * w4})`;
+          ctx.beginPath();
+          ctx.moveTo(p1.projX, p1.projY);
+          ctx.lineTo(p2.projX, p2.projY);
+          ctx.stroke();
+        }
+      }
+
+      // D. Server Stream Pipeline Wireframe (Enterprise API)
+      if (w5 > 0.15) {
+        ctx.lineWidth = 0.9;
+        for (const edge of edgesPipeline) {
+          const p1 = projected[edge.i1];
+          const p2 = projected[edge.i2];
+          if (!p1 || !p2) continue;
+          const avgZ = (p1.z + p2.z) * 0.5;
+          const depthFactor = Math.max(0.2, Math.min(1.0, (avgZ + 120) / 240));
+          ctx.strokeStyle = edge.color || `rgba(34, 211, 238, ${0.45 * depthFactor * w5})`;
+          ctx.beginPath();
+          ctx.moveTo(p1.projX, p1.projY);
+          ctx.lineTo(p2.projX, p2.projY);
+          ctx.stroke();
+        }
+      }
+
+      // E. Circuit Zorvik Monolith Wireframe (Cathedral CTA)
+      if (w6 > 0.15) {
+        ctx.lineWidth = 1.2;
+        for (const edge of edgesMonolith) {
+          const p1 = projected[edge.i1];
+          const p2 = projected[edge.i2];
+          if (!p1 || !p2) continue;
+          const avgZ = (p1.z + p2.z) * 0.5;
+          const depthFactor = Math.max(0.25, Math.min(1.0, (avgZ + 120) / 240));
+          ctx.strokeStyle = edge.color || `rgba(255, 184, 41, ${0.65 * depthFactor * w6})`;
+          ctx.beginPath();
+          ctx.moveTo(p1.projX, p1.projY);
+          ctx.lineTo(p2.projX, p2.projY);
+          ctx.stroke();
         }
       }
 
@@ -1159,25 +1247,28 @@ export const ConstellationCanvas: React.FC = () => {
         ctx.save();
         ctx.translate(p.projX, p.projY);
 
-        if (p.isCircuitNode && w5 > 0.3) {
-          // Glowing PCB Circuit Terminal Pad Ring (Stage 5 Logo)
-          ctx.strokeStyle = '#ffb829';
-          ctx.lineWidth = 1.8;
-          ctx.globalAlpha = Math.min(1, 0.9 * depthFactor * w5);
+        if (w3 + w4 + w5 + w6 > 0.15) {
+          // Clean 3D Geometric & Synaptic Nodes: Smooth luminous circular points with glowing depth
+          const nodeColor = p.color;
+          const nodeRadius = (p.isBrainCore ? 2.6 : 1.6) * (p.z > 0 ? 1.15 : 0.85);
+          const stageWeight = Math.max(w3, w4, w5, w6);
+          
+          ctx.fillStyle = nodeColor;
+          ctx.globalAlpha = Math.min(1.0, (p.isBrainCore ? 0.95 : 0.72) * depthFactor * stageWeight);
           ctx.beginPath();
-          ctx.arc(0, 0, p.size * 1.5, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size * 0.6, 0, Math.PI * 2);
+          ctx.arc(0, 0, nodeRadius, 0, Math.PI * 2);
           ctx.fill();
-        } else if (p.isBrainCore && w1 + w2 > 0.3) {
-          ctx.fillStyle = p.color;
-          ctx.globalAlpha = Math.min(1, 0.85 * depthFactor);
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size * (nearScanline ? 1.4 : 1.0), 0, Math.PI * 2);
-          ctx.fill();
-        } else if (p.isSpark || nearScanline || (w3 > 0.4 && Math.random() < 0.15)) {
+
+          // Luminous halo around front-facing nodes and core
+          if (p.isBrainCore || p.z > 35) {
+            ctx.fillStyle = nodeColor;
+            ctx.globalAlpha = 0.20 * depthFactor * stageWeight;
+            ctx.beginPath();
+            ctx.arc(0, 0, nodeRadius * 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (p.isSpark || nearScanline) {
+          // Cyber Character Diamond Sparkles
           ctx.rotate(p.rot);
           ctx.fillStyle = nearScanline ? '#ffffff' : p.color;
           ctx.globalAlpha = Math.min(1, (nearScanline ? 1.0 : 0.85) * depthFactor);
@@ -1190,6 +1281,7 @@ export const ConstellationCanvas: React.FC = () => {
           ctx.closePath();
           ctx.fill();
         } else {
+          // Cyber Character Standard Circular Nodes
           ctx.fillStyle = p.color;
           ctx.globalAlpha = Math.max(0.1, 0.65 * depthFactor);
           ctx.beginPath();
