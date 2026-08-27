@@ -59,20 +59,26 @@ app.use(compression());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static frontend assets
+const fs = require("fs");
+const distPath = path.join(__dirname, "frontend", "dist");
+
+// Serve static frontend assets (built React app has precedence)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
 app.use(express.static(path.join(__dirname)));
 
 // Mount API routes
 app.use("/api/v1", apiRoutes);
 
-// Workspace routes: serve clean chat web platform
-app.get(["/app", "/chat", "/app.html"], (_req, res) => {
-  res.sendFile(path.join(__dirname, "app.html"));
-});
-
-// Root route: serve flagship landing page
-app.get(["/", "/landing", "/landing.html"], (_req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+// SPA client routing for React 19 Frontend
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next();
+  const indexDist = path.join(distPath, "index.html");
+  if (fs.existsSync(indexDist)) {
+    return res.sendFile(indexDist);
+  }
+  return res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // Centralized error handler

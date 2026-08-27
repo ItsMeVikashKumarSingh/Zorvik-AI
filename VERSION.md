@@ -12,6 +12,7 @@ All notable changes to the Zorvik AI standalone microservice will be documented 
   - Updated Gen Z Simulator conversation with the viral 11:55 PM emergency assignment finesse protocol and removed redundant card top bars.
   - Overhauled landing page footer to liquid-glass theme with brand identity, circular social buttons, direct contact details (+918409792083, hello@zorviktech.com, Sherpur Bahori, Mahua, Vaishali, Bihar), and live operational status indicator.
   - Built standalone independent governance pages & routes (`/privacy`, `/terms`, `/security`) with dedicated [`LegalPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LegalPage.tsx) and [`LegalModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LegalModal.tsx).
+  - Configured 1-Project unified full-stack monorepo deployment pipeline in `vercel.json`, `package.json`, and `server.js` with zero CORS friction and automatic Edge CDN routing.
 - **6-Stage 3D Particle Morph System ([`ConstellationCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ConstellationCanvas.tsx))**:
   - **Stage 1 (Hero)**: 3D Cyber Human on Right ($X = 0.73$), pointing left directly at the 1-line headline with dynamic cyan laser beam.
   - **Stage 2 (Capabilities)**: 3D Cyber Human on Left ($X = 0.22$), rotated 180° pointing right across capability cards.
