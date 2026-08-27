@@ -930,16 +930,38 @@ export const ConstellationCanvas: React.FC = () => {
       // Current viewport focus center in document space
       const viewCenter = smoothScrollY + vh * 0.5;
 
+      // Responsive DOM Grid Anchors for Pixel-Perfect Multi-Resolution Alignment
+      const heroAnchor = document.getElementById('hero-anchor');
+      const featuresAnchor = document.getElementById('features-anchor');
+
+      const getAnchorMetrics = (el: HTMLElement | null, fallbackX: number, fallbackY: number) => {
+        if (!el) return { x: fallbackX, y: fallbackY, width: 380, isVisible: false };
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0 || window.getComputedStyle(el).display === 'none') {
+          return { x: fallbackX, y: fallbackY, width: 380, isVisible: false };
+        }
+        return {
+          x: rect.left + rect.width * 0.5,
+          y: rect.top + rect.height * 0.5,
+          width: rect.width,
+          height: rect.height,
+          isVisible: true,
+        };
+      };
+
+      const heroPos = getAnchorMetrics(heroAnchor, width * 0.73, height * 0.50);
+      const featPos = getAnchorMetrics(featuresAnchor, width * 0.22, height * 0.50);
+
       let w1 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0;
-      let targetCenterX = width * 0.73;
-      let targetCenterY = height * 0.50;
-      let targetScaleFactor = isMobile ? 1.15 : 1.68;
+      let targetCenterX = heroPos.x;
+      let targetCenterY = heroPos.y;
+      let targetScaleFactor = isMobile ? 1.15 : (heroPos.isVisible ? Math.max(1.3, Math.min(1.85, (heroPos.width / 340) * 1.5)) : 1.68);
       let stageRotationY = 0;
       let stageRotationX = 0;
 
-      if (isMobile) {
+      if (isMobile || !heroPos.isVisible) {
         targetCenterX = width * 0.5;
-        targetCenterY = height * 0.30;
+        targetCenterY = height * 0.32;
         targetScaleFactor = 1.15;
         const maxScroll = Math.max(document.body.scrollHeight - vh, 1);
         stageRotationY = (smoothScrollY / maxScroll) * Math.PI * 2;
@@ -958,33 +980,36 @@ export const ConstellationCanvas: React.FC = () => {
         }
       } else {
         if (viewCenter <= c1) {
-          // STAGE 1: HERO (Human on Right, pointing Left)
-          targetCenterX = width * 0.73;
-          targetCenterY = height * 0.50;
-          stageRotationY = Math.sin(tick * 0.5) * 0.05;
+          // STAGE 1: HERO (Human in Right Grid Column, pointing Left)
+          targetCenterX = heroPos.x;
+          targetCenterY = heroPos.y;
+          targetScaleFactor = Math.max(1.3, Math.min(1.85, (heroPos.width / 340) * 1.5));
+          stageRotationY = Math.sin(tick * 0.3) * 0.04;
           w1 = 1;
         } else if (viewCenter < c2) {
-          // TRANSITION HERO -> CAPABILITIES (Human walks Right -> Left & turns 180 deg)
+          // TRANSITION HERO -> CAPABILITIES (Human walks Right Column -> Left Column & turns 180 deg)
           const t = Math.min(1, Math.max(0, (viewCenter - c1) / (c2 - c1)));
           const st = t * t * (3 - 2 * t);
-          targetCenterX = width * 0.73 - st * width * 0.51; // 0.73 -> 0.22
-          targetCenterY = height * 0.50;
-          stageRotationY = st * Math.PI + Math.sin(tick * 0.5) * 0.05;
+          targetCenterX = heroPos.x + st * (featPos.x - heroPos.x);
+          targetCenterY = heroPos.y + st * (featPos.y - heroPos.y);
+          targetScaleFactor = Math.max(1.3, Math.min(1.85, (heroPos.width / 340) * 1.5));
+          stageRotationY = st * Math.PI + Math.sin(tick * 0.3) * 0.04;
           w1 = 1;
         } else if (viewCenter < c3) {
           // SECTION 1 (Capabilities) -> SECTION 2 (Deep Memory Brain)
           const rawT = (viewCenter - c2) / (c3 - c2);
           if (rawT < 0.40) {
-            targetCenterX = width * 0.22;
-            targetCenterY = height * 0.50;
-            stageRotationY = Math.PI + Math.sin(tick * 0.5) * 0.05;
+            targetCenterX = featPos.x;
+            targetCenterY = featPos.y;
+            targetScaleFactor = Math.max(1.3, Math.min(1.85, (featPos.width / 340) * 1.5));
+            stageRotationY = Math.PI + Math.sin(tick * 0.3) * 0.04;
             w1 = 1;
           } else {
             const t = (rawT - 0.40) / 0.60;
             const st = t * t * (3 - 2 * t);
-            targetCenterX = width * 0.22 + st * width * 0.28; // 0.22 -> 0.50
-            targetCenterY = height * 0.50 - st * height * 0.15; // 0.50 -> 0.35
-            stageRotationY = Math.PI + st * (tick * 0.16);
+            targetCenterX = featPos.x + st * (width * 0.50 - featPos.x);
+            targetCenterY = featPos.y - st * height * 0.15;
+            stageRotationY = Math.PI + st * (tick * 0.14);
             w1 = 1 - st;
             w3 = st;
           }
@@ -994,27 +1019,27 @@ export const ConstellationCanvas: React.FC = () => {
           const st = t * t * (3 - 2 * t);
           targetCenterX = width * 0.50;
           targetCenterY = height * 0.35;
-          stageRotationY = tick * (0.16 + st * 0.18);
-          stageRotationX = Math.sin(tick * 0.8) * 0.15 * st;
+          stageRotationY = tick * (0.14 + st * 0.16);
+          stageRotationX = Math.sin(tick * 0.8) * 0.12 * st;
           w3 = 1 - st;
           w4 = st;
         } else if (viewCenter < c5) {
           // SECTION 3 (Intelligence Gyroscope) -> SECTION 4 (Enterprise API Server Pipeline)
           const t = Math.min(1, Math.max(0, (viewCenter - c4) / (c5 - c4)));
           const st = t * t * (3 - 2 * t);
-          targetCenterX = width * 0.50 - st * width * 0.24; // 0.50 -> 0.26 (Left of code snippet)
-          targetCenterY = height * 0.35 + st * height * 0.15; // 0.35 -> 0.50
-          stageRotationY = tick * 0.28;
+          targetCenterX = width * 0.50 - st * width * 0.24;
+          targetCenterY = height * 0.35 + st * height * 0.15;
+          stageRotationY = tick * 0.22;
           w4 = 1 - st;
           w5 = st;
         } else {
           // SECTION 4 (Enterprise Pipeline) -> SECTION 5 (Cathedral Zorvik Monolith)
           const t = Math.min(1, Math.max(0, (viewCenter - c5) / (c6 - c5)));
           const st = t * t * (3 - 2 * t);
-          targetCenterX = width * 0.26 + st * width * 0.24; // 0.26 -> 0.50
-          targetCenterY = height * 0.50 - st * height * 0.18; // 0.50 -> 0.32 (Above logo)
+          targetCenterX = width * 0.26 + st * width * 0.24;
+          targetCenterY = height * 0.50 - st * height * 0.18;
           targetScaleFactor = 1.68 + st * 0.18;
-          stageRotationY = tick * 0.22;
+          stageRotationY = tick * 0.18;
           w5 = 1 - st;
           w6 = st;
         }

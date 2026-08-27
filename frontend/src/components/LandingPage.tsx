@@ -180,7 +180,7 @@ print(response.content)`,
             </div>
 
             {/* Right Column: 3D Volumetric Viewport Container */}
-            <div className="hidden lg:flex lg:col-span-4 min-h-[580px] pointer-events-none" />
+            <div id="hero-anchor" className="hidden lg:flex lg:col-span-4 min-h-[580px] pointer-events-none" />
           </div>
         </section>
 
@@ -188,7 +188,7 @@ print(response.content)`,
         <section id="features" className="py-32 px-6 sm:px-12 border-t border-white/[0.04] max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             {/* Left Column: 3D Viewport space where human has walked and points Right */}
-            <div className="hidden lg:flex lg:col-span-4 min-h-[520px] pointer-events-none" />
+            <div id="features-anchor" className="hidden lg:flex lg:col-span-4 min-h-[520px] pointer-events-none" />
 
             {/* Right Column: Capabilities Narrative & Matrix */}
             <div className="lg:col-span-8 space-y-8">

@@ -4,7 +4,7 @@ const globals = require("globals");
 module.exports = [
   js.configs.recommended,
   {
-    files: ["eslint.config.js", "server.js", "src/**/*.js", "tests/**/*.js"],
+    files: ["eslint.config.js", "server.js", "api/**/*.js", "src/**/*.js", "tests/**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
@@ -57,6 +57,8 @@ module.exports = [
       "node_modules/",
       "dist/",
       ".vercel/",
+      "frontend/",
+      "backend/",
       "tokenization-server/",
       "assets/",
     ],
