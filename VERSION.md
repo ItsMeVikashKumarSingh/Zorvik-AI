@@ -13,14 +13,16 @@ All notable changes to the Zorvik AI standalone microservice will be documented 
   - Overhauled landing page footer to liquid-glass theme with brand identity, circular social buttons, direct contact details (+918409792083, hello@zorviktech.com, Sherpur Bahori, Mahua, Vaishali, Bihar), and live operational status indicator.
   - Built standalone independent governance pages & routes (`/privacy`, `/terms`, `/security`) with dedicated [`LegalPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LegalPage.tsx) and [`LegalModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LegalModal.tsx).
   - Configured 1-Project unified full-stack monorepo deployment pipeline in `vercel.json`, `package.json`, and `server.js` with zero CORS friction and automatic Edge CDN routing.
-  - Implemented dynamic DOM grid anchor coordinates in [`ConstellationCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ConstellationCanvas.tsx) and [`LandingPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LandingPage.tsx) (`#hero-anchor`, `#features-anchor`) for pixel-perfect responsive positioning and proportional scaling across all viewport dimensions (laptops, 1080p, 1440p, 4K, ultrawide).
+  - Fine-tuned Stage 1 (Hero) position to `58%` width and Stage 2 (Capabilities) to `9%` width for generous breathing room and zero text overlap across all desktop zoom factors.
+  - Upgraded transition trigger between Section 2 and Section 3 to start morphing earlier at `30%` scroll for immediate fluid responsiveness.
+  - Enlarged and centered all 3D objects for post-Stage-2 sections (3D Brain at scale `1.70`, Quantum Gyroscope at scale `1.75`, Zorvik Monolith at `1.85`).
 - **6-Stage 3D Particle Morph System ([`ConstellationCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ConstellationCanvas.tsx))**:
-  - **Stage 1 (Hero)**: 3D Cyber Human anchored to right grid column, pointing left directly at the 1-line headline with dynamic cyan laser beam.
-  - **Stage 2 (Capabilities)**: 3D Cyber Human anchored to left grid column, rotated 180° pointing right across capability cards.
-  - **Stage 3 (Deep Memory)**: Organic 3D Anatomical Human Brain with continuous Fibonacci cortical topology, deep sagittal fissure, temporal hooks, sub-occipital cerebellum, and golden corpus callosum synaptic firing arcs.
-  - **Stage 4 (Adaptive Intelligence)**: 3D Quantum Multi-Model Gyroscope with 3 orthogonal rotating concentric rings ($XY, YZ, XZ$ planes) around a pulsating Saffron Gold reasoning core.
+  - **Stage 1 (Hero)**: 3D Cyber Human positioned comfortably alongside headline at 58% width, pointing left with dynamic cyan laser beam.
+  - **Stage 2 (Capabilities)**: 3D Cyber Human positioned at 9% far-left width, rotated 180° pointing right across capability cards.
+  - **Stage 3 (Deep Memory)**: Monumental centered Organic 3D Anatomical Human Brain (scale `1.70`) with continuous Fibonacci cortical topology and golden synaptic firing arcs.
+  - **Stage 4 (Adaptive Intelligence)**: Monumental centered 3D Quantum Multi-Model Gyroscope (scale `1.75`) with 3 orthogonal rotating concentric rings.
   - **Stage 5 (Enterprise API)**: 3D High-Throughput Stream Pipeline with 8-column server node cylinder and inner double-helix data stream strand.
-  - **Stage 6 (Cathedral CTA)**: 3D Circuit-Traced Zorvik Monolith Shield hovering directly above the sculptural **ZORVIK ΛI** logo.
+  - **Stage 6 (Cathedral CTA)**: Monumental 3D Circuit-Traced Zorvik Monolith Shield (scale `1.85`) hovering directly above the sculptural **ZORVIK ΛI** logo.
 - **Atmospheric Background Engine**:
   - Ambient multi-chromatic micro-stardust with gentle pulsing opacity and dynamic radial nebula aura.
 - **Clean Synaptic Rendering**:
