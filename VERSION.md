@@ -2,9 +2,20 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [0.6.8] - 2026-08-28
+### Global Favicon & Zorvik AI Emblem Icon Integration
+- **Universal Favicon**: Integrated high-resolution metallic 'Z' emblem as the official browser favicon in [`index.html`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/index.html) and `public/favicon.png`.
+- **Cross-View Logo Integration**: Deployed the official logo emblem mark across:
+  - [`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx) (in the top brand pill)
+  - [`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx) (in the top header lockup)
+  - [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx) (as the central hero hallmark emblem)
+  - [`AuthModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AuthModal.tsx) (in the authentication header)
+  - [`LandingPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LandingPage.tsx) & [`LegalPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LegalPage.tsx) (in floating island navigation bars).
+
 ## [0.6.7] - 2026-08-28
 ### Single Context-Aware Sidebar Toggle
 - **Eliminated Duplicate Collapse Buttons**: Contextually rendered the top navigation `PanelLeft` button in [`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx) only when the sidebar is collapsed (`!sidebarOpen`), guaranteeing exactly one toggle control visible on screen at any time.
+
 
 ## [0.6.6] - 2026-08-28
 ### Eliminated Synthetic Status Box & Block Cursor

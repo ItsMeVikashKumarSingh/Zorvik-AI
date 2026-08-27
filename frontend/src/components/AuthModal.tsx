@@ -83,7 +83,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onUserUpd
         </button>
 
         {/* Brand */}
-        <div className="flex items-center gap-1.5 mb-3">
+        <div className="flex items-center gap-2 mb-3">
+          <img src="/logo.png" alt="Zorvik AI" className="w-6 h-6 rounded-lg object-contain" />
           <span className="font-semibold tracking-wider text-white text-base">Zorvik AI</span>
         </div>
 

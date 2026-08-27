@@ -91,8 +91,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-4 flex items-center justify-between border-b border-white/[0.04] min-w-[260px]">
           <button
             onClick={onNavigateHome}
-            className="flex items-center gap-1.5 text-left group"
+            className="flex items-center gap-2 text-left group"
           >
+            <img src="/logo.png" alt="Zorvik AI" className="w-5 h-5 rounded-md object-contain" />
             <span className="font-semibold tracking-wider text-white text-sm">Zorvik AI</span>
           </button>
           <button

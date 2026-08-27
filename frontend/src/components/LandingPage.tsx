@@ -74,14 +74,13 @@ print(response.content)`,
         <div className="px-2.5 py-2 rounded-2xl bg-void/70 hover:bg-void/85 backdrop-blur-2xl border border-white/[0.12] shadow-2xl shadow-void/80 flex items-center gap-2 sm:gap-6 transition-all">
           {/* Left Icon Square Box (Official Zorvik AI Logo Mark) */}
           <a
-            href="/"
-            className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.12] flex items-center justify-center text-bone-white transition-all shadow-sm group"
-            title="Zorvik AI Home"
+            href="#"
+            className="flex items-center gap-2.5 w-9 h-9 rounded-xl overflow-hidden border border-white/[0.12] bg-[#0c0c16] p-0.5 group"
           >
             <img
-              src="/zorvik-logo.jpg"
+              src="/logo.png"
               alt="Zorvik AI Logo"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform"
             />
           </a>
 

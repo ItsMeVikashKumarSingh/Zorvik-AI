@@ -86,7 +86,12 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 max-w-3xl mx-auto w-full py-8">
       {/* Minimal Greeting */}
-      <div className="text-center mb-8 space-y-2">
+      <div className="text-center mb-8 space-y-2 flex flex-col items-center">
+        <img
+          src="/logo.png"
+          alt="Zorvik AI"
+          className="w-12 h-12 rounded-2xl object-contain mb-1 shadow-2xl shadow-black/80"
+        />
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-normal tracking-tight text-white">
           Where knowledge begins.
         </h1>

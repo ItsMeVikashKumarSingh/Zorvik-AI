@@ -29,8 +29,8 @@ export const LegalPage: React.FC<LegalPageProps> = ({
             onClick={onNavigateHome}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer text-left"
           >
-            <div className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-void">
-              <img src="/zorvik-logo.jpg" alt="Zorvik AI" className="h-full w-full object-cover" />
+            <div className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-white/20 bg-void">
+              <img src="/logo.png" alt="Zorvik AI" className="h-full w-full object-contain" />
             </div>
             <span className="font-mono text-sm font-bold tracking-tight text-bone-white">
               ZORVIK <span className="text-saffron-spark font-light">ΛI</span>

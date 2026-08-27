@@ -34,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Minimal Brand & Thread Title */}
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-silver/70 shrink-0">
+            <img src="/logo.png" alt="Zorvik AI" className="w-3.5 h-3.5 rounded-sm object-contain" />
             <span className="text-white font-medium">Zorvik AI</span>
           </div>
 
