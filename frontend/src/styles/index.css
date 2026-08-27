@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-void: #000000;
+    --color-bone-white: #ffffff;
+    --color-ash-gray: #9a9a9a;
+    --color-silver-mist: #bdbdbd;
+    --color-electric-iris: #8052ff;
+    --color-saffron-spark: #ffb829;
+    --color-deep-verdant: #15846e;
+
+    /* Typography Scale */
+    --text-caption: 12px;
+    --text-nav-label: 14px;
+    --text-body: 18px;
+    --text-heading-2xs: 24px;
+    --text-heading-xs: 27px;
+    --text-subheading: 36px;
+    --text-heading-sm: 42px;
+    --text-heading: 48px;
+    --text-heading-lg: 78px;
+    --text-display: 113px;
+  }
+
+  body {
+    background-color: #000000;
+    color: #ffffff;
+    font-family: 'PPNeueMontreal', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+/* Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8052ff;
+}
+
+/* Zero-box typography utilities */
+.font-extralight-200 {
+  font-weight: 200;
+}
+
+.font-regular-400 {
+  font-weight: 400;
+}
+
+.font-semibold-600 {
+  font-weight: 600;
+}
+
+/* Pill CTA button */
+.btn-dala-primary {
+  background-color: #8052ff;
+  color: #ffffff;
+  border-radius: 22.5px;
+  padding: 14.4px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 24px rgba(128, 82, 255, 0.25);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-dala-primary:hover {
+  background-color: #9268ff;
+  transform: translateY(-1px);
+  box-shadow: 0 0 32px rgba(128, 82, 255, 0.4);
+}
+
+.btn-dala-ghost {
+  background: transparent;
+  color: #9a9a9a;
+  border: none;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-dala-ghost:hover {
+  color: #ffffff;
+}
+
+/* Hairline utilities */
+.border-hairline {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.border-hairline-subtle {
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.border-hairline-active {
+  border: 1px solid rgba(128, 82, 255, 0.4);
+}
+
+/* Editorial Markdown Styling for Chat */
+.prose-editorial {
+  font-weight: 300;
+  line-height: 1.68;
+  color: #cccccc;
+}
+
+.prose-editorial h1,
+.prose-editorial h2,
+.prose-editorial h3 {
+  color: #ffffff;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-editorial p {
+  margin-bottom: 0.85rem;
+}
+
+.prose-editorial ul,
+.prose-editorial ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.prose-editorial li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-editorial code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875em;
+  padding: 0.15rem 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  color: #ffffff;
+}
+
+.prose-editorial pre {
+  margin: 1rem 0;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.prose-editorial blockquote {
+  border-left: 2px solid #8052ff;
+  padding-left: 1rem;
+  color: #bdbdbd;
+  font-style: italic;
+  margin: 1rem 0;
+}
+

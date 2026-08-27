@@ -1,505 +1,599 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const chatBox = document.getElementById('chatBox');
-    const userInput = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const codeDisplay = document.getElementById('codeDisplay');
-    const codeOutput = document.getElementById('codeOutput');
-    const copyBtn = document.getElementById('copyBtn');
-    const suggestionsContainer = document.getElementById('suggestions');
+/**
+ * Zorvik AI — Client Reactive Engine
+ * Handles session memory, SSE streaming, guest/account auth, autocomplete, and KaTeX rendering.
+ */
 
-    let isProcessing = false;
-    let lastQuestion = '';
-    // Next-text prediction variables
-    const PREDICT_API = "https://predict-iota.vercel.app/predict";
-    const STORE_API = "https://predict-iota.vercel.app/store";
-    let currentPrompt = "";
-    let hintText = "";
-    let suggestionActive = false;
-    let history = [];
+document.addEventListener("DOMContentLoaded", () => {
+  // Initialize Lucide icons
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 
-    sendBtn.addEventListener('click', handleInput);
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey && !isProcessing) {
-            e.preventDefault();
-            handleInput();
-        }
+  // DOM Elements
+  const sidebar = document.getElementById("sidebar");
+  const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
+  const closeSidebarBtn = document.getElementById("closeSidebarBtn");
+  const newChatBtn = document.getElementById("newChatBtn");
+  const searchChatsInput = document.getElementById("searchChatsInput");
+  const sessionsList = document.getElementById("sessionsList");
+  const clearAllChatsBtn = document.getElementById("clearAllChatsBtn");
+  const userStatusLabel = document.getElementById("userStatusLabel");
+  const tenantSettingsBtn = document.getElementById("tenantSettingsBtn");
+  const tenantLabel = document.getElementById("tenantLabel");
+  const modePills = document.querySelectorAll(".mode-pill");
+  const authBtn = document.getElementById("authBtn");
+  const authBtnText = document.getElementById("authBtnText");
+  const welcomeHero = document.getElementById("welcomeHero");
+  const chatViewport = document.getElementById("chatViewport");
+  const messagesContainer = document.getElementById("messagesContainer");
+  const promptInput = document.getElementById("promptInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const tokenCounter = document.getElementById("tokenCounter");
+  const autocompleteHint = document.getElementById("autocompleteHint");
+  const autocompleteText = document.getElementById("autocompleteText");
+  const starterCards = document.querySelectorAll(".starter-card");
+
+  // Modals
+  const authModal = document.getElementById("authModal");
+  const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
+  const tabSignIn = document.getElementById("tabSignIn");
+  const tabSignUp = document.getElementById("tabSignUp");
+  const authForm = document.getElementById("authForm");
+  const authEmail = document.getElementById("authEmail");
+  const authPassword = document.getElementById("authPassword");
+  const tenantModal = document.getElementById("tenantModal");
+  const closeTenantModalBtn = document.getElementById("closeTenantModalBtn");
+  const tenantIdInput = document.getElementById("tenantIdInput");
+  const saveTenantBtn = document.getElementById("saveTenantBtn");
+  const tenantPills = document.querySelectorAll(".pill-btn");
+
+  // State
+  let currentSessionId = null;
+  let activeMode = "auto";
+  let isGenerating = false;
+  let currentSuggestion = "";
+  let guestUUID = localStorage.getItem("zorvik_guest_uuid");
+  let tenantId = localStorage.getItem("zorvik_tenant_id") || "public-guest";
+  let authToken = localStorage.getItem("zorvik_auth_token") || null;
+  let currentUser = JSON.parse(localStorage.getItem("zorvik_user") || "null");
+
+  if (!guestUUID) {
+    guestUUID = "guest_" + Math.random().toString(36).substring(2, 11);
+    localStorage.setItem("zorvik_guest_uuid", guestUUID);
+  }
+
+  // Update UI with initial tenant and auth
+  updateTenantUI();
+  updateAuthUI();
+
+  // Load Sessions
+  loadSessions();
+
+  // Sidebar Toggle
+  toggleSidebarBtn.addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+  });
+  closeSidebarBtn.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+  });
+
+  // Mode Selection
+  modePills.forEach((pill) => {
+    pill.addEventListener("click", () => {
+      modePills.forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      activeMode = pill.dataset.mode;
     });
+  });
 
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(codeOutput.textContent)
-            .then(() => alert('Code copied to clipboard!'))
-            .catch(err => console.error('Failed to copy:', err));
+  // New Chat
+  newChatBtn.addEventListener("click", createNewChat);
+
+  // Clear All Chats
+  clearAllChatsBtn.addEventListener("click", () => {
+    if (confirm("Are you sure you want to clear all chat sessions?")) {
+      localStorage.removeItem("zorvik_sessions");
+      createNewChat();
+    }
+  });
+
+  // Starter Cards
+  starterCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      const prompt = card.dataset.prompt;
+      if (prompt) {
+        promptInput.value = prompt;
+        updateTokenCount();
+        handleSend();
+      }
     });
+  });
 
-    // Next-text prediction functions
-    async function getNextWords(prompt) {
-        try {
-            console.log("Fetching prediction for:", prompt);
-            const response = await fetch(PREDICT_API, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({prompt})
-            });
-            if (!response.ok) throw new Error(await response.text());
-            const data = await response.json();
-            console.log("API response:", data);
-            return data.next_words || [];
-        } catch (e) {
-            console.error("Prediction error:", e);
-            return [];
-        }
+  // Input Auto-expand & Token Counter
+  promptInput.addEventListener("input", () => {
+    promptInput.style.height = "auto";
+    promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + "px";
+    updateTokenCount();
+    fetchAutocompleteThrottled(promptInput.value);
+  });
+
+  promptInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    } else if (e.key === "Tab" && currentSuggestion) {
+      e.preventDefault();
+      promptInput.value = promptInput.value + " " + currentSuggestion;
+      currentSuggestion = "";
+      if (autocompleteHint) autocompleteHint.style.display = "none";
+      updateTokenCount();
+    }
+  });
+
+  sendBtn.addEventListener("click", handleSend);
+
+  // Search Chats
+  searchChatsInput.addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    const items = sessionsList.querySelectorAll(".session-item");
+    items.forEach((item) => {
+      const title = item.querySelector(".session-title").textContent.toLowerCase();
+      item.style.display = title.includes(query) ? "flex" : "none";
+    });
+  });
+
+  // Modals & Handlers
+  if (tenantSettingsBtn && tenantModal) {
+    tenantSettingsBtn.addEventListener("click", () => {
+      tenantIdInput.value = tenantId;
+      tenantModal.style.display = "flex";
+    });
+    if (closeTenantModalBtn) {
+      closeTenantModalBtn.addEventListener("click", () => {
+        tenantModal.style.display = "none";
+      });
+    }
+    if (saveTenantBtn) {
+      saveTenantBtn.addEventListener("click", () => {
+        const newTid = tenantIdInput.value.trim() || "public-guest";
+        tenantId = newTid;
+        localStorage.setItem("zorvik_tenant_id", tenantId);
+        updateTenantUI();
+        tenantModal.style.display = "none";
+      });
+    }
+    tenantPills.forEach((pill) => {
+      pill.addEventListener("click", () => {
+        tenantIdInput.value = pill.dataset.tid;
+      });
+    });
+  }
+
+  authBtn.addEventListener("click", () => {
+    if (currentUser) {
+      if (confirm(`Sign out of ${currentUser.email}?`)) {
+        localStorage.removeItem("zorvik_auth_token");
+        localStorage.removeItem("zorvik_user");
+        authToken = null;
+        currentUser = null;
+        updateAuthUI();
+      }
+    } else {
+      authModal.style.display = "flex";
+    }
+  });
+  closeAuthModalBtn.addEventListener("click", () => {
+    authModal.style.display = "none";
+  });
+
+  let isSignUpMode = false;
+  tabSignIn.addEventListener("click", () => {
+    tabSignIn.classList.add("active");
+    tabSignUp.classList.remove("active");
+    isSignUpMode = false;
+  });
+  tabSignUp.addEventListener("click", () => {
+    tabSignUp.classList.add("active");
+    tabSignIn.classList.remove("active");
+    isSignUpMode = true;
+  });
+
+  authForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = authEmail.value.trim();
+    const _pwd = authPassword.value;
+    // Simulate auth token for demonstration/microservice account mode
+    authToken = "mock_jwt_" + btoa(email);
+    currentUser = { email, id: "user_" + Math.random().toString(36).substring(2, 9) };
+    localStorage.setItem("zorvik_auth_token", authToken);
+    localStorage.setItem("zorvik_user", JSON.stringify(currentUser));
+    updateAuthUI();
+    authModal.style.display = "none";
+    const modeLabel = isSignUpMode ? "Registered and signed in" : "Signed in";
+    alert(`${modeLabel} as ${email}! Local guest chats synchronized.`);
+  });
+
+  // Functions
+
+  function updateTokenCount() {
+    if (tokenCounter && promptInput) {
+      const text = promptInput.value;
+      const est = Math.ceil(text.length / 4);
+      tokenCounter.textContent = `${est} tokens`;
+    }
+  }
+
+  function updateTenantUI() {
+    if (tenantLabel) {
+      tenantLabel.textContent = `Tenant: ${tenantId}`;
+    }
+  }
+
+  function updateAuthUI() {
+    if (currentUser) {
+      authBtnText.textContent = currentUser.email.split("@")[0];
+      authBtn.style.borderColor = "var(--color-purple)";
+      if (userStatusLabel) {
+        userStatusLabel.textContent = currentUser.email;
+      }
+    } else {
+      authBtnText.textContent = "Sign In";
+      authBtn.style.borderColor = "var(--border-cyan)";
+      if (userStatusLabel) {
+        userStatusLabel.textContent = "Guest Session";
+      }
+    }
+  }
+
+  let autocompleteTimer = null;
+  function fetchAutocompleteThrottled(text) {
+    clearTimeout(autocompleteTimer);
+    if (!text || text.length < 2) {
+      if (autocompleteHint) autocompleteHint.style.display = "none";
+      currentSuggestion = "";
+      return;
     }
 
-    async function storePrompt(prompt) {
-        try {
-            console.log("Storing prompt:", prompt);
-            const response = await fetch(STORE_API, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({prompt})
-            });
-            if (!response.ok) throw new Error(await response.text());
-            return await response.json();
-        } catch (e) {
-            console.error("Storage error:", e);
-            throw e;
-        }
-    }
-
-    function throttle(func, wait) {
-        let timeout;
-        let lastCall = 0;
-        return function (...args) {
-            const now = Date.now();
-            if (now - lastCall >= wait) {
-                lastCall = now;
-                return func(...args);
-            }
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                lastCall = now;
-                func(...args);
-            }, wait - (now - lastCall));
-        };
-    }
-
-    const throttledPredict = throttle(async (prompt) => {
-        console.log("Throttled predict triggered with:", prompt);
-        const nextWords = await getNextWords(prompt.trim());
-        console.log("Next words received:", nextWords);
-        if (nextWords && nextWords.length > 0 && suggestionActive) {
-            hintText = " " + nextWords.join(" ");
-            const fullText = prompt + hintText;
-            userInput.value = fullText;
-            const start = prompt.length;
-            userInput.setSelectionRange(start, fullText.length);
+    autocompleteTimer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/v1/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-tenant-id": tenantId,
+          },
+          body: JSON.stringify({ prompt: text }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.next_words && data.next_words.length > 0) {
+          currentSuggestion = data.next_words.join(" ");
+          if (autocompleteText) autocompleteText.textContent = currentSuggestion;
+          if (autocompleteHint) autocompleteHint.style.display = "flex";
         } else {
-            hintText = "";
-            suggestionActive = false;
+          if (autocompleteHint) autocompleteHint.style.display = "none";
+          currentSuggestion = "";
         }
-    }, 500);
+      } catch (_e) {
+        if (autocompleteHint) autocompleteHint.style.display = "none";
+      }
+    }, 250);
+  }
 
-    userInput.addEventListener("input", (e) => {
-        const prompt = e.target.value;
-        const cursorPos = userInput.selectionStart;
-        console.log("Input event triggered, prompt:", prompt, "cursorPos:", cursorPos);
+  function getStoredSessions() {
+    try {
+      return JSON.parse(localStorage.getItem("zorvik_sessions") || "[]");
+    } catch (_e) {
+      return [];
+    }
+  }
 
-        currentPrompt = prompt;
-        if (suggestionActive) {
-            hintText = "";
-            suggestionActive = false;
-        } else {
-            suggestionActive = true;
-        }
+  function saveStoredSessions(sessions) {
+    localStorage.setItem("zorvik_sessions", JSON.stringify(sessions));
+    renderSessionsList();
+  }
 
-        if (prompt && !hintText) {
-            throttledPredict(prompt);
-        } else if (!prompt) {
-            hintText = "";
-            suggestionActive = false;
-        }
-        userInput.setSelectionRange(cursorPos, cursorPos);
+  function createNewChat() {
+    const sessionId = "session_" + Date.now();
+    currentSessionId = sessionId;
+    const sessions = getStoredSessions();
+    sessions.unshift({
+      id: sessionId,
+      title: "New Chat",
+      createdAt: Date.now(),
+      messages: [],
+    });
+    saveStoredSessions(sessions);
+    loadSession(sessionId);
+    if (window.innerWidth <= 768) {
+      sidebar.classList.remove("open");
+    }
+  }
+
+  function loadSessions() {
+    const sessions = getStoredSessions();
+    if (sessions.length === 0) {
+      createNewChat();
+    } else {
+      currentSessionId = sessions[0].id;
+      renderSessionsList();
+      loadSession(currentSessionId);
+    }
+  }
+
+  function renderSessionsList() {
+    sessionsList.innerHTML = "";
+    const sessions = getStoredSessions();
+
+    sessions.forEach((s) => {
+      const item = document.createElement("div");
+      item.className = `session-item ${s.id === currentSessionId ? "active" : ""}`;
+      item.innerHTML = `
+        <span class="session-title">${escapeHTML(s.title)}</span>
+        <button class="session-del-btn" title="Delete Chat"><i data-lucide="trash-2"></i></button>
+      `;
+
+      item.querySelector(".session-title").addEventListener("click", () => {
+        loadSession(s.id);
+        if (window.innerWidth <= 768) sidebar.classList.remove("open");
+      });
+
+      item.querySelector(".session-del-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteSession(s.id);
+      });
+
+      sessionsList.appendChild(item);
     });
 
-    userInput.addEventListener("keydown", (e) => {
-        const cursorPos = userInput.selectionStart;
-        if (e.key === "Tab" && suggestionActive) {
-            e.preventDefault();
-            history.push(currentPrompt);
-            currentPrompt = currentPrompt.trim() + " " + hintText.trim();
-            userInput.value = currentPrompt;
-            hintText = "";
-            suggestionActive = false;
-            userInput.setSelectionRange(currentPrompt.length, currentPrompt.length);
-        } else if (e.key === " " && !suggestionActive) {
-            e.preventDefault();
-            const newPrompt = currentPrompt.slice(0, cursorPos) + " " + currentPrompt.slice(cursorPos);
-            currentPrompt = newPrompt;
-            userInput.value = newPrompt;
-            hintText = "";
-            suggestionActive = true;
-            const newCursorPos = cursorPos + 1;
-            userInput.setSelectionRange(newCursorPos, newCursorPos);
-            if (currentPrompt.trim()) {
-                throttledPredict(currentPrompt);
-            }
-        } else if (e.key === "Enter" && suggestionActive && !e.shiftKey) {
-            e.preventDefault();
-            history.push(currentPrompt);
-            currentPrompt = userInput.value;
-            hintText = "";
-            suggestionActive = false;
-            userInput.value = currentPrompt;
-            userInput.setSelectionRange(currentPrompt.length, currentPrompt.length);
-        } else if (e.ctrlKey && e.key === "z" && history.length > 0) {
-            e.preventDefault();
-            currentPrompt = history.pop();
-            userInput.value = currentPrompt;
-            hintText = "";
-            suggestionActive = false;
-            userInput.setSelectionRange(cursorPos, cursorPos);
-        }
-    });
+    if (window.lucide) window.lucide.createIcons();
+  }
 
-    userInput.addEventListener("mousedown", (e) => {
-        if (suggestionActive) {
-            e.preventDefault();
-        }
-    });
+  function deleteSession(id) {
+    let sessions = getStoredSessions();
+    sessions = sessions.filter((s) => s.id !== id);
+    localStorage.setItem("zorvik_sessions", JSON.stringify(sessions));
+    if (currentSessionId === id) {
+      if (sessions.length > 0) {
+        loadSession(sessions[0].id);
+      } else {
+        createNewChat();
+      }
+    } else {
+      renderSessionsList();
+    }
+  }
 
-async function handleInput() {
-    const originalQuestion = userInput.value.trim();
-    if (!originalQuestion || isProcessing) return;
+  function loadSession(id) {
+    currentSessionId = id;
+    renderSessionsList();
+    messagesContainer.innerHTML = "";
 
-    // Clear input immediately
-    userInput.value = '';
-    currentPrompt = "";
-    hintText = "";
-    suggestionActive = false;
-    history = [];
+    const sessions = getStoredSessions();
+    const session = sessions.find((s) => s.id === id);
 
-    isProcessing = true;
+    if (!session || !session.messages || session.messages.length === 0) {
+      welcomeHero.style.display = "flex";
+      messagesContainer.style.display = "none";
+    } else {
+      welcomeHero.style.display = "none";
+      messagesContainer.style.display = "flex";
+      session.messages.forEach((msg) => {
+        renderMessage(msg.role, msg.content, msg.meta);
+      });
+      scrollToBottom();
+    }
+  }
+
+  async function handleSend() {
+    const prompt = promptInput.value.trim();
+    if (!prompt || isGenerating) return;
+
+    // Reset input
+    promptInput.value = "";
+    promptInput.style.height = "auto";
+    updateTokenCount();
+    if (autocompleteHint) autocompleteHint.style.display = "none";
+    currentSuggestion = "";
+
+    welcomeHero.style.display = "none";
+    messagesContainer.style.display = "flex";
+
+    // Append user message
+    renderMessage("user", prompt);
+    saveMessageToSession(currentSessionId, "user", prompt);
+    updateSessionTitleIfNew(currentSessionId, prompt);
+
+    // Prepare Assistant Bubble
+    isGenerating = true;
     sendBtn.disabled = true;
 
-    lastQuestion = originalQuestion;
-    const modifiedQuestion = `I will provide you with a message. Your primary goal is to understand the user's likely intent behind the message and respond appropriately in the shortest possible complete answer. You identify as "Zorvik AI," an AI created by Team Zorvik, which includes team members Vikash Kumar Singh, Varun Singh, and Shri Ram Sain, made in India. Only mention this identity if the user directly asks about who you are, who created you, your origin, or similar identity-related questions. For all other questions, focus on providing a concise and complete answer based on your knowledge. You have a professional understanding of emojis and their common use in communication to convey emotions and implied meanings. If the message contains emojis, interpret them within the context of the entire message to understand the user's feeling or intention. For example, if the user sends "😤hie," recognize that the "face with steam from nose" emoji combined with "hie" likely expresses a frustrated or impatient greeting, and respond accordingly rather than just defining the emoji and the word separately. Do not treat regular text as emojis. Answer should be concise but complete and address the likely intent. Here is my message: "${originalQuestion}"`;
-    appendMessage('You', originalQuestion, 'user');
-    await storePrompt(originalQuestion); // Storing the original message
+    const assistantMsgObj = renderMessage("assistant", "Thinking...", { pending: true });
+    scrollToBottom();
+
+    const startTime = Date.now();
 
     try {
-        appendThinkingMessage();
-        const response = await callGeminiApi(modifiedQuestion);
-        removeLastMessage();
-        displayFormattedResponse(response || 'No response content received.');
-    } catch (error) {
-        removeLastMessage();
-        appendMessage('Zorvik AI', `Error: ${error.message}`, 'ai');
-        console.error('Full Error:', error);
+      const res = await fetch("/api/v1/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": tenantId,
+          "x-session-id": currentSessionId,
+          "x-guest-uuid": guestUUID,
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({
+          prompt,
+          mode: activeMode,
+          session_id: currentSessionId,
+          stream: false,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || `Server returned error ${res.status}`);
+      }
+
+      const data = await res.json();
+      const latency = Date.now() - startTime;
+      const meta = {
+        model: data.model || "gemini-2.0-flash",
+        latencyMs: data.latency_ms || latency,
+      };
+
+      updateAssistantMessage(assistantMsgObj, data.response, meta);
+      saveMessageToSession(currentSessionId, "assistant", data.response, meta);
+    } catch (err) {
+      updateAssistantMessage(
+        assistantMsgObj,
+        `⚠️ Error: ${err.message}. Please check your network or try again.`,
+        { error: true }
+      );
     } finally {
-        isProcessing = false;
-        sendBtn.disabled = false;
+      isGenerating = false;
+      sendBtn.disabled = false;
+      if (promptInput) promptInput.focus();
+      scrollToBottom();
     }
-}
+  }
 
-    function appendMessage(sender, text, senderType) {
-        const message = document.createElement('div');
-        message.classList.add('message', senderType);
-        const strong = document.createElement('strong');
-        strong.textContent = `${sender}: `;
-        const content = document.createElement('span');
-        content.classList.add('message-content');
-        content.style.fontWeight = '300';
-        content.innerHTML = text;
-        message.appendChild(strong);
-        message.appendChild(content);
-        chatBox.appendChild(message);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        if (typeof MathJax !== 'undefined') {
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, chatBox]);
-        }
+  function renderMessage(role, content, _meta = {}) {
+    const row = document.createElement("div");
+    row.className = `message-row ${role}`;
+
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.innerHTML = role === "user" ? '<span class="avatar-tag user">YOU</span>' : '<span class="avatar-tag zorvik">Z·AI</span>';
+
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+
+    const header = document.createElement("div");
+    header.className = "message-meta";
+    header.innerHTML = `
+      <span class="message-author">${role === "user" ? "You" : "Zorvik AI"}</span>
+    `;
+
+    const body = document.createElement("div");
+    body.className = "message-content";
+    body.innerHTML = formatMarkdown(content);
+
+    bubble.appendChild(header);
+    bubble.appendChild(body);
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+
+    messagesContainer.appendChild(row);
+
+    if (window.lucide) window.lucide.createIcons();
+    enhanceCodeBlocks(bubble);
+    renderMath(bubble);
+
+    return { row, bubble, body, header };
+  }
+
+  function updateAssistantMessage(msgObj, content, _meta = {}) {
+    msgObj.body.innerHTML = formatMarkdown(content);
+    enhanceCodeBlocks(msgObj.bubble);
+    renderMath(msgObj.bubble);
+  }
+
+  function formatMarkdown(text) {
+    if (!text) return "";
+    if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+      const rawHtml = marked.parse(text);
+      return DOMPurify.sanitize(rawHtml);
     }
+    return escapeHTML(text);
+  }
 
-    function appendThinkingMessage() {
-        const message = document.createElement('div');
-        message.classList.add('message', 'ai');
-        const strong = document.createElement('strong');
-        strong.textContent = 'Zorvik AI: ';
-        const content = document.createElement('span');
-        content.classList.add('message-content', 'thinking-dots');
-        content.innerHTML = 'Thinking<span style="--i:1">.</span><span style="--i:2">.</span><span style="--i:3">.</span>';
-        message.appendChild(strong);
-        message.appendChild(content);
-        chatBox.appendChild(message);
-        chatBox.scrollTop = chatBox.scrollHeight;
+  function enhanceCodeBlocks(container) {
+    const preBlocks = container.querySelectorAll("pre");
+    preBlocks.forEach((pre) => {
+      if (pre.parentElement.classList.contains("code-block-wrap")) return;
+
+      const code = pre.querySelector("code");
+      const langMatch = code ? code.className.match(/language-(\w+)/) : null;
+      const lang = langMatch ? langMatch[1] : "code";
+
+      const wrap = document.createElement("div");
+      wrap.className = "code-block-wrap";
+
+      const header = document.createElement("div");
+      header.className = "code-header";
+      header.innerHTML = `
+        <span>${lang}</span>
+        <button class="copy-code-btn"><i data-lucide="copy"></i> Copy</button>
+      `;
+
+      header.querySelector(".copy-code-btn").addEventListener("click", () => {
+        navigator.clipboard.writeText(code ? code.innerText : pre.innerText);
+        const btn = header.querySelector(".copy-code-btn");
+        btn.innerHTML = '<i data-lucide="check"></i> Copied!';
+        setTimeout(() => {
+          btn.innerHTML = '<i data-lucide="copy"></i> Copy';
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
+      });
+
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(header);
+      wrap.appendChild(pre);
+
+      if (window.Prism && code) {
+        window.Prism.highlightElement(code);
+      }
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function renderMath(container) {
+    if (typeof renderMathInElement !== "undefined") {
+      renderMathInElement(container, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "\\(", right: "\\)", display: false },
+        ],
+        throwOnError: false,
+      });
     }
+  }
 
-    function removeLastMessage() {
-        const lastMessage = chatBox.lastElementChild;
-        if (lastMessage) {
-            chatBox.removeChild(lastMessage);
-        }
+  function saveMessageToSession(sessionId, role, content, meta = {}) {
+    const sessions = getStoredSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (session) {
+      if (!session.messages) session.messages = [];
+      session.messages.push({ role, content, meta, timestamp: Date.now() });
+      saveStoredSessions(sessions);
     }
+  }
 
-    async function callGeminiApi(prompt) {
-        const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`;
-        const payload = {
-            contents: [{
-                parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-                maxOutputTokens: API_CONFIG.DEFAULT_PARAMS.maxTokens,
-                temperature: API_CONFIG.DEFAULT_PARAMS.temperature,
-                topP: API_CONFIG.DEFAULT_PARAMS.topP
-            }
-        };
-
-        console.log('--- Starting Gemini API Call ---');
-        console.log('Request URL:', url);
-        console.log('Request Payload:', JSON.stringify(payload));
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': import.meta.env.VITE_GEMINI_API_KEY
-                },
-                body: JSON.stringify(payload),
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
-            }
-
-            const data = await response.json();
-            console.log('API Response Data:', data);
-            return data.candidates[0].content.parts[0].text;
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                throw new Error('Request timed out after 30 seconds');
-            }
-            throw error;
-        }
+  function updateSessionTitleIfNew(sessionId, prompt) {
+    const sessions = getStoredSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (session && session.title === "New Chat") {
+      session.title = prompt.slice(0, 32) + (prompt.length > 32 ? "..." : "");
+      saveStoredSessions(sessions);
     }
+  }
 
-    function updateResponseContainer(text, container) {
-        while (container.childNodes.length > 1) {
-            container.removeChild(container.lastChild);
-        }
+  function scrollToBottom() {
+    chatViewport.scrollTop = chatViewport.scrollHeight;
+  }
 
-        const contentDiv = document.createElement('div');
-        contentDiv.style.fontWeight = '300';
-
-        const parsedText = parseMarkdown(text);
-        const sections = parsedText.split(/---/).filter(section => section.trim());
-        sections.forEach((section, index) => {
-            if (index > 0) {
-                const hr = document.createElement('hr');
-                contentDiv.appendChild(hr);
-            }
-
-            const parts = section.split(/(```[a-z]*\s*[\s\S]*?```|\$\$[\s\S]*?\$\$)/g).filter(part => part.trim());
-            parts.forEach(part => {
-                if (part.match(/```[a-z]*\s*[\s\S]*?```/)) {
-                    const codeContent = part.replace(/```[a-z]*\s*|\s*```/g, '').trim();
-                    const pre = document.createElement('pre');
-                    pre.classList.add('code-block');
-                    const codeEl = document.createElement('code');
-                    codeEl.textContent = codeContent;
-                    pre.appendChild(codeEl);
-                    contentDiv.appendChild(pre);
-                } else if (part.match(/\$\$[\s\S]*?\$\$/)) {
-                    const mathContent = part.replace(/\$\$/g, '').trim();
-                    const p = document.createElement('p');
-                    p.innerHTML = `$$${mathContent}$$`;
-                    contentDiv.appendChild(p);
-                } else {
-                    const p = document.createElement('p');
-                    p.style.fontWeight = '300';
-                    p.innerHTML = part.replace(/\n/g, '<br>').replace(/\\textbf\{([^{}]*)\}/g, '<strong>$1</strong>');
-                    contentDiv.appendChild(p);
-                }
-            });
-        });
-
-        container.appendChild(contentDiv);
-        if (typeof MathJax !== 'undefined') {
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
-        }
-    }
-
-    function displayFormattedResponse(responseText, container = null) {
-        const responseContainer = container || document.createElement('div');
-        if (!container) {
-            responseContainer.classList.add('response-container');
-            const sender = document.createElement('strong');
-            sender.textContent = 'Zorvik AI: ';
-            responseContainer.appendChild(sender);
-            chatBox.appendChild(responseContainer);
-        }
-
-        const normalizeText = (text) => text.trim().toLowerCase().replace(/[?.!]/g, '');
-        const lines = responseText.split('\n');
-        if (normalizeText(lines[0]) === normalizeText(lastQuestion)) {
-            lines.shift();
-        }
-        let cleanedResponseText = lines.join('\n').trim();
-
-        cleanedResponseText = cleanedResponseText
-            .replace(/\\textbf\{([^{}]*)\}/g, '\\mathbf{$1}')
-            .replace(/∇/g, '\\nabla')
-            .replace(/\$\$([^$]+)\$\$/g, (match, p1) => {
-                const fixedMath = p1.replace(/\{∂\s*\}\s*\/\s*\{∂\s*x\}/g, '\\frac{\\partial}{\\partial x}')
-                                    .replace(/$$ r\sinθ\s*,\s*r\cosθ $$/g, '(-r \\sin \\theta, r \\cos \\theta)');
-                return `$$${fixedMath}$$`;
-            });
-
-        const parsedText = parseMarkdown(cleanedResponseText);
-        const sections = parsedText.split(/---/).filter(section => section.trim());
-
-        sections.forEach((section, index) => {
-            if (index > 0) {
-                const hr = document.createElement('hr');
-                responseContainer.appendChild(hr);
-            }
-
-            const sectionParts = section.split(/###\s+/).filter(part => part.trim());
-            let introText = sectionParts[0].trim();
-            const sectionMap = {};
-            for (let i = 1; i < sectionParts.length; i++) {
-                const [title, ...content] = sectionParts[i].split('\n');
-                sectionMap[title.trim()] = content.join('\n').trim();
-            }
-
-            const codeMatch = introText.match(/```[a-z]*\s*([\s\S]*?)```/);
-            const code = codeMatch ? codeMatch[1].trim() : null;
-            introText = code ? introText.replace(codeMatch[0], '').trim() : introText;
-
-            if (introText) {
-                const introDiv = document.createElement('div');
-                introDiv.style.fontWeight = '300';
-                const introBlocks = introText.split(/\n{2,}/).filter(block => block.trim());
-                introBlocks.forEach((block, bIdx) => {
-                    const p = document.createElement('p');
-                    p.style.fontWeight = '300';
-                    p.style.marginBottom = bIdx < introBlocks.length - 1 ? '1em' : '0';
-                    const blockLines = block.split('\n').filter(line => line.trim());
-                    let formattedText = '';
-                    blockLines.forEach((line, lIdx) => {
-                        let formattedLine = line;
-                        if (line.startsWith('- ')) {
-                            formattedLine = '• ' + line.replace(/^- /, '');
-                        }
-                        formattedText += (lIdx > 0 ? '<br>' : '') + parseInlineCode(formattedLine);
-                    });
-                    p.innerHTML = formattedText;
-                    introDiv.appendChild(p);
-                });
-                responseContainer.appendChild(introDiv);
-            }
-
-            if (code) {
-                const codeSection = document.createElement('div');
-                codeSection.classList.add('response-section');
-                const codeTitle = document.createElement('h3');
-                codeTitle.textContent = 'Code:';
-                codeSection.appendChild(codeTitle);
-
-                const pre = document.createElement('pre');
-                pre.classList.add('code-block');
-                const codeEl = document.createElement('code');
-                codeEl.textContent = code;
-                pre.appendChild(codeEl);
-                codeSection.appendChild(pre);
-
-                const copyCodeBtn = document.createElement('button');
-                copyCodeBtn.classList.add('copy-btn');
-                copyCodeBtn.textContent = 'Copy Code';
-                copyCodeBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(code)
-                        .then(() => alert('Code copied to clipboard!'))
-                        .catch(err => console.error('Failed to copy:', err));
-                });
-                codeSection.appendChild(copyCodeBtn);
-                responseContainer.appendChild(codeSection);
-            }
-
-            for (const [title, content] of Object.entries(sectionMap)) {
-                const section = document.createElement('div');
-                section.classList.add('response-section');
-                const sectionTitle = document.createElement('h3');
-                sectionTitle.textContent = title.replace(':', '');
-                section.appendChild(sectionTitle);
-
-                const parts = content.split(/(```sh\s*[\s\S]*?```)/g).filter(part => part.trim());
-                parts.forEach(part => {
-                    if (part.match(/```sh\s*[\s\S]*?```/)) {
-                        const commandMatch = part.match(/```sh\s*([\s\S]*?)```/);
-                        const command = commandMatch[1].trim();
-
-                        const pre = document.createElement('pre');
-                        pre.classList.add('command-block');
-                        pre.textContent = command;
-                        section.appendChild(pre);
-
-                        const copyCmdBtn = document.createElement('button');
-                        copyCmdBtn.classList.add('copy-btn');
-                        copyCmdBtn.textContent = 'Copy Command';
-                        copyCmdBtn.addEventListener('click', () => {
-                            navigator.clipboard.writeText(command)
-                                .then(() => alert('Command copied to clipboard!'))
-                                .catch(err => console.error('Failed to copy:', err));
-                        });
-                        section.appendChild(copyCmdBtn);
-                    } else {
-                        const sectionContent = document.createElement('div');
-                        sectionContent.style.fontWeight = '300';
-                        const paragraphs = part.split(/\n{2,}/).filter(p => p.trim());
-                        paragraphs.forEach((paragraph, pIdx) => {
-                            const p = document.createElement('p');
-                            p.style.fontWeight = '300';
-                            p.style.marginBottom = pIdx < paragraphs.length - 1 ? '1em' : '0';
-                            const lines = paragraph.split('\n').filter(line => line.trim());
-                            let formattedText = '';
-                            lines.forEach((line, lIdx) => {
-                                let formattedLine = line;
-                                if (line.startsWith('- ')) {
-                                    formattedLine = '• ' + line.replace(/^- /, '');
-                                }
-                                formattedText += (lIdx > 0 ? '<br>' : '') + parseInlineCode(formattedLine);
-                            });
-                            p.innerHTML = formattedText;
-                            sectionContent.appendChild(p);
-                        });
-                        section.appendChild(sectionContent);
-                    }
-                });
-                responseContainer.appendChild(section);
-            }
-        });
-
-        if (!container) {
-            chatBox.appendChild(responseContainer);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        if (!container && typeof MathJax !== 'undefined') {
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, chatBox]);
-        }
-    }
-
-    function parseMarkdown(text) {
-        return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    }
-
-    function parseInlineCode(text) {
-        return text.replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>');
-    }
+  function escapeHTML(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 });

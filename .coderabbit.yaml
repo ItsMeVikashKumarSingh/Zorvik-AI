@@ -1,0 +1,31 @@
+# CodeRabbit Configuration File
+# Tailored for Zorvik AI Standalone Microservice (Node.js/Express)
+
+version: "0.1"
+
+review:
+  enabled: true
+  tone: "constructive"
+  
+  instructions: |
+    Please focus on the following areas:
+    - **Zero Warning Policy**: Ensure strict ESLint compliance and zero errors.
+    - **Multi-Tenant Security**: Verify x-tenant-id header validation and per-call rate-limiting.
+    - **Zero-Cost Model Routing**: Ensure resilient cascade failover (Gemini -> Groq -> OpenRouter).
+    - **Memory Integrity**: Check Upstash Redis hot cache and pgvector semantic retrieval.
+    - **No Hardcoded Secrets**: Ensure all credentials are read from environment variables.
+    
+  exclude:
+    - "**/*.json"
+    - "**/*.md"
+    - "node_modules/**"
+    - "tests/**"
+
+chat:
+  enabled: true
+
+knowledge_base:
+  enabled: true
+  include:
+    - "src/**/*.js"
+    - "server.js"
