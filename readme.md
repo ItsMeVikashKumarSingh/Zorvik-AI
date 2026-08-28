@@ -1,60 +1,77 @@
-# Zorvik AI — Free Multi-Model Intelligence Platform & Microservice
+# Zorvik AI — Frontier Multi-Model Intelligence Platform & Monetization Gateway
 
-Zorvik AI is a standalone, production-grade AI platform and microservice featuring a ChatGPT-style web workspace, multi-model zero-cost cascade routing, GenZ and complex task intelligence, sliding-window hot memory with Upstash Redis, dedicated PostgreSQL with native `pgvector` semantic recall, and a multi-tenant API gateway where the **Tenant ID acts directly as the authenticated API key**.
-
----
-
-## Key Features
-
-* **ChatGPT-Style Instant Chat**: Zero-friction guest access with an ephemeral session UUID (no signup required) + optional dedicated account sign-up with automatic guest-to-cloud history migration.
-* **Zero-Cost Multi-Model Cascade**: Automatic failover across 100% free-tier frontier models:
-  * Google Gemini 2.0 Flash (Primary)
-  * Groq Cloud Llama 3.3 70B & DeepSeek R1 (Fallback 1)
-  * OpenRouter Free Tier (Fallback 2)
-  * Real-time **Circuit Breaker** with $<50\text{ms}$ failover and $0 cost.
-* **GenZ & Complex Intent Intelligence**:
-  * Understands emotional nuance and subtext behind emojis (💀, 😭, 💅, 🗿, 🧢, 🍳) and GenZ slang (rizz, bet, cap, lowkey, fr, ngl), producing ultra-concise, sharp, punchy answers.
-  * Detects complex engineering, programming, and mathematical queries, generating step-by-step logic, verified code blocks, and KaTeX LaTeX formulas.
-* **Dual-Tier Memory Engine**:
-  * **Hot Sliding-Window Context**: Powered by **Upstash Redis** for sub-2ms active session prompt assembly.
-  * **Semantic Long-Term Memory**: Powered by dedicated Supabase **`pgvector`** for 768-dimensional embeddings and cosine similarity recall.
-* **Tenant ID API Gateway (`x-tenant-id`)**:
-  * Standalone endpoints for **Zorvik Studio**, **Zorvik-Tech**, and external integrations.
-  * Enforces real-time per-call sliding-window rate limits, token quotas, and custom system prompt overrides.
-* **Cyber-Elegant Web Workspace**:
-  * Built adhering to AntivGravity Rule 8: Deep Obsidian (`#050510`), Neon Purple (`#9333ea`), Neon Cyan (`#22d3ee`), Glassmorphism 2.0.
-  * KaTeX math rendering, Prism syntax-highlighted code blocks with Copy & Run, real-time SSE streaming, and next-word autocomplete suggestions (Tab to complete).
-* **Strict Architecture & Governance**:
-  * Dedicated in-repo SQL migrations in `db/schema.sql` (100% decoupled from `zorvik-db`).
-  * Strict ESLint 9 Zero-Warning Policy.
-  * Full Docker containerization and Vercel serverless deployment support.
+Zorvik AI (v1.0.1) is a production-grade, standalone AI platform and multi-tenant microservice featuring a high-speed React 19 web workspace, sub-50ms native SSE streaming, Google Search grounding, live code artifact execution, multi-modal attachments, voice conversation mode, dedicated admin control plane, and a paid monetization gateway (`x-tenant-id`).
 
 ---
 
-## Quick Start
+## 🚀 Key Capabilities
+
+* **⚡ Native Upstream SSE Streaming Pipeline**:
+  * Direct stream piping from Google Gemini 2.5 Flash, Groq Cloud Llama 3.3 70B, Cerebras LPU (2,000+ tok/s), Mistral Codestral, and OpenRouter for sub-200ms Time-to-First-Token.
+* **🌐 Real-Time Google Search Grounding**:
+  * Seamless web search grounding with live domain citation pills and structured source cards.
+* **🎙️ Voice Conversation Mode**:
+  * **Speech-to-Text**: Hands-free microphone dictation with real-time waveform animation.
+  * **Text-to-Speech**: Speech synthesis audio readout on all assistant responses.
+* **🎨 Live Code Sandbox & Artifacts Canvas**:
+  * Sandboxed real-time preview of HTML, SVG, React/JSX, CSS, and Python code artifacts.
+* **🧠 Autonomous Neural Memory & Adaptive Tone**:
+  * Asynchronously learns user preferences, project tech stacks, and stated facts into persistent PostgreSQL storage.
+* **🛡️ Admin Control Plane (`/admin`)**:
+  * Dedicated administrative suite with KPI metrics, tenant API key provisioning, paid pricing plan configurations (Starter $19/mo, Pro $49/mo, Enterprise $199/mo), manual circuit breaker toggles, and Rule 3.1 immutable audit logging.
+* **🤖 Specialized Multi-Agent Personas**:
+  * Switch between System Architect, Security Auditor, UI/UX Glassmorphism Designer, and General Polymath.
+* **📊 Personal Quota & Token Meter**:
+  * Real-time consumption progress bar and rate limit gauges.
+
+---
+
+## 🛠️ Quick Start
 
 ```bash
 git clone https://github.com/ItsMeVikashKumarSingh/Zorvik-AI.git
 cd Zorvik-AI
 npm install
+npm --prefix frontend install
 cp .env.example .env
 npm run dev
 ```
 
-Visit `http://localhost:3000` to launch the platform.
+Visit `http://localhost:3000` to launch the platform or `http://localhost:3000/admin` for the admin portal.
 
 ---
 
-## Documentation
+## 🧪 Testing & Verification
 
-* [API Documentation (`API_DOCS.md`)](API_DOCS.md) — Endpoints, curl, JavaScript, and Python code examples.
-* [How to Use & Setup (`HOW_TO_USE.md`)](HOW_TO_USE.md) — Supabase, Redis, and deployment guides.
-* [Development Rules (`RULES.md`)](RULES.md) — Repository governance and engineering rules.
-* [Database Schema (`db/schema.sql`)](db/schema.sql) — PostgreSQL + `pgvector` migration.
-* [Changelog (`VERSION.md`)](VERSION.md) — Version 0.1.0 release details.
+```bash
+# Run strict ESLint (Rule 5.4 Zero-Warning Policy)
+npm run lint
+
+# Run all 13 microservice and admin automated test suites
+npm test
+
+# Build production React frontend
+npm run build
+```
 
 ---
 
-## License
+## 📚 API Gateway (`/api/v1`)
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/api/v1/chat` | `POST` | Standard single-turn JSON chat completion |
+| `/api/v1/chat/stream` | `POST` | High-speed SSE token stream |
+| `/api/v1/models` | `GET` | Available models and providers |
+| `/api/v1/health` | `GET` | Service and cascade health check |
+| `/api/v1/admin/overview` | `GET` | Administrative telemetry & KPIs |
+| `/api/v1/admin/tenants` | `GET/POST` | Provision and manage tenant keys |
+| `/api/v1/admin/plans` | `GET/PUT` | Manage pricing subscription tiers |
+| `/api/v1/admin/circuit-breaker/toggle` | `POST` | Manual failover overrides |
+| `/api/v1/admin/audit-logs` | `GET` | Retrieve immutable audit records |
+
+---
+
+## 📄 License
 
 MIT © Team Zorvik (Vikash Kumar Singh, Varun Singh, Shri Ram Sain).

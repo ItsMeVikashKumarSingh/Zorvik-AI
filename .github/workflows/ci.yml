@@ -1,0 +1,37 @@
+name: Zorvik AI CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    name: Lint, Test, and Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Install Frontend Dependencies
+        run: npm --prefix frontend ci
+
+      - name: Verify Strict ESLint (Zero Warnings Policy)
+        run: npm run lint
+
+      - name: Run Microservice & Admin Automated Tests
+        run: npm test
+
+      - name: Verify Frontend Production Build
+        run: npm --prefix frontend run build
