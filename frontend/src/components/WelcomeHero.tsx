@@ -1,5 +1,19 @@
-import React, { useRef, useEffect } from 'react';
-import { ArrowUp, Globe, Search, Brain, Code2, Sparkles, Compass, Cpu, Paperclip, X, FileText } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  ArrowUp,
+  Globe,
+  Search,
+  Brain,
+  Code2,
+  Sparkles,
+  Compass,
+  Cpu,
+  Paperclip,
+  X,
+  FileText,
+  Mic,
+  MicOff,
+} from 'lucide-react';
 import { ModelMode, FileAttachment } from '../types';
 
 interface WelcomeHeroProps {
@@ -38,8 +52,8 @@ const TOPIC_SUGGESTIONS = [
   {
     icon: Sparkles,
     title: 'GenZ Cultural Subtext',
-    subtitle: 'Deconstruct internet slang & modern viral linguistics',
-    prompt: 'Analyze the linguistic evolution of Gen Z and Gen Alpha slang with zero corporate cringe',
+    subtitle: 'Decode modern slang, internet lore, and meme theory',
+    prompt: 'bro what is the actual origin of brainrot memes and skibidi lore explain like a sociologist',
     mode: 'casual' as ModelMode,
   },
 ];
@@ -64,13 +78,64 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
+  // Auto resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   }, [input]);
+
+  // Voice Dictation (Speech to Text)
+  const toggleListening = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Speech Recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        onInputChange((input ? input.trim() + ' ' : '') + transcript);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+    } catch {
+      setIsListening(false);
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -130,24 +195,23 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 max-w-3xl mx-auto w-full py-8">
-      {/* Minimal Greeting */}
-      <div className="text-center mb-8 space-y-2 flex flex-col items-center">
-        <img
-          src="/logo.png"
-          alt="Zorvik AI"
-          className="w-12 h-12 rounded-2xl object-contain mb-1 shadow-2xl shadow-black/80"
-        />
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-normal tracking-tight text-white">
-          Where knowledge begins.
+    <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[75vh] px-4 py-8 space-y-8 animate-in fade-in duration-500">
+      {/* Brand Header */}
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-silver/70 mb-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Zorvik AI Enterprise · Sub-50ms Inference</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-white">
+          Where would you like to begin?
         </h1>
-        <p className="text-xs sm:text-sm text-silver/50 font-light max-w-md mx-auto">
-          Instant multi-model synthesis, citation-backed reasoning, and verified code.
+        <p className="text-xs sm:text-sm text-silver/50 font-light max-w-lg mx-auto">
+          Synthesize knowledge, analyze codebases, execute live code artifacts, and search the real-time web.
         </p>
       </div>
 
-      {/* Centered Perplexity-Style Search Box */}
-      <div className="w-full relative mb-8">
+      {/* Hero Monumental Search Bar */}
+      <div className="w-full space-y-2">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
           <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-1">
@@ -180,14 +244,20 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
           </div>
         )}
 
-        <div className="relative rounded-2xl bg-[#090914]/90 border border-white/[0.10] focus-within:border-iris/50 focus-within:shadow-[0_0_24px_rgba(128,82,255,0.12)] transition-all p-3 sm:p-4 shadow-xl">
+        <div
+          className={`rounded-2xl bg-[#080812] border transition-all p-3 sm:p-4 shadow-2xl ${
+            isListening
+              ? 'border-crimson/80 shadow-[0_0_32px_rgba(244,63,94,0.25)] ring-1 ring-crimson/50'
+              : 'border-white/[0.10] focus-within:border-iris/50 focus-within:shadow-[0_0_30px_rgba(128,82,255,0.15)]'
+          }`}
+        >
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder="Ask anything, attach code/images, or search the web..."
+            placeholder={isListening ? 'Listening to your voice...' : 'Ask anything, attach code/images, or search the web...'}
             rows={1}
             autoFocus
             className="w-full bg-transparent text-sm sm:text-base font-light text-white placeholder-silver/30 resize-none outline-none py-1 px-1 max-h-40 overflow-y-auto leading-relaxed"
@@ -213,6 +283,19 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
                 title="Attach image or file"
               >
                 <Paperclip size={14} />
+              </button>
+
+              {/* Voice Dictation Button */}
+              <button
+                onClick={toggleListening}
+                className={`p-1.5 rounded-lg transition-all flex items-center gap-1 text-xs ${
+                  isListening
+                    ? 'bg-crimson text-white animate-pulse shadow-md shadow-crimson/30'
+                    : 'text-silver/50 hover:text-white hover:bg-white/[0.04]'
+                }`}
+                title={isListening ? 'Stop Listening' : 'Voice Dictation'}
+              >
+                {isListening ? <MicOff size={14} /> : <Mic size={14} />}
               </button>
 
               {FOCUS_MODES.map((f) => {
@@ -259,9 +342,9 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
           <span>Curated Explorations</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {TOPIC_SUGGESTIONS.map((item, idx) => {
-            const ItemIcon = item.icon;
+            const Icon = item.icon;
             return (
               <button
                 key={idx}
@@ -269,10 +352,10 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
                   onModeChange(item.mode);
                   onSend(item.prompt);
                 }}
-                className="text-left p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all group flex items-start gap-3"
+                className="text-left p-3.5 rounded-xl bg-white/[0.015] border border-white/[0.05] hover:border-iris/40 hover:bg-white/[0.03] transition-all group flex items-start gap-3 shadow-sm"
               >
-                <div className="p-2 rounded-lg bg-white/[0.03] text-silver/50 group-hover:text-iris group-hover:bg-iris/10 transition-colors shrink-0">
-                  <ItemIcon size={14} />
+                <div className="p-2 rounded-lg bg-white/[0.03] group-hover:bg-iris/20 text-silver/40 group-hover:text-iris transition-colors shrink-0 mt-0.5">
+                  <Icon size={14} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-white/90 group-hover:text-white truncate">

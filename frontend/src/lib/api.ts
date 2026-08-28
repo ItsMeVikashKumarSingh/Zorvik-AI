@@ -159,6 +159,7 @@ export interface UserMemoryItem {
 export interface UserPreferences {
   customInstructions: string;
   tone: string;
+  persona?: string;
 }
 
 /**

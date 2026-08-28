@@ -2,6 +2,19 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.1] - 2026-08-29
+### Voice Conversation Mode, Personal Token Quota Meter, & Specialized AI Personas
+- **Voice Conversation Mode ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx), [`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - **Speech-to-Text Voice Dictation**: Integrated microphone button with live listening pulse animation, speech streaming directly into input prompt.
+  - **Text-to-Speech Audio Readout**: Audio playback toggle on all assistant responses with natural syntax parsing and speech synthesis controls.
+- **Personal Token Quota Meter & Plan Gauge ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:
+  - Dedicated "Quota & Plan" tab displaying active tier badge, monthly token consumption progress bar, rate limits, and quota renewal timer.
+- **Specialized AI Multi-Agent Personas ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:
+  - **System Architect**: Microservice topologies, schema design, and high-concurrency scaling.
+  - **Security Auditor**: OWASP risk analysis, injection defense, and secret leakage prevention.
+  - **UI/UX Designer**: Glassmorphism 2.0, Tailwind CSS, and cinematic aesthetic precision.
+  - **General Polymath**: Default balanced high-IQ reasoning engine.
+
 ## [1.0.0] - 2026-08-29
 ### Admin Control Plane, Paid Monetization Engine, & Mandatory Audit Logging
 - **Admin Control Plane Workspace ([`AdminLayout.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminLayout.tsx))**:

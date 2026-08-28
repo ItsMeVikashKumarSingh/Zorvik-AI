@@ -1,5 +1,18 @@
-import React, { useRef, useEffect } from 'react';
-import { ArrowUp, StopCircle, Globe, Search, Brain, Code2, Sparkles, Paperclip, X, FileText } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  ArrowUp,
+  StopCircle,
+  Globe,
+  Search,
+  Brain,
+  Code2,
+  Sparkles,
+  Paperclip,
+  X,
+  FileText,
+  Mic,
+  MicOff,
+} from 'lucide-react';
 import { ModelMode, FileAttachment } from '../types';
 
 interface InputDockProps {
@@ -37,6 +50,8 @@ export const InputDock: React.FC<InputDockProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Auto resize textarea
   useEffect(() => {
@@ -45,6 +60,54 @@ export const InputDock: React.FC<InputDockProps> = ({
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
     }
   }, [input]);
+
+  // Voice Dictation (Speech to Text)
+  const toggleListening = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Speech Recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        onInputChange((input ? input.trim() + ' ' : '') + transcript);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+    } catch {
+      setIsListening(false);
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -78,7 +141,6 @@ export const InputDock: React.FC<InputDockProps> = ({
     }
   };
 
-  // Support paste screenshot directly into textarea
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -139,14 +201,20 @@ export const InputDock: React.FC<InputDockProps> = ({
       )}
 
       {/* Input Box Container */}
-      <div className="relative rounded-2xl bg-[#080812]/95 border border-white/[0.10] focus-within:border-iris/50 focus-within:shadow-[0_0_24px_rgba(128,82,255,0.12)] transition-all p-3 sm:p-3.5 shadow-2xl">
+      <div
+        className={`relative rounded-2xl bg-[#080812]/95 border transition-all p-3 sm:p-3.5 shadow-2xl ${
+          isListening
+            ? 'border-crimson/80 shadow-[0_0_28px_rgba(244,63,94,0.25)] ring-1 ring-crimson/50'
+            : 'border-white/[0.10] focus-within:border-iris/50 focus-within:shadow-[0_0_24px_rgba(128,82,255,0.12)]'
+        }`}
+      >
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder="Ask anything, attach code/images, or search the web..."
+          placeholder={isListening ? 'Listening to your voice...' : 'Ask anything, attach code/images, or search...'}
           rows={1}
           className="w-full bg-transparent text-sm sm:text-base font-light text-white placeholder-silver/30 resize-none outline-none py-0.5 px-1 max-h-36 overflow-y-auto leading-relaxed"
         />
@@ -171,6 +239,19 @@ export const InputDock: React.FC<InputDockProps> = ({
               title="Attach image or file"
             >
               <Paperclip size={14} />
+            </button>
+
+            {/* Voice Dictation Button */}
+            <button
+              onClick={toggleListening}
+              className={`p-1.5 rounded-lg transition-all flex items-center gap-1 text-xs ${
+                isListening
+                  ? 'bg-crimson text-white animate-pulse shadow-md shadow-crimson/30'
+                  : 'text-silver/50 hover:text-white hover:bg-white/[0.04]'
+              }`}
+              title={isListening ? 'Stop Listening' : 'Voice Dictation'}
+            >
+              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
             </button>
 
             {FOCUS_MODES.map((f) => {

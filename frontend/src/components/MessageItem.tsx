@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Copy,
   Check,
@@ -11,6 +11,8 @@ import {
   Share2,
   Play,
   FileText,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { Message, SourceItem, ArtifactContent } from '../types';
 import { renderMarkdown } from '../lib/markdown';
@@ -31,12 +33,50 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   onOpenArtifact,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const isUser = message.role === 'user';
+
+  // Stop speech when message unmounts
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Toggle Voice Audio Readout
+  const handleToggleSpeech = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    // Clean markdown symbols for natural vocal speech
+    const cleanText = message.content
+      .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+      .replace(/[*_#`$]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
   };
 
   // Check if assistant message contains code artifact that can be rendered in Canvas
@@ -163,6 +203,20 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   >
                     {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                     <span className="text-[11px] font-mono uppercase">{copied ? 'Copied' : 'Copy'}</span>
+                  </button>
+
+                  {/* Audio Readback Button */}
+                  <button
+                    onClick={handleToggleSpeech}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light transition-all ${
+                      isSpeaking
+                        ? 'bg-iris/20 text-iris border border-iris/40'
+                        : 'text-silver/50 hover:text-white hover:bg-white/[0.04]'
+                    }`}
+                    title={isSpeaking ? 'Stop Audio Readout' : 'Listen to Answer'}
+                  >
+                    {isSpeaking ? <VolumeX size={13} className="text-iris animate-pulse" /> : <Volume2 size={13} />}
+                    <span className="text-[11px] font-mono uppercase">{isSpeaking ? 'Speaking' : 'Listen'}</span>
                   </button>
 
                   <button
