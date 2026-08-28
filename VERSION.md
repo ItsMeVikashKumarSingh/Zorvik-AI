@@ -1,10 +1,37 @@
-# Zorvik AI — Version Changelog
+# Zorvik AI - Version Changelog
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
+
+## [0.7.1] - 2026-08-28
+### Landing Page UI/UX Polish & Official Zorvik AI Icon Asset Integration
+- **Official Zorvik AI Icon Asset**:
+  - Integrated the official metallic gold/brass 'Z' emblem and Hallmark card (`media_1787936712720.jpg`) as the primary icon and logo mark (`logo.png`, `zorvik-logo.jpg`) across navigation headers, hero sections, and footers while preserving `favicon.png` for browser tab icons.
+- **Refined Adaptive Intelligence Showcase ([`GenZSimulator.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/GenZSimulator.tsx))**:
+  - Replaced raw markdown text dump with rich formatted rendering (`renderMarkdown`) supporting syntax-highlighted code fences (TypeScript, SQL) and KaTeX mathematical notation.
+  - Redesigned mode selector into a sleek glassmorphic segmented control with crisp active states and smooth transitions.
+  - Standardized generous section spacing (`py-24 sm:py-32`) and balanced card layout.
+- **Enhanced Enterprise API Section ([`LandingPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/LandingPage.tsx))**:
+  - Integrated Prism syntax highlighting for the developer terminal across cURL, Node.js, and Python tabs.
+  - Added enterprise value highlights (Edge Streaming, Zero Data Retention, Dedicated Endpoints & SLA) in a balanced two-column layout.
+  - Polished copy-to-clipboard interactions and section padding.
+
+## [0.7.0] - 2026-08-28
+### Comprehensive Authentication System (Sign In, Sign Up, Password Reset, & Session Hub)
+- **Multi-Tab Auth Workflows ([`AuthModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AuthModal.tsx))**:
+  - **Sign In**: Secure email & password authentication, show/hide password toggle, and direct "Forgot password?" recovery trigger.
+  - **Sign Up**: Account creation with real-time password strength validation checklist (length, numbers, symbols) and confirm password matching.
+  - **Forgot / Reset Password**: Self-service recovery flow with instant email link dispatch and secure new password creation dialog.
+  - **OAuth Providers**: Google & GitHub one-click authentication support via Supabase.
+- **Account Popover & Session Management ([`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx))**:
+  - Replaced static pill with an interactive user profile popover when signed in.
+  - Displays user email, "Change Password" modal trigger, and one-click "Sign Out".
+- **Real-Time Session Synchronization ([`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx), [`supabase.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/lib/supabase.ts))**:
+  - Integrated Supabase `onAuthStateChange` listener to persist active sessions across page reloads and automatically intercept password recovery deep links (`PASSWORD_RECOVERY`).
 
 ## [0.6.8] - 2026-08-28
 ### Global Favicon & Zorvik AI Emblem Icon Integration
 - **Universal Favicon**: Integrated high-resolution metallic 'Z' emblem as the official browser favicon in [`index.html`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/index.html) and `public/favicon.png`.
+
 - **Cross-View Logo Integration**: Deployed the official logo emblem mark across:
   - [`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx) (in the top brand pill)
   - [`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx) (in the top header lockup)

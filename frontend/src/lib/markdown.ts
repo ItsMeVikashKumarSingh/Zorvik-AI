@@ -9,10 +9,27 @@ import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-json';
 
-// Configure marked options
+// Configure marked options with Prism code syntax highlighting
 marked.setOptions({
   breaks: true,
   gfm: true,
+});
+
+marked.use({
+  renderer: {
+    code({ text, lang }) {
+      const language = lang && Prism.languages[lang] ? lang : (lang === 'ts' || lang === 'tsx' ? 'typescript' : (lang === 'js' || lang === 'jsx' ? 'javascript' : (lang === 'sh' || lang === 'shell' ? 'bash' : 'plaintext')));
+      let highlighted = text;
+      if (language !== 'plaintext' && Prism.languages[language]) {
+        try {
+          highlighted = Prism.highlight(text, Prism.languages[language], language);
+        } catch {
+          highlighted = text;
+        }
+      }
+      return `<div class="my-4 rounded-xl border border-white/[0.08] bg-[#070710] overflow-hidden shadow-xl"><div class="flex items-center justify-between px-4 py-2 bg-white/[0.03] border-b border-white/[0.06] text-[11px] font-mono text-ash-gray uppercase tracking-wider"><span>${lang || 'CODE'}</span></div><div class="p-4 overflow-x-auto font-mono text-[13px] leading-relaxed text-silver-mist"><pre class="!bg-transparent !p-0 !m-0"><code class="language-${language}">${highlighted}</code></pre></div></div>`;
+    },
+  },
 });
 
 /**

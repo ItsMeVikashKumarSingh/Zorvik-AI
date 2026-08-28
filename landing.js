@@ -1,5 +1,5 @@
 /**
- * Zorvik AI — Flagship Landing Page Interactive Engine
+ * Zorvik AI - Flagship Landing Page Interactive Engine
  * Features:
  * 1. 3D Neural Particle Constellation Engine (HTML5 Canvas)
  * 2. Background Ambient Drifting Star Dust Field (Dala Aesthetic)
@@ -444,6 +444,11 @@
           </div>
         `;
       } else {
+        const highlighted = (window.Prism && window.Prism.languages.typescript)
+          ? window.Prism.highlight(data.codeSnippet, window.Prism.languages.typescript, 'typescript')
+          : (window.Prism && window.Prism.languages.javascript)
+          ? window.Prism.highlight(data.codeSnippet, window.Prism.languages.javascript, 'javascript')
+          : escapeHtml(data.codeSnippet);
         display.innerHTML = `
           <div class="chat-bubble-preview user">
             <div class="bubble-meta">USER PROMPT</div>
@@ -451,7 +456,7 @@
           </div>
           <div class="chat-bubble-preview ai">
             <div class="bubble-meta"><span class="meta-tag cyan">ZORVIK ENGINE</span> · ${data.meta}</div>
-            <pre style="margin-top:8px;font-family:var(--font-mono);font-size:13px;color:#a5f3fc;overflow-x:auto;"><code>${escapeHtml(data.codeSnippet)}</code></pre>
+            <pre style="margin-top:8px;font-family:var(--font-mono);font-size:13px;overflow-x:auto;"><code class="language-typescript">${highlighted}</code></pre>
           </div>
         `;
       }

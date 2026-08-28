@@ -4,10 +4,10 @@ import { Header } from './Header';
 import { WelcomeHero } from './WelcomeHero';
 import { MessageItem } from './MessageItem';
 import { InputDock } from './InputDock';
-import { AuthModal } from './AuthModal';
+import { AuthModal, AuthModalTab } from './AuthModal';
 import { ChatSession, Message, ModelMode, UserProfile, SourceItem } from '../types';
 import { streamChat, fetchAutocomplete } from '../lib/api';
-import { getOrCreateGuestId } from '../lib/supabase';
+import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
 
 interface AppWorkspaceProps {
   onNavigateHome: () => void;
@@ -26,6 +26,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<AuthModalTab>('signin');
   const [autocompleteHint, setAutocompleteHint] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile>({
     id: getOrCreateGuestId(),
@@ -42,6 +43,62 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       setSidebarOpen(false);
     }
   };
+
+  const handleOpenAuth = (tab: AuthModalTab = 'signin') => {
+    setAuthModalTab(tab);
+    setAuthModalOpen(true);
+  };
+
+  const handleSignOut = async () => {
+    await signOutUser();
+    setUser({
+      id: getOrCreateGuestId(),
+      email: null,
+      isGuest: true,
+    });
+  };
+
+  // Sync Supabase Auth State on mount
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || null,
+          isGuest: false,
+        });
+      }
+    });
+
+    // Listen for auth state change & password recovery triggers
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        handleOpenAuth('reset_password');
+      } else if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || null,
+          isGuest: false,
+        });
+      } else if (event === 'SIGNED_OUT') {
+        setUser({
+          id: getOrCreateGuestId(),
+          email: null,
+          isGuest: true,
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Load sessions from localStorage on mount
   useEffect(() => {
@@ -364,7 +421,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         user={user}
-        onOpenAuth={() => setAuthModalOpen(true)}
+        onOpenAuth={() => handleOpenAuth('signin')}
         onNavigateHome={onNavigateHome}
       />
 
@@ -374,7 +431,8 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           onToggleSidebar={() => setSidebarOpen(prev => !prev)}
           sidebarOpen={sidebarOpen}
           user={user}
-          onOpenAuth={() => setAuthModalOpen(true)}
+          onOpenAuth={handleOpenAuth}
+          onSignOut={handleSignOut}
           activeTitle={activeSession?.messages.length ? activeSession.title : undefined}
         />
 
@@ -424,6 +482,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       {/* Auth Modal */}
       <AuthModal
         isOpen={authModalOpen}
+        initialTab={authModalTab}
         onClose={() => setAuthModalOpen(false)}
         onUserUpdate={updatedUser => setUser(updatedUser)}
       />

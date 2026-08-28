@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { ConstellationCanvas } from './ConstellationCanvas';
 import { GenZSimulator } from './GenZSimulator';
 import { LegalModal, LegalTab } from './LegalModal';
-import { Check, Copy, ExternalLink, Github, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
+import { Check, Copy, ExternalLink, Github, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, ShieldCheck, Zap, Cpu } from 'lucide-react';
+import { highlightCode } from '../lib/markdown';
 
 interface LandingPageProps {
   onLaunchApp: () => void;
@@ -279,70 +280,115 @@ print(response.content)`,
           <GenZSimulator />
         </section>
 
-        {/* SECTION 4: ENTERPRISE DEVELOPER API (Stage 4: 3D Handshake) */}
-        <section id="enterprise" className="py-32 px-6 sm:px-12 border-t border-white/[0.04] max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+        {/* SECTION 4: ENTERPRISE DEVELOPER API */}
+        <section id="enterprise" className="py-28 sm:py-36 px-6 sm:px-10 lg:px-12 border-t border-white/[0.04] max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            {/* Left Column: Heading, Narrative & Value Points */}
             <div className="lg:col-span-5 space-y-6">
-              <h2 className="text-4xl sm:text-5xl font-normal text-bone-white tracking-monumental leading-[1.02]">
-                Supercharge your products with Zorvik AI.
-              </h2>
-              <p className="text-base text-silver-mist font-extralight leading-relaxed">
-                Designed for high-throughput platforms, studios, and businesses. Dedicated capacity, custom fine-tuned workflows, enterprise SLAs, and private deployment options.
-              </p>
+              <div className="space-y-4">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-normal text-bone-white tracking-tight leading-[1.1]">
+                  Supercharge your products with Zorvik AI.
+                </h2>
+                <p className="text-base sm:text-lg text-silver-mist font-light leading-relaxed">
+                  Designed for high-throughput platforms and production workloads. Dedicated capacity, custom fine-tuned workflows, enterprise SLAs, and private deployments.
+                </p>
+              </div>
 
-              <div className="pt-4 flex items-center gap-4">
+              {/* Minimal Value Highlights */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-silver-mist">
+                  <div className="w-5 h-5 rounded-md bg-electric-iris/10 border border-electric-iris/20 flex items-center justify-center text-electric-iris shrink-0">
+                    <Zap size={12} />
+                  </div>
+                  <span>Sub-50ms Global Edge Streaming Latency</span>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-silver-mist">
+                  <div className="w-5 h-5 rounded-md bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan shrink-0">
+                    <ShieldCheck size={12} />
+                  </div>
+                  <span>Strict Zero Data Retention &amp; Dedicated Isolation</span>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-silver-mist">
+                  <div className="w-5 h-5 rounded-md bg-saffron-spark/10 border border-saffron-spark/20 flex items-center justify-center text-saffron-spark shrink-0">
+                    <Cpu size={12} />
+                  </div>
+                  <span>Custom Model Endpoints &amp; 99.99% Uptime SLA</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-4">
                 <a
                   href="https://zorviktech.com/contact"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-dala-primary inline-flex items-center gap-2 shadow-lg shadow-electric-iris/25"
+                  className="btn-dala-primary inline-flex items-center gap-2"
                 >
                   <span>Contact Zorvik Tech</span>
-                  <ExternalLink size={14} />
+                  <ExternalLink size={13} />
                 </a>
               </div>
             </div>
 
-            {/* Right Column: Code Snippet Terminal */}
+            {/* Right Column: Code Snippet Terminal with Prism Syntax Highlighting */}
             <div className="lg:col-span-7">
-              <div className="rounded-card border border-white/[0.08] bg-void/90 backdrop-blur-md overflow-hidden shadow-2xl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="rounded-2xl border border-white/[0.09] bg-[#06060f]/90 backdrop-blur-2xl overflow-hidden shadow-2xl">
+                {/* Terminal Header */}
+                <div className="flex items-center justify-between px-5 py-3.5 bg-white/[0.02] border-b border-white/[0.06]">
+                  {/* Left: Window Controls + Endpoint */}
                   <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-white/20"></span>
-                    <span className="text-xs font-mono text-ash-gray uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                    </div>
+                    <span className="text-[11px] font-mono text-ash-gray uppercase tracking-wider pl-1">
                       POST /api/v1/chat
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                  {/* Right: Language Tabs & Copy Button */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.06]">
                       {(['curl', 'js', 'python'] as const).map(tab => (
                         <button
                           key={tab}
                           onClick={() => setActiveCodeTab(tab)}
-                          className={`px-3 py-1 text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer ${
+                          className={`px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded-md transition-all cursor-pointer ${
                             activeCodeTab === tab
-                              ? 'text-bone-white border-b-2 border-electric-iris font-semibold'
+                              ? 'bg-white/[0.12] text-bone-white font-medium shadow-sm'
                               : 'text-ash-gray hover:text-bone-white'
                           }`}
                         >
-                          {tab}
+                          {tab === 'js' ? 'Node.js' : tab}
                         </button>
                       ))}
                     </div>
 
                     <button
                       onClick={handleCopyCode}
-                      className="p-1.5 text-ash-gray hover:text-bone-white transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-ash-gray hover:text-bone-white transition-all cursor-pointer"
                       title="Copy code"
                     >
-                      {copied ? <Check size={14} className="text-electric-iris" /> : <Copy size={14} />}
+                      {copied ? <Check size={13} className="text-electric-iris" /> : <Copy size={13} />}
                     </button>
                   </div>
                 </div>
 
-                <div className="p-6 font-mono text-xs text-silver-mist overflow-x-auto leading-relaxed whitespace-pre bg-void/90">
-                  {codeSnippets[activeCodeTab]}
+                {/* Terminal Code Viewport */}
+                <div className="p-5 sm:p-6 bg-[#030308] overflow-x-auto">
+                  <pre className="!bg-transparent !p-0 !m-0 font-mono text-xs sm:text-[13px] leading-relaxed text-silver-mist">
+                    <code
+                      className={`language-${activeCodeTab === 'curl' ? 'bash' : activeCodeTab === 'js' ? 'javascript' : 'python'}`}
+                      dangerouslySetInnerHTML={{
+                        __html: highlightCode(
+                          codeSnippets[activeCodeTab],
+                          activeCodeTab === 'curl' ? 'bash' : activeCodeTab === 'js' ? 'javascript' : 'python'
+                        ),
+                      }}
+                    />
+                  </pre>
                 </div>
               </div>
             </div>
