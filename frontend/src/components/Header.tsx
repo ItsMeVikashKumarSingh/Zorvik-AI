@@ -8,6 +8,7 @@ interface HeaderProps {
   sidebarOpen?: boolean;
   user: UserProfile;
   onOpenAuth: (tab?: AuthModalTab) => void;
+  onOpenAccount?: () => void;
   onSignOut?: () => void;
   activeTitle?: string;
 }
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   sidebarOpen,
   user,
   onOpenAuth,
+  onOpenAccount,
   onSignOut,
   activeTitle,
 }) => {
@@ -92,6 +94,19 @@ export const Header: React.FC<HeaderProps> = ({
                   <p className="text-[10px] font-mono text-silver/40 uppercase">Signed in as</p>
                   <p className="text-xs font-medium text-white truncate">{user.email}</p>
                 </div>
+
+                {onOpenAccount && (
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      onOpenAccount();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs text-silver/80 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center gap-2"
+                  >
+                    <User size={13} className="text-iris" />
+                    <span>Account & Memories</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => {

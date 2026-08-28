@@ -149,3 +149,79 @@ export async function fetchAutocomplete(prompt: string, signal?: AbortSignal): P
     return null;
   }
 }
+
+export interface UserMemoryItem {
+  id: string;
+  text: string;
+  createdAt: number;
+}
+
+export interface UserPreferences {
+  customInstructions: string;
+  tone: string;
+}
+
+/**
+ * Fetch user personalization preferences and long-term memories
+ */
+export async function fetchUserMemories(): Promise<{ preferences: UserPreferences; memories: UserMemoryItem[] }> {
+  const supabase = getSupabase();
+  const headers: Record<string, string> = {};
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers['Authorization'] = `Bearer ${data.session.access_token}`;
+    }
+  }
+
+  const res = await fetch(`${API_BASE}/user/memories`, { headers });
+  if (!res.ok) throw new Error('Failed to fetch user memories');
+  return res.json();
+}
+
+/**
+ * Save user custom instructions, tone, or append a new memory fact
+ */
+export async function saveUserMemory(payload: {
+  text?: string;
+  preferences?: Partial<UserPreferences>;
+}): Promise<{ preferences: UserPreferences; memories: UserMemoryItem[] }> {
+  const supabase = getSupabase();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers['Authorization'] = `Bearer ${data.session.access_token}`;
+    }
+  }
+
+  const res = await fetch(`${API_BASE}/user/memories`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to save memory or preferences');
+  return res.json();
+}
+
+/**
+ * Delete a specific memory fact or all memories (id === 'all')
+ */
+export async function deleteUserMemory(id: string): Promise<{ memories: UserMemoryItem[] }> {
+  const supabase = getSupabase();
+  const headers: Record<string, string> = {};
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers['Authorization'] = `Bearer ${data.session.access_token}`;
+    }
+  }
+
+  const res = await fetch(`${API_BASE}/user/memories/${id}`, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!res.ok) throw new Error('Failed to delete memory');
+  return res.json();
+}
+

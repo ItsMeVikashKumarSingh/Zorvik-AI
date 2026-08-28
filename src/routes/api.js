@@ -13,6 +13,12 @@ const {
   getSessionHistory,
   appendSessionTurn,
   clearSessionMemory,
+  getUserProfileConfig,
+  saveUserProfileConfig,
+  getUserMemories,
+  addUserMemory,
+  deleteUserMemory,
+  clearUserMemories,
 } = require("../services/memoryEngine");
 const { predictNextWords } = require("../services/tokenPrediction");
 const { circuitBreaker } = require("../services/circuitBreaker");
@@ -48,11 +54,29 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
   const serverHistory = await getSessionHistory(sessionId);
   const history = clientHistory || serverHistory || [];
 
-  // 2. Build system persona based on mode, intent & tenant overrides
+  // 2. Fetch logged-in user personalization & long-term memories
+  let userMemories = [];
+  let customInstructions = "";
+  if (req.user && req.user.id) {
+    try {
+      const [prefs, memories] = await Promise.all([
+        getUserProfileConfig(req.user.id),
+        getUserMemories(req.user.id),
+      ]);
+      customInstructions = prefs?.customInstructions || "";
+      userMemories = memories || [];
+    } catch (_memErr) {
+      // Non-blocking memory retrieval error
+    }
+  }
+
+  // 3. Build system persona based on mode, intent, tenant overrides & user memories
   const systemPrompt = buildSystemPrompt({
     mode,
     prompt,
     tenantPrompt: tenant.custom_system_prompt,
+    userMemories,
+    customInstructions,
   });
 
   // 3. Handle Streaming Response (SSE)
@@ -250,6 +274,105 @@ router.post("/tenants/verify", (req, res) => {
     valid: true,
     tenant: req.tenant,
   });
+});
+
+/**
+ * GET /api/v1/user/memories
+ * Retrieve long-term memories and response preferences for the logged-in user
+ */
+router.get("/user/memories", async (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required to access personalized memories.",
+    });
+  }
+
+  try {
+    const [preferences, memories] = await Promise.all([
+      getUserProfileConfig(req.user.id),
+      getUserMemories(req.user.id),
+    ]);
+
+    return res.json({
+      success: true,
+      preferences,
+      memories,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Internal Server Error", message: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/user/memories
+ * Add a memory item or update personalization preferences
+ */
+router.post("/user/memories", async (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required to update memories.",
+    });
+  }
+
+  const { text, preferences } = req.body;
+
+  try {
+    if (preferences) {
+      await saveUserProfileConfig(req.user.id, preferences);
+    }
+
+    let newMemory = null;
+    if (text && typeof text === "string" && text.trim()) {
+      newMemory = await addUserMemory(req.user.id, text.trim());
+    }
+
+    const [updatedPrefs, memories] = await Promise.all([
+      getUserProfileConfig(req.user.id),
+      getUserMemories(req.user.id),
+    ]);
+
+    return res.json({
+      success: true,
+      memory: newMemory,
+      preferences: updatedPrefs,
+      memories,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Internal Server Error", message: err.message });
+  }
+});
+
+/**
+ * DELETE /api/v1/user/memories/:id
+ * Delete a specific memory item or all memories (if id === 'all')
+ */
+router.delete("/user/memories/:id", async (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required to delete memories.",
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    if (id === "all") {
+      await clearUserMemories(req.user.id);
+    } else {
+      await deleteUserMemory(req.user.id, id);
+    }
+
+    const memories = await getUserMemories(req.user.id);
+    return res.json({
+      success: true,
+      memories,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Internal Server Error", message: err.message });
+  }
 });
 
 /**

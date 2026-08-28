@@ -15,6 +15,7 @@ interface SidebarProps {
   onSearchChange: (q: string) => void;
   user: UserProfile;
   onOpenAuth: () => void;
+  onOpenAccount?: () => void;
   onNavigateHome: () => void;
 }
 
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSearchChange,
   user,
   onOpenAuth,
+  onOpenAccount,
   onNavigateHome,
 }) => {
   const filteredSessions = useMemo(() => {
@@ -179,7 +181,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Minimal Footer */}
         <div className="p-3 border-t border-white/[0.04] space-y-1.5 text-xs text-silver/60">
           <div
-            onClick={onOpenAuth}
+            onClick={() => {
+              if (user.isGuest) {
+                onOpenAuth();
+              } else if (onOpenAccount) {
+                onOpenAccount();
+              } else {
+                onOpenAuth();
+              }
+            }}
             className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-white/[0.03] cursor-pointer transition-colors"
           >
             <span className="text-[11px] font-mono truncate">{user.isGuest ? 'Guest' : user.email}</span>

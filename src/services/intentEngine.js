@@ -48,7 +48,13 @@ CORE BEHAVIOR & IDENTITY DIRECTIVES:
 4. EDITORIAL PRECISION: Keep responses concise, engaging, and devoid of repetitive boilerplate or filler.
 5. RICH NOTATION: Use GitHub-flavored markdown, syntax-highlighted code blocks, and KaTeX mathematical notation ($inline$ and $$display$$) where applicable.`;
 
-function buildSystemPrompt({ mode = "auto", prompt = "", tenantPrompt = null }) {
+function buildSystemPrompt({
+  mode = "auto",
+  prompt = "",
+  tenantPrompt = null,
+  userMemories = [],
+  customInstructions = "",
+}) {
   let effectiveMode = mode;
   if (mode === "auto") {
     const detected = detectIntent(prompt);
@@ -100,6 +106,20 @@ Provide clear, accurate, conversational, and direct answers without repetitive f
 
   if (tenantPrompt) {
     promptBlocks.unshift(tenantPrompt);
+  }
+
+  // Inject User Personalization & Long-Term Memories
+  const personalBlocks = [];
+  if (customInstructions && typeof customInstructions === "string" && customInstructions.trim()) {
+    personalBlocks.push(`USER'S CUSTOM RESPONSE PREFERENCES:\n${customInstructions.trim()}`);
+  }
+  if (Array.isArray(userMemories) && userMemories.length > 0) {
+    const memoryLines = userMemories.map((m, idx) => `${idx + 1}. ${typeof m === "string" ? m : m.text}`);
+    personalBlocks.push(`USER'S REMEMBERED FACTS & CONTEXT (LONG-TERM MEMORY):\n${memoryLines.join("\n")}`);
+  }
+
+  if (personalBlocks.length > 0) {
+    promptBlocks.push(personalBlocks.join("\n\n"));
   }
 
   return promptBlocks.join("\n\n");

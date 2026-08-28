@@ -2,6 +2,18 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [0.8.0] - 2026-08-29
+### Neural Long-Term Memories & Account Personalization Hub
+- **Account & Personalization Modal ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:
+  - **Profile Management**: Displays user details, active member badge, self-service password update dialog, and instant sign out.
+  - **Custom Tone & Intelligence Style**: Selectable response tone presets (Adaptive Auto, Direct & Concise, Deep Engineering, Charismatic & Witty, GenZ Culture) + custom response instructions.
+  - **Neural Long-Term Memories Hub**: View remembered user facts, manually add new facts/preferences, delete individual memories, or clear all.
+- **Backend Memory Persistence & Automatic Prompt Injection**:
+  - Added `/api/v1/user/memories` endpoints in [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js) backed by `memoryEngine.js`.
+  - Automatically loads the logged-in user's personalized memories and custom instructions on every chat turn, injecting them into `buildSystemPrompt()` in [`intentEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/intentEngine.js).
+- **Drawer & Header Account Integration ([`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx), [`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx))**:
+  - Clicking the Account pill in the sidebar or header for logged-in users directly opens the Account & Memories modal.
+
 ## [0.7.3] - 2026-08-29
 ### OAuth Post-Login Session Handling & Clean Address Bar Routing
 - **OAuth Session Hash Auto-Routing ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx))**:

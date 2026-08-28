@@ -5,6 +5,7 @@ import { WelcomeHero } from './WelcomeHero';
 import { MessageItem } from './MessageItem';
 import { InputDock } from './InputDock';
 import { AuthModal, AuthModalTab } from './AuthModal';
+import { AccountModal } from './AccountModal';
 import { ChatSession, Message, ModelMode, UserProfile } from '../types';
 import { streamChat, fetchAutocomplete } from '../lib/api';
 import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
@@ -27,6 +28,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   const [searchQuery, setSearchQuery] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<AuthModalTab>('signin');
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [autocompleteHint, setAutocompleteHint] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile>({
     id: getOrCreateGuestId(),
@@ -388,6 +390,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         onSearchChange={setSearchQuery}
         user={user}
         onOpenAuth={() => handleOpenAuth('signin')}
+        onOpenAccount={() => setAccountModalOpen(true)}
         onNavigateHome={onNavigateHome}
       />
 
@@ -398,6 +401,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           sidebarOpen={sidebarOpen}
           user={user}
           onOpenAuth={handleOpenAuth}
+          onOpenAccount={() => setAccountModalOpen(true)}
           onSignOut={handleSignOut}
           activeTitle={activeSession?.messages.length ? activeSession.title : undefined}
         />
@@ -450,6 +454,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         isOpen={authModalOpen}
         initialTab={authModalTab}
         onClose={() => setAuthModalOpen(false)}
+        onUserUpdate={updatedUser => setUser(updatedUser)}
+      />
+
+      {/* Account & Personalization Hub */}
+      <AccountModal
+        isOpen={accountModalOpen}
+        onClose={() => setAccountModalOpen(false)}
+        user={user}
         onUserUpdate={updatedUser => setUser(updatedUser)}
       />
     </div>
