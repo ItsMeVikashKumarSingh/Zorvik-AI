@@ -1,5 +1,5 @@
 /**
- * Automated Test Suite for Zorvik AI Microservice
+ * Automated Test Suite for Zorvik AI Microservice & Admin Control Plane
  * Run with: npm test
  */
 const { test, describe, before, after } = require("node:test");
@@ -11,6 +11,7 @@ const app = require("../server");
 let server;
 const TEST_PORT = 3199;
 const BASE_URL = `http://localhost:${TEST_PORT}/api/v1`;
+const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY || "zorvik-superadmin-secret-2026";
 
 before(() => {
   return new Promise((resolve) => {
@@ -124,5 +125,83 @@ describe("Zorvik AI API Microservice Tests", () => {
       body: JSON.stringify({ prompt: "   " }),
     });
     assert.strictEqual(res.status, 400);
+  });
+});
+
+describe("Zorvik AI Admin Control Plane & Monetization Tests", () => {
+  test("GET /api/v1/admin/overview without token should return 401 Unauthorized", async () => {
+    const res = await fetch(`${BASE_URL}/admin/overview`);
+    assert.strictEqual(res.status, 401);
+  });
+
+  test("GET /api/v1/admin/overview with valid admin secret should return metrics and provider statuses", async () => {
+    const res = await fetch(`${BASE_URL}/admin/overview`, {
+      headers: { "x-admin-secret": ADMIN_SECRET },
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.metrics);
+    assert.ok(data.metrics.total_tenants >= 3);
+    assert.ok(data.providers);
+    assert.strictEqual(data.admin.role, "superadmin");
+  });
+
+  test("POST /api/v1/admin/tenants should provision a new paid key and record audit log", async () => {
+    const testTenantId = `test_tenant_${Date.now()}`;
+    const res = await fetch(`${BASE_URL}/admin/tenants`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-secret": ADMIN_SECRET,
+      },
+      body: JSON.stringify({
+        id: testTenantId,
+        name: "Automated Test Suite Client",
+        plan_id: "pro",
+        owner_email: "tester@zorvik.tech",
+      }),
+    });
+    assert.strictEqual(res.status, 201);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.strictEqual(data.tenant.id, testTenantId);
+    assert.strictEqual(data.tenant.tier, "pro");
+  });
+
+  test("GET /api/v1/admin/plans should list monetization tiers", async () => {
+    const res = await fetch(`${BASE_URL}/admin/plans`, {
+      headers: { "x-admin-secret": ADMIN_SECRET },
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.ok(Array.isArray(data.plans));
+    assert.strictEqual(data.plans.length, 3);
+  });
+
+  test("POST /api/v1/admin/circuit-breaker/toggle should trip and reset provider state", async () => {
+    const res = await fetch(`${BASE_URL}/admin/circuit-breaker/toggle`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-secret": ADMIN_SECRET,
+      },
+      body: JSON.stringify({
+        provider: "groq",
+        action: "reset",
+      }),
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+  });
+
+  test("GET /api/v1/admin/audit-logs should return immutable audit records", async () => {
+    const res = await fetch(`${BASE_URL}/admin/audit-logs?limit=10`, {
+      headers: { "x-admin-secret": ADMIN_SECRET },
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.ok(Array.isArray(data.logs));
+    assert.ok(data.logs.length > 0);
   });
 });

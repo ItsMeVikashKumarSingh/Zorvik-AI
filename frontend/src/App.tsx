@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { AppWorkspace } from './components/AppWorkspace';
 import { LegalPage, LegalPageType } from './components/LegalPage';
-
+import { AdminLayout } from './components/admin/AdminLayout';
 import { getSupabase } from './lib/supabase';
 
-const getInitialView = (): 'landing' | 'app' | LegalPageType => {
+export type AppView = 'landing' | 'app' | 'admin' | LegalPageType;
+
+const getInitialView = (): AppView => {
   if (typeof window === 'undefined') return 'landing';
   const path = window.location.pathname;
   const hash = window.location.hash;
@@ -21,6 +23,9 @@ const getInitialView = (): 'landing' | 'app' | LegalPageType => {
     return 'app';
   }
 
+  if (path === '/admin' || path.startsWith('/admin/')) {
+    return 'admin';
+  }
   if (path === '/app' || path === '/chat' || path.startsWith('/app/')) {
     return 'app';
   }
@@ -31,12 +36,14 @@ const getInitialView = (): 'landing' | 'app' | LegalPageType => {
 };
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'app' | LegalPageType>(getInitialView);
+  const [currentView, setCurrentView] = useState<AppView>(getInitialView);
 
   useEffect(() => {
     const handlePopState = () => {
       const p = window.location.pathname;
-      if (p === '/app' || p === '/chat' || p.startsWith('/app/')) {
+      if (p === '/admin' || p.startsWith('/admin/')) {
+        setCurrentView('admin');
+      } else if (p === '/app' || p === '/chat' || p.startsWith('/app/')) {
         setCurrentView('app');
       } else if (p === '/privacy') {
         setCurrentView('privacy');
@@ -57,7 +64,7 @@ export const App: React.FC = () => {
     if (supabase) {
       const { data } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          if (window.location.pathname !== '/app') {
+          if (window.location.pathname !== '/app' && window.location.pathname !== '/admin') {
             window.history.pushState({}, '', '/app');
             setCurrentView('app');
           }
@@ -77,6 +84,11 @@ export const App: React.FC = () => {
     setCurrentView('app');
   };
 
+  const navigateToAdmin = () => {
+    window.history.pushState({}, '', '/admin');
+    setCurrentView('admin');
+  };
+
   const navigateToLanding = () => {
     window.history.pushState({}, '', '/');
     setCurrentView('landing');
@@ -86,6 +98,10 @@ export const App: React.FC = () => {
     window.history.pushState({}, '', `/${type}`);
     setCurrentView(type);
   };
+
+  if (currentView === 'admin') {
+    return <AdminLayout onNavigateHome={navigateToLanding} onNavigateApp={navigateToApp} />;
+  }
 
   if (currentView === 'app') {
     return <AppWorkspace onNavigateHome={navigateToLanding} />;
@@ -102,8 +118,13 @@ export const App: React.FC = () => {
     );
   }
 
-  return <LandingPage onLaunchApp={navigateToApp} onNavigateLegal={navigateToLegal} />;
+  return (
+    <LandingPage
+      onLaunchApp={navigateToApp}
+      onNavigateLegal={navigateToLegal}
+      onNavigateAdmin={navigateToAdmin}
+    />
+  );
 };
 
 export default App;
-

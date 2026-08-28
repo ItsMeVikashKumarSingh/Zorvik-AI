@@ -2,6 +2,21 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.0] - 2026-08-29
+### Admin Control Plane, Paid Monetization Engine, & Mandatory Audit Logging
+- **Admin Control Plane Workspace ([`AdminLayout.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminLayout.tsx))**:
+  - Standalone cyber-dark administrative portal accessible at `/admin` with RBAC session validation.
+  - **Overview Dashboard ([`AdminDashboard.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminDashboard.tsx))**: Real-time KPI metrics, active paid keys count, token burn rate, revenue estimates, and live provider health.
+  - **Tenant & API Key Manager ([`TenantManager.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/TenantManager.tsx))**: Instant provisioning, plan tier assignment, custom monthly token quotas, rate limit overrides, and suspend/activate toggles.
+  - **Pricing Plans & Monetization Engine ([`PlanManager.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/PlanManager.tsx))**: Full configuration of Starter ($19/mo), Pro ($49/mo), and Enterprise ($199/mo) plans with overage pricing.
+  - **Model Circuit Breaker Controls ([`CircuitBreakerControl.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/CircuitBreakerControl.tsx))**: Interactive switches to manually trip, reset, or test AI engines (Gemini, Groq, Cerebras, Mistral, OpenRouter).
+  - **Mandatory Immutable Audit Log Viewer ([`AuditLogViewer.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AuditLogViewer.tsx))**: Chronological tamper-proof ledger of every administrative action, IP address, and JSON mutation payload.
+- **Backend Admin Infrastructure & RBAC Middleware ([`admin.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/admin.js), [`adminAuth.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/middleware/adminAuth.js))**:
+  - Mounted `/api/v1/admin` with master key and JWT admin role verification.
+  - Mandatory audit logger in [`auditLogger.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/auditLogger.js) enforcing Rule 3.1.
+- **Database Schema Migration (`0002_zorvik_ai_admin_and_monetization.sql`)**:
+  - Added `tbl_admins`, `tbl_pricing_plans`, `tbl_audit_logs`, and updated `tbl_tenants` with plan references.
+
 ## [0.9.0] - 2026-08-29
 ### True SSE Streaming, Google Search Grounding, Multi-Modal Vision, Live Canvas Artifacts, & Autonomous Memory
 - **True Native Upstream SSE Streaming Pipeline ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:

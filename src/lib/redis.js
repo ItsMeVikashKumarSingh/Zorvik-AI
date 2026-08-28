@@ -6,6 +6,7 @@ const { Redis } = require("@upstash/redis");
 let redisClient = null;
 const memoryStore = new Map();
 const memoryExpiry = new Map();
+const memoryLists = new Map();
 
 const isUpstashConfigured = Boolean(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
@@ -85,6 +86,7 @@ const redis = {
       }
     }
     memoryExpiry.delete(key);
+    memoryLists.delete(key);
     return memoryStore.delete(key) ? 1 : 0;
   },
 
@@ -114,6 +116,51 @@ const redis = {
       return 1;
     }
     return 0;
+  },
+
+  async lpush(key, ...elements) {
+    if (redisClient) {
+      try {
+        return await redisClient.lpush(key, ...elements);
+      } catch (err) {
+        console.warn(`Upstash LPUSH error for key ${key}:`, err.message);
+      }
+    }
+    if (!memoryLists.has(key)) {
+      memoryLists.set(key, []);
+    }
+    const list = memoryLists.get(key);
+    list.unshift(...elements);
+    return list.length;
+  },
+
+  async lrange(key, start, stop) {
+    if (redisClient) {
+      try {
+        return await redisClient.lrange(key, start, stop);
+      } catch (err) {
+        console.warn(`Upstash LRANGE error for key ${key}:`, err.message);
+      }
+    }
+    const list = memoryLists.get(key) || [];
+    const end = stop < 0 ? list.length + stop + 1 : stop + 1;
+    return list.slice(start, end);
+  },
+
+  async ltrim(key, start, stop) {
+    if (redisClient) {
+      try {
+        return await redisClient.ltrim(key, start, stop);
+      } catch (err) {
+        console.warn(`Upstash LTRIM error for key ${key}:`, err.message);
+      }
+    }
+    if (memoryLists.has(key)) {
+      const list = memoryLists.get(key);
+      const end = stop < 0 ? list.length + stop + 1 : stop + 1;
+      memoryLists.set(key, list.slice(start, end));
+    }
+    return "OK";
   },
 };
 

@@ -9,9 +9,10 @@ import { highlightCode } from '../lib/markdown';
 interface LandingPageProps {
   onLaunchApp: () => void;
   onNavigateLegal?: (type: 'privacy' | 'terms' | 'security') => void;
+  onNavigateAdmin?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp, onNavigateLegal }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp, onNavigateLegal, onNavigateAdmin }) => {
   const [activeCodeTab, setActiveCodeTab] = useState<'curl' | 'js' | 'python'>('curl');
   const [copied, setCopied] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
@@ -597,6 +598,16 @@ print(response.content)`,
                     Zorvik Tech <ExternalLink size={10} className="text-ash-gray" />
                   </a>
                 </li>
+                {onNavigateAdmin && (
+                  <li>
+                    <button
+                      onClick={onNavigateAdmin}
+                      className="hover:text-iris transition-colors cursor-pointer text-left text-iris/80 font-mono"
+                    >
+                      Admin Control Plane →
+                    </button>
+                  </li>
+                )}
               </ul>
             </div>
 

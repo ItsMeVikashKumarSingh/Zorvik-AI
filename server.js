@@ -9,6 +9,7 @@ const compression = require("compression");
 const path = require("path");
 
 const apiRoutes = require("./src/routes/api");
+const adminRoutes = require("./src/routes/admin");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -69,6 +70,7 @@ if (fs.existsSync(distPath)) {
 app.use(express.static(path.join(__dirname)));
 
 // Mount API routes
+app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1", apiRoutes);
 
 // SPA client routing for React 19 Frontend

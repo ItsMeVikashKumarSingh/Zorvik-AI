@@ -1,26 +1,69 @@
 -- ========================================================================
 -- ZORVIK AI DEDICATED SUPABASE DATABASE SCHEMA
--- Migration: 0001_zorvik_ai_core_schema.sql
+-- Migration: 0002_zorvik_ai_admin_and_monetization.sql
 -- ========================================================================
 
 -- 1. Enable pgvector for semantic memory and conversation embeddings
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Tenants Table (Zorvik Studio, Zorvik-Tech, and External API Consumers)
-CREATE TABLE IF NOT EXISTS tbl_tenants (
-    id VARCHAR(64) PRIMARY KEY, -- x-tenant-id (e.g., 'zorvik-studio-prod', 'zorviktech-main', 'public-guest')
-    name VARCHAR(255) NOT NULL,
-    tier VARCHAR(32) NOT NULL DEFAULT 'standard', -- 'free' | 'standard' | 'enterprise'
-    rate_limit_per_minute INT NOT NULL DEFAULT 60,
+-- 2. Pricing Plans Table (Paid API Tiers)
+CREATE TABLE IF NOT EXISTS tbl_pricing_plans (
+    id VARCHAR(64) PRIMARY KEY, -- 'starter', 'pro', 'enterprise', 'payg'
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    monthly_price_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     monthly_token_quota BIGINT NOT NULL DEFAULT 1000000,
-    custom_system_prompt TEXT,
+    rate_limit_per_minute INT NOT NULL DEFAULT 60,
+    overage_rate_per_million NUMERIC(10, 4) NOT NULL DEFAULT 0.50,
+    max_api_keys INT NOT NULL DEFAULT 3,
+    features JSONB NOT NULL DEFAULT '[]',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- 3. Conversations Table
+-- 3. Tenants Table (API Consumers & External Microservices)
+CREATE TABLE IF NOT EXISTS tbl_tenants (
+    id VARCHAR(64) PRIMARY KEY, -- x-tenant-id (e.g., 'zorvik-studio-prod', 'zorviktech-main', 'tenant_live_xxxx')
+    name VARCHAR(255) NOT NULL,
+    plan_id VARCHAR(64) REFERENCES tbl_pricing_plans(id) DEFAULT 'starter',
+    tier VARCHAR(32) NOT NULL DEFAULT 'standard', -- 'starter' | 'pro' | 'enterprise' | 'custom'
+    rate_limit_per_minute INT NOT NULL DEFAULT 60,
+    monthly_token_quota BIGINT NOT NULL DEFAULT 1000000,
+    tokens_used_this_month BIGINT NOT NULL DEFAULT 0,
+    custom_system_prompt TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    owner_email VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- 4. Admins & Roles Table
+CREATE TABLE IF NOT EXISTS tbl_admins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    role VARCHAR(32) NOT NULL DEFAULT 'admin', -- 'superadmin' | 'admin' | 'support'
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- 5. Mandatory Immutable Audit Logs
+CREATE TABLE IF NOT EXISTS tbl_audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id VARCHAR(64) NOT NULL,
+    admin_email VARCHAR(255) NOT NULL,
+    action_type VARCHAR(64) NOT NULL, -- 'CREATE_TENANT', 'UPDATE_QUOTA', 'REVOKE_KEY', 'CHANGE_PLAN', 'TOGGLE_CIRCUIT'
+    target_entity VARCHAR(128) NOT NULL, -- 'tenant:zorvik-studio-prod', 'plan:pro'
+    details JSONB NOT NULL DEFAULT '{}',
+    ip_address VARCHAR(64),
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- 6. Conversations Table
 CREATE TABLE IF NOT EXISTS tbl_conversations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id VARCHAR(64) NOT NULL REFERENCES tbl_tenants(id) ON DELETE CASCADE,
@@ -32,7 +75,7 @@ CREATE TABLE IF NOT EXISTS tbl_conversations (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- 4. Messages Table with 768-dim Vector Embeddings (Gemini text-embedding-004)
+-- 7. Messages Table with 768-dim Vector Embeddings
 CREATE TABLE IF NOT EXISTS tbl_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     conversation_id UUID NOT NULL REFERENCES tbl_conversations(id) ON DELETE CASCADE,
@@ -40,11 +83,11 @@ CREATE TABLE IF NOT EXISTS tbl_messages (
     content TEXT NOT NULL,
     tokens INT NOT NULL DEFAULT 0,
     model_routed VARCHAR(64),
-    embedding vector(768), -- 768-dimensional embedding for semantic memory
+    embedding vector(768),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- 5. Tenant Usage & Telemetry Ledger
+-- 8. Tenant Usage & Telemetry Ledger
 CREATE TABLE IF NOT EXISTS tbl_tenant_usage (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id VARCHAR(64) NOT NULL REFERENCES tbl_tenants(id) ON DELETE CASCADE,
@@ -58,19 +101,21 @@ CREATE TABLE IF NOT EXISTS tbl_tenant_usage (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- 6. Indexes for Blazing-Fast Performance
+-- 9. Indexes for Blazing-Fast Performance
 CREATE INDEX IF NOT EXISTS idx_conversations_tenant ON tbl_conversations(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON tbl_conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_guest ON tbl_conversations(guest_uuid);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON tbl_messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON tbl_messages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tenant_usage_tenant ON tbl_tenant_usage(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON tbl_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_admin ON tbl_audit_logs(admin_email);
 
 -- HNSW Vector Index for sub-millisecond semantic search
 CREATE INDEX IF NOT EXISTS idx_messages_embedding ON tbl_messages 
 USING hnsw (embedding vector_cosine_ops);
 
--- 7. Semantic Vector Search RPC Function
+-- 10. Semantic Vector Search RPC Function
 CREATE OR REPLACE FUNCTION match_messages (
     query_embedding vector(768),
     match_threshold float DEFAULT 0.70,
@@ -107,20 +152,41 @@ BEGIN
 END;
 $$;
 
--- 8. Seed Default System Tenants
-INSERT INTO tbl_tenants (id, name, tier, rate_limit_per_minute, monthly_token_quota, custom_system_prompt, is_active)
+-- 11. Seed Default Pricing Plans
+INSERT INTO tbl_pricing_plans (id, name, description, monthly_price_usd, monthly_token_quota, rate_limit_per_minute, overage_rate_per_million, max_api_keys, features, is_active)
 VALUES 
-    ('public-guest', 'Zorvik AI Public Web Guest', 'free', 30, 200000, NULL, TRUE),
-    ('zorvik-studio-prod', 'Zorvik Studio Production', 'enterprise', 300, 10000000, 'You are integrated into Zorvik Studio.', TRUE),
-    ('zorviktech-main', 'Zorvik-Tech Primary Platform', 'enterprise', 300, 10000000, 'You are integrated into Zorvik-Tech.', TRUE),
-    ('zconnect-service', 'ZConnect Messaging Platform', 'standard', 120, 5000000, 'You are integrated into ZConnect.', TRUE)
+    ('starter', 'Starter Developer', 'Essential AI cascade API access for indie developers and prototypes.', 19.00, 5000000, 120, 0.40, 2, '["Gemini 2.5 Flash", "Groq Llama 3.3 70B", "Standard Latency", "Community Support"]'::jsonb, TRUE),
+    ('pro', 'Professional Scale', 'High-throughput intelligence with priority Cerebras & Mistral Codestral routing.', 49.00, 20000000, 300, 0.35, 5, '["All Cascade Engines", "Codestral & Cerebras LPU", "Web Search Grounding", "Custom System Prompts", "Priority SLA"]'::jsonb, TRUE),
+    ('enterprise', 'Enterprise Custom', 'Dedicated token pools, sub-50ms failover, and customized fine-tuned system directives.', 199.00, 100000000, 1200, 0.25, 20, '["Unlimited Model Access", "Dedicated Circuit Breaker", "Unlimited Web Grounding", "24/7 Dedicated Support", "Custom Fine-Tuning"]'::jsonb, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
--- 9. Row Level Security (RLS)
+-- 12. Seed Default System Tenants
+INSERT INTO tbl_tenants (id, name, plan_id, tier, rate_limit_per_minute, monthly_token_quota, custom_system_prompt, is_active)
+VALUES 
+    ('public-guest', 'Zorvik AI Public Web Guest', 'starter', 'starter', 30, 200000, NULL, TRUE),
+    ('zorvik-studio-prod', 'Zorvik Studio Production', 'enterprise', 'enterprise', 600, 50000000, 'You are integrated into Zorvik Studio.', TRUE),
+    ('zorviktech-main', 'Zorvik-Tech Primary Platform', 'enterprise', 'enterprise', 600, 50000000, 'You are integrated into Zorvik-Tech.', TRUE),
+    ('zconnect-service', 'ZConnect Messaging Platform', 'pro', 'pro', 300, 20000000, 'You are integrated into ZConnect.', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- 13. Seed Default Admin
+INSERT INTO tbl_admins (email, role, is_active)
+VALUES ('admin@zorvik.tech', 'superadmin', TRUE)
+ON CONFLICT (email) DO NOTHING;
+
+-- 14. Row Level Security (RLS)
+ALTER TABLE tbl_pricing_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tbl_tenants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tbl_admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tbl_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tbl_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tbl_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tbl_tenant_usage ENABLE ROW LEVEL SECURITY;
+
+-- Pricing Plans: Public read for active plans
+CREATE POLICY "Allow public read active plans"
+    ON tbl_pricing_plans FOR SELECT
+    USING (is_active = TRUE);
 
 -- Tenants: Public read for active tenants (for validation)
 CREATE POLICY "Allow public read active tenants"
