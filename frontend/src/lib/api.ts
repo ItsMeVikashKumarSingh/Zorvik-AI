@@ -1,13 +1,15 @@
-import { ModelMode } from '../types';
+import { ModelMode, SourceItem } from '../types';
+import { getSupabase } from './supabase';
 
 const API_BASE = '/api/v1';
 
 export interface StreamChatOptions {
   message: string;
   sessionId: string;
+  history?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   mode?: ModelMode;
   onChunk: (chunk: string) => void;
-  onDone: (fullText: string, metadata?: { model?: string; intent?: string }) => void;
+  onDone: (fullText: string, metadata?: { model?: string; intent?: string; sources?: SourceItem[]; relatedQuestions?: string[] }) => void;
   onError: (error: Error) => void;
   signal?: AbortSignal;
 }
@@ -18,6 +20,7 @@ export interface StreamChatOptions {
 export async function streamChat({
   message,
   sessionId,
+  history = [],
   mode = 'auto',
   onChunk,
   onDone,
@@ -25,15 +28,33 @@ export async function streamChat({
   signal,
 }: StreamChatOptions): Promise<void> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Attach active Supabase Auth JWT token if present
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        }
+      } catch {
+        // Fallback for non-session requests
+      }
+    }
+
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         message,
+        prompt: message,
         session_id: sessionId,
+        history,
         mode,
+        stream: true,
       }),
       signal,
     });
@@ -73,9 +94,10 @@ export async function streamChat({
 
         try {
           const parsed = JSON.parse(dataStr);
-          if (parsed.content) {
-            accumulatedText += parsed.content;
-            onChunk(parsed.content);
+          const chunkText = parsed.content ?? parsed.token ?? parsed.text ?? parsed.response;
+          if (chunkText !== undefined && chunkText !== null && chunkText !== '') {
+            accumulatedText += chunkText;
+            onChunk(chunkText);
           }
           if (parsed.model) {
             modelMetadata = parsed.model;

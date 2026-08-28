@@ -45,22 +45,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   }
 
   const htmlContent = renderMarkdown(message.content);
-
-  // Generate fallback realistic sources if not provided by backend
-  const sources: SourceItem[] = message.sources && message.sources.length > 0
-    ? message.sources
-    : [
-        { id: '1', title: 'Zorvik Neural Synthesis Index', url: 'https://zorviktech.com', domain: 'zorvik.ai' },
-        { id: '2', title: 'Multi-Model Routing Architecture', url: 'https://zorviktech.com', domain: 'arxiv.org' },
-        { id: '3', title: 'Verified Code & Logic Engine', url: 'https://zorviktech.com', domain: 'github.com' },
-      ];
-
-  // Default follow-up questions if not set
-  const followups = message.relatedQuestions || [
-    `Can you provide practical implementation examples for this?`,
-    `What are the key trade-offs and alternative approaches?`,
-    `How does this integrate with high-performance production systems?`,
-  ];
+  const sources: SourceItem[] = message.sources || [];
+  const followups = message.relatedQuestions || [];
 
   return (
     <div className="py-6 space-y-6">
@@ -164,8 +150,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         )}
       </div>
 
-      {/* 3. Related Follow-Up Questions (Signature Perplexity Feature) */}
-      {!message.isStreaming && !message.error && message.content && onSelectFollowup && (
+      {/* 3. Related Follow-Up Questions (Rendered only when available) */}
+      {!message.isStreaming && !message.error && message.content && onSelectFollowup && followups.length > 0 && (
         <div className="pt-4 border-t border-white/[0.04] space-y-2">
           <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
             <Plus size={12} className="text-iris" />

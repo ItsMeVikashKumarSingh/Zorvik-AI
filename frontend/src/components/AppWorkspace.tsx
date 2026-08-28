@@ -5,7 +5,7 @@ import { WelcomeHero } from './WelcomeHero';
 import { MessageItem } from './MessageItem';
 import { InputDock } from './InputDock';
 import { AuthModal, AuthModalTab } from './AuthModal';
-import { ChatSession, Message, ModelMode, UserProfile, SourceItem } from '../types';
+import { ChatSession, Message, ModelMode, UserProfile } from '../types';
 import { streamChat, fetchAutocomplete } from '../lib/api';
 import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
 
@@ -213,54 +213,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     setIsStreaming(false);
   };
 
-  // Helper to generate dynamic verified sources based on query
-  const generateSourcesForQuery = (query: string): SourceItem[] => {
-    const qLower = query.toLowerCase();
-    if (qLower.includes('code') || qLower.includes('typescript') || qLower.includes('function') || qLower.includes('api')) {
-      return [
-        { id: '1', title: 'TypeScript Official Documentation', url: 'https://www.typescriptlang.org', domain: 'typescriptlang.org' },
-        { id: '2', title: 'GitHub Verified Solutions', url: 'https://github.com', domain: 'github.com' },
-        { id: '3', title: 'Zorvik API & Engine Architecture', url: 'https://zorviktech.com', domain: 'zorvik.ai' },
-      ];
-    }
-    if (qLower.includes('quantum') || qLower.includes('physics') || qLower.includes('theory') || qLower.includes('math')) {
-      return [
-        { id: '1', title: 'Nature Physics & Quantum Papers', url: 'https://nature.com', domain: 'nature.com' },
-        { id: '2', title: 'arXiv Preprint Repository', url: 'https://arxiv.org', domain: 'arxiv.org' },
-        { id: '3', title: 'Stanford Encyclopedia of Philosophy', url: 'https://plato.stanford.edu', domain: 'stanford.edu' },
-      ];
-    }
-    return [
-      { id: '1', title: 'Zorvik Multi-Model Knowledge Index', url: 'https://zorviktech.com', domain: 'zorvik.ai' },
-      { id: '2', title: 'Global Technical Index', url: 'https://arxiv.org', domain: 'arxiv.org' },
-      { id: '3', title: 'Open Knowledge Consensus', url: 'https://wikipedia.org', domain: 'wikipedia.org' },
-    ];
-  };
-
-  // Helper to generate follow-up questions
-  const generateFollowupsForQuery = (query: string): string[] => {
-    const qLower = query.toLowerCase();
-    if (qLower.includes('quantum')) {
-      return [
-        'How does quantum decoherence limit quantum computers today?',
-        'Compare quantum superposition with classical probabilistic computing',
-        'What are the most promising real-world quantum use cases in 2026?',
-      ];
-    }
-    if (qLower.includes('typescript') || qLower.includes('code') || qLower.includes('api')) {
-      return [
-        'How can we add automatic rate limiting to this implementation?',
-        'Show an automated Jest / Vitest unit test suite for this code',
-        'What are the edge failure scenarios and recovery strategies?',
-      ];
-    }
-    return [
-      `What are the practical applications of this in production?`,
-      `Explain the core architectural trade-offs in detail`,
-      `How does this compare with the latest 2026 industry standards?`,
-    ];
-  };
-
   // Send message
   const handleSend = async (customPrompt?: string) => {
     const textToSend = (customPrompt || input).trim();
@@ -295,8 +247,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     };
 
     const assistantMessageId = 'msg_' + crypto.randomUUID();
-    const querySources = generateSourcesForQuery(textToSend);
-    const queryFollowups = generateFollowupsForQuery(textToSend);
 
     const placeholderAssistant: Message = {
       id: assistantMessageId,
@@ -304,8 +254,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       content: '',
       timestamp: Date.now(),
       isStreaming: true,
-      sources: querySources,
-      relatedQuestions: queryFollowups,
     };
 
     const sessionWithUser = {
@@ -323,9 +271,15 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
 
     let accumulatedContent = '';
 
+    // Pass prior conversation history for full multi-turn conversational memory
+    const priorHistory = currentSession.messages
+      .filter(m => m.content && !m.isStreaming)
+      .map(m => ({ role: m.role, content: m.content }));
+
     await streamChat({
       message: textToSend,
       sessionId: currentSession.id,
+      history: priorHistory,
       mode,
       signal: controller.signal,
       onChunk: chunk => {
@@ -358,6 +312,8 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
                       isStreaming: false,
                       model: metadata?.model || 'Zorvik AI',
                       intent: metadata?.intent,
+                      sources: metadata?.sources,
+                      relatedQuestions: metadata?.relatedQuestions,
                     }
                   : m
               ),

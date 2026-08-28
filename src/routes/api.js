@@ -25,24 +25,28 @@ router.use(userAuthMiddleware);
 router.use(securityShield);
 
 /**
- * POST /api/v1/chat
+ * POST /api/v1/chat & POST /api/v1/chat/stream
  * Primary chat endpoint supporting streaming (SSE) or standard JSON response
  */
-router.post("/chat", async (req, res) => {
-  const { prompt, mode = "auto", session_id = null, stream = false } = req.body;
+router.post(["/chat", "/chat/stream"], async (req, res) => {
+  const { mode = "auto", session_id = null } = req.body;
+  const prompt = req.body.prompt || req.body.message;
+  const stream = req.path.endsWith("/stream") || req.body.stream === true;
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return res.status(400).json({
       error: "Bad Request",
-      message: "Field 'prompt' is required and must be a non-empty string.",
+      message: "Field 'prompt' or 'message' is required and must be a non-empty string.",
     });
   }
 
   const tenant = req.tenant;
   const sessionId = session_id || req.headers["x-session-id"] || "default-session";
 
-  // 1. Fetch multi-turn history from hot sliding memory
-  const history = await getSessionHistory(sessionId);
+  // 1. Fetch multi-turn history from request body or hot sliding memory
+  const clientHistory = Array.isArray(req.body.history) && req.body.history.length > 0 ? req.body.history : null;
+  const serverHistory = await getSessionHistory(sessionId);
+  const history = clientHistory || serverHistory || [];
 
   // 2. Build system persona based on mode, intent & tenant overrides
   const systemPrompt = buildSystemPrompt({
@@ -69,12 +73,35 @@ router.post("/chat", async (req, res) => {
       // Stream words with slight delay to mimic real-time token stream
       const words = result.text.split(/(\s+)/);
       for (const word of words) {
-        res.write(`data: ${JSON.stringify({ token: word })}\n\n`);
+        res.write(`data: ${JSON.stringify({ token: word, content: word })}\n\n`);
         await new Promise((r) => setTimeout(r, 15));
       }
 
       // Save turn to hot sliding memory
       await appendSessionTurn(sessionId, prompt, result.text);
+
+      // Save message to Supabase if configured and user is present
+      if (isSupabaseConfigured() && req.user) {
+        try {
+          await supabase.from("tbl_messages").insert([
+            {
+              conversation_id: sessionId.length === 36 ? sessionId : null,
+              role: "user",
+              content: prompt,
+              tokens: estimateTokens(prompt),
+            },
+            {
+              conversation_id: sessionId.length === 36 ? sessionId : null,
+              role: "assistant",
+              content: result.text,
+              tokens: estimateTokens(result.text),
+              model_routed: result.model,
+            },
+          ]);
+        } catch (_dbErr) {
+          // Non-blocking database write error
+        }
+      }
 
       res.write(
         `data: ${JSON.stringify({

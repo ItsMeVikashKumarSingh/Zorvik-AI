@@ -2,6 +2,18 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [0.7.2] - 2026-08-28
+### Multi-Tier AI Cascade (Cerebras LPU & Mistral Reasoning) + Persona Overhaul
+- **Cerebras Cloud LPU Integration (3rd Tier Fallback)**:
+  - Integrated Cerebras Cloud ultra-fast inference (2,000+ tokens/sec, 1M free tokens/day) into [`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js) with `llama-3.3-70b` and `llama-3.1-8b`.
+- **Mistral & Codestral AI Integration (Deep Logic & Code Wizard)**:
+  - Added specialized mode routing in [`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js) for `codestral-latest` (code mode) and `mistral-small-latest` (deep reasoning mode).
+- **Zorvik AI Charismatic Persona Directives ([`intentEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/intentEngine.js))**:
+  - Replaced generic LLM disclaimers with branded **Zorvik AI** persona (proudly built by Team Zorvik).
+  - Added witty, intuitive conversational banter for hypotheticals, humor, and thought-reading prompts.
+- **Unified Single `.env` Architecture**:
+  - Configured Vite `envDir: '../'` and unified Supabase URL, Secret Key, Publishable Key, and AI provider configurations in a single root `.env` file.
+
 ## [0.7.1] - 2026-08-28
 ### Landing Page UI/UX Polish & Official Zorvik AI Icon Asset Integration
 - **Official Zorvik AI Icon Asset**:

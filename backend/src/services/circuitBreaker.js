@@ -20,6 +20,20 @@ class CircuitBreaker {
         lastFailure: null,
         cooldownMs: 60000,
       },
+      cerebras: {
+        name: "Cerebras Cloud LPU",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
+      mistral: {
+        name: "Mistral & Codestral AI",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
       openrouter: {
         name: "OpenRouter Free",
         status: "CLOSED",

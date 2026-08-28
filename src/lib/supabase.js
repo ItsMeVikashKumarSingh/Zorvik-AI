@@ -4,15 +4,14 @@
  */
 const { createClient } = require("@supabase/supabase-js");
 
-const supabaseUrl = process.env.AI_SUPABASE_URL;
-const supabaseServiceKey =
-  process.env.AI_SUPABASE_SERVICE_ROLE_KEY || process.env.AI_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.AI_SUPABASE_URL;
+const supabaseSecretKey = process.env.AI_SUPABASE_SECRET_KEY || process.env.SUPABASE_SECRET_KEY;
 
 let supabase = null;
 
-if (supabaseUrl && supabaseServiceKey) {
+if (supabaseUrl && supabaseSecretKey) {
   try {
-    supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    supabase = createClient(supabaseUrl, supabaseSecretKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
