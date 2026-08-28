@@ -46,18 +46,6 @@ describe("Zorvik AI API Microservice Tests", () => {
     assert.ok(data.models.length >= 3);
   });
 
-  test("POST /api/v1/predict should return next word suggestions", async () => {
-    const res = await fetch(`${BASE_URL}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: "how to build a react" }),
-    });
-    assert.strictEqual(res.status, 200);
-    const data = await res.json();
-    assert.ok(Array.isArray(data.next_words));
-    assert.ok(data.next_words.length > 0);
-  });
-
   test("POST /api/v1/chat with GenZ emoji prompt should return response", async () => {
     const res = await fetch(`${BASE_URL}/chat`, {
       method: "POST",
@@ -93,6 +81,26 @@ describe("Zorvik AI API Microservice Tests", () => {
     const data = await res.json();
     assert.ok(data.response.length > 0);
     assert.strictEqual(data.tenant.id, "zorviktech-main");
+  });
+
+  test("POST /api/v1/chat/stream should stream SSE events", async () => {
+    const res = await fetch(`${BASE_URL}/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-tenant-id": "public-guest",
+      },
+      body: JSON.stringify({
+        prompt: "Hello Zorvik AI",
+        mode: "auto",
+        stream: true,
+      }),
+    });
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.headers.get("content-type").includes("text/event-stream"));
+    const text = await res.text();
+    assert.ok(text.includes("data:"));
+    assert.ok(text.includes("[DONE]"));
   });
 
   test("POST /api/v1/tenants/verify should validate tenant", async () => {

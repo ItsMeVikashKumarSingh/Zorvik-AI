@@ -1,51 +1,52 @@
 import React, { useRef, useEffect } from 'react';
-import { ArrowUp, Globe, Brain, Code2, Sparkles, Compass, Cpu } from 'lucide-react';
-import { ModelMode } from '../types';
-
+import { ArrowUp, Globe, Search, Brain, Code2, Sparkles, Compass, Cpu, Paperclip, X, FileText } from 'lucide-react';
+import { ModelMode, FileAttachment } from '../types';
 
 interface WelcomeHeroProps {
   input: string;
   onInputChange: (val: string) => void;
-  onSend: (customPrompt?: string) => void;
+  onSend: (customPrompt?: string, filesToSend?: FileAttachment[]) => void;
   mode: ModelMode;
   onModeChange: (m: ModelMode) => void;
-  autocompleteHint: string | null;
-  onAcceptAutocomplete: () => void;
+  attachments?: FileAttachment[];
+  onAddAttachment?: (file: FileAttachment) => void;
+  onRemoveAttachment?: (id: string) => void;
 }
 
 const TOPIC_SUGGESTIONS = [
   {
     icon: Globe,
-    title: "Quantum Computing",
-    subtitle: "Foundational principles explained via physical analogies",
-    prompt: "Explain quantum entanglement and computing using intuitive physical analogies",
-    mode: "deep" as ModelMode,
+    title: 'Quantum Computing',
+    subtitle: 'Foundational principles explained via physical analogies',
+    prompt: 'Explain quantum entanglement and computing using intuitive physical analogies',
+    mode: 'deep' as ModelMode,
   },
   {
     icon: Code2,
-    title: "TypeScript Circuit Breaker",
-    subtitle: "Production-ready resilient API client with failover",
-    prompt: "Write a production TypeScript API client with exponential backoff and circuit breaker failover",
-    mode: "code" as ModelMode,
+    title: 'TypeScript Circuit Breaker',
+    subtitle: 'Production-ready resilient API client with failover',
+    prompt: 'Write a production TypeScript API client with exponential backoff and circuit breaker failover',
+    mode: 'code' as ModelMode,
   },
   {
     icon: Cpu,
-    title: "AI Architecture 2026",
-    subtitle: "Multi-model routing, sub-50ms streaming & vector memory",
-    prompt: "Compare modern multi-model cascade architectures against monolithic LLMs for sub-50ms latency",
-    mode: "deep" as ModelMode,
+    title: 'AI Architecture 2026',
+    subtitle: 'Multi-model routing, sub-50ms streaming & vector memory',
+    prompt: 'Compare modern multi-model cascade architectures against monolithic LLMs for sub-50ms latency',
+    mode: 'deep' as ModelMode,
   },
   {
     icon: Sparkles,
-    title: "GenZ Cultural Subtext",
-    subtitle: "Deconstruct internet slang & modern viral linguistics",
-    prompt: "Analyze the linguistic evolution of Gen Z and Gen Alpha slang with zero corporate cringe",
-    mode: "casual" as ModelMode,
+    title: 'GenZ Cultural Subtext',
+    subtitle: 'Deconstruct internet slang & modern viral linguistics',
+    prompt: 'Analyze the linguistic evolution of Gen Z and Gen Alpha slang with zero corporate cringe',
+    mode: 'casual' as ModelMode,
   },
 ];
 
 const FOCUS_MODES: { id: ModelMode; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
   { id: 'auto', label: 'All', icon: Globe },
+  { id: 'search', label: 'Web Search', icon: Search },
   { id: 'deep', label: 'Deep Thinker', icon: Brain },
   { id: 'code', label: 'Code', icon: Code2 },
   { id: 'casual', label: 'Casual', icon: Sparkles },
@@ -57,10 +58,12 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
   onSend,
   mode,
   onModeChange,
-  autocompleteHint,
-  onAcceptAutocomplete,
+  attachments = [],
+  onAddAttachment,
+  onRemoveAttachment,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -70,15 +73,58 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
   }, [input]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab' && autocompleteHint) {
-      e.preventDefault();
-      onAcceptAutocomplete();
-      return;
-    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (input.trim()) {
+      if (input.trim() || attachments.length > 0) {
         onSend();
+      }
+    }
+  };
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files || !onAddAttachment) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result = reader.result as string;
+        onAddAttachment({
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          dataUrl: result,
+          mimeType: file.type || 'application/octet-stream',
+        });
+      };
+
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file && onAddAttachment) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            onAddAttachment({
+              id: `paste_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: `Pasted-Image-${new Date().toLocaleTimeString()}.png`,
+              type: file.type,
+              size: file.size,
+              dataUrl: reader.result as string,
+              mimeType: file.type,
+            });
+          };
+          reader.readAsDataURL(file);
+        }
       }
     }
   };
@@ -102,16 +148,35 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
 
       {/* Centered Perplexity-Style Search Box */}
       <div className="w-full relative mb-8">
-        {autocompleteHint && (
-          <div
-            onClick={onAcceptAutocomplete}
-            className="mb-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-silver/80 flex items-center justify-between cursor-pointer hover:border-iris/40 transition-colors"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <span className="text-[10px] font-mono text-iris uppercase tracking-wider">Tab to complete:</span>
-              <span className="text-white font-light truncate">{autocompleteHint}</span>
-            </div>
-            <span className="text-[10px] font-mono text-iris/70 shrink-0">⇥ TAB</span>
+        {/* Attachments Preview */}
+        {attachments.length > 0 && (
+          <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-1">
+            {attachments.map((att) => {
+              const isImage = att.type.startsWith('image/') || att.dataUrl.startsWith('data:image/');
+              return (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-2 p-1.5 pr-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white max-w-[200px] shrink-0 group relative shadow-md"
+                >
+                  {isImage ? (
+                    <img src={att.dataUrl} alt={att.name} className="w-8 h-8 rounded-lg object-cover bg-black/40" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-iris/20 text-iris flex items-center justify-center">
+                      <FileText size={16} />
+                    </div>
+                  )}
+                  <span className="truncate flex-1 text-[11px] font-light">{att.name}</span>
+                  {onRemoveAttachment && (
+                    <button
+                      onClick={() => onRemoveAttachment(att.id)}
+                      className="p-1 rounded-md text-silver/40 hover:text-white hover:bg-white/[0.1] transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -119,19 +184,38 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={e => onInputChange(e.target.value)}
+            onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything or explore a topic..."
+            onPaste={handlePaste}
+            placeholder="Ask anything, attach code/images, or search the web..."
             rows={1}
             autoFocus
             className="w-full bg-transparent text-sm sm:text-base font-light text-white placeholder-silver/30 resize-none outline-none py-1 px-1 max-h-40 overflow-y-auto leading-relaxed"
           />
 
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.txt,.js,.ts,.tsx,.jsx,.py,.html,.css,.json"
+            className="hidden"
+            onChange={(e) => handleFileSelect(e.target.files)}
+          />
+
           {/* Bottom Bar Controls */}
           <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/[0.04]">
-            {/* Focus Modes */}
+            {/* Focus Modes & File Attachment */}
             <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-0.5">
-              {FOCUS_MODES.map(f => {
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-lg text-silver/50 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center gap-1 text-xs"
+                title="Attach image or file"
+              >
+                <Paperclip size={14} />
+              </button>
+
+              {FOCUS_MODES.map((f) => {
                 const IconComponent = f.icon;
                 const isActive = mode === f.id;
                 return (
@@ -154,9 +238,9 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
             {/* Send Trigger */}
             <button
               onClick={() => onSend()}
-              disabled={!input.trim()}
+              disabled={!input.trim() && attachments.length === 0}
               className={`p-2 rounded-xl transition-all flex items-center justify-center shrink-0 ${
-                input.trim()
+                input.trim() || attachments.length > 0
                   ? 'bg-iris hover:bg-iris-hover text-white shadow-md shadow-iris/30 scale-100'
                   : 'bg-white/[0.04] text-silver/20 cursor-not-allowed'
               }`}
@@ -206,4 +290,3 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
     </div>
   );
 };
-

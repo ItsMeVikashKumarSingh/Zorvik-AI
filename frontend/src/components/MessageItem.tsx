@@ -9,20 +9,26 @@ import {
   Plus,
   RotateCw,
   Share2,
+  Play,
+  FileText,
 } from 'lucide-react';
-import { Message, SourceItem } from '../types';
+import { Message, SourceItem, ArtifactContent } from '../types';
 import { renderMarkdown } from '../lib/markdown';
 
 interface MessageItemProps {
   message: Message;
   onSelectFollowup?: (prompt: string) => void;
   onRegenerate?: () => void;
+  onOpenShare?: (message: Message) => void;
+  onOpenArtifact?: (artifact: ArtifactContent) => void;
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({
   message,
   onSelectFollowup,
   onRegenerate,
+  onOpenShare,
+  onOpenArtifact,
 }) => {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
@@ -33,10 +39,51 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // User Message -> Clean Monumental Query Header (Perplexity Style)
+  // Check if assistant message contains code artifact that can be rendered in Canvas
+  const detectArtifact = (): ArtifactContent | null => {
+    if (isUser || !message.content) return null;
+    const match = message.content.match(/```(html|htm|svg|javascript|js|tsx|jsx|python|css)\n([\s\S]*?)```/i);
+    if (match && match[2] && match[2].trim().length > 30) {
+      return {
+        id: `art_${message.id}`,
+        title: 'Generated Artifact',
+        language: match[1].toLowerCase(),
+        code: match[2].trim(),
+      };
+    }
+    return null;
+  };
+
+  const detectedArtifact = detectArtifact();
+
+  // User Message -> Clean Monumental Query Header + Attached Images/Files
   if (isUser) {
     return (
-      <div className="pt-8 pb-4 border-b border-white/[0.04]">
+      <div className="pt-8 pb-4 border-b border-white/[0.04] space-y-3">
+        {/* Attached Files / Images */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap pb-1">
+            {message.attachments.map((att) => {
+              const isImage = att.type.startsWith('image/') || att.dataUrl.startsWith('data:image/');
+              return (
+                <div
+                  key={att.id}
+                  className="rounded-xl overflow-hidden border border-white/[0.1] bg-black/40 shadow-md max-w-[240px]"
+                >
+                  {isImage ? (
+                    <img src={att.dataUrl} alt={att.name} className="max-h-48 w-auto object-cover" />
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 text-xs text-white">
+                      <FileText size={16} className="text-iris" />
+                      <span className="truncate">{att.name}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight text-white leading-snug">
           {message.content}
         </h2>
@@ -50,12 +97,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <div className="py-6 space-y-6">
-      {/* 1. Sources Header & Horizontal Pill Cards (Perplexity Style) */}
+      {/* 1. Sources Header & Horizontal Pill Cards (Google Grounding Sources) */}
       {!message.error && sources.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
             <Layers size={12} className="text-iris" />
-            <span>Sources</span>
+            <span>Web Sources & Grounding</span>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -107,8 +154,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
             {/* Answer Action Bar */}
             {!message.isStreaming && message.content && (
-              <div className="mt-5 pt-3 flex items-center justify-between border-t border-white/[0.04]">
-                <div className="flex items-center gap-1.5">
+              <div className="mt-5 pt-3 flex items-center justify-between border-t border-white/[0.04] flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
@@ -120,14 +167,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
                   <button
                     onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({ title: 'Zorvik AI', text: message.content });
+                      if (onOpenShare) {
+                        onOpenShare(message);
                       } else {
                         handleCopy();
                       }
                     }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
-                    title="Share Answer"
+                    title="Share & Export"
                   >
                     <Share2 size={13} />
                     <span className="text-[11px] font-mono uppercase">Share</span>
@@ -144,13 +191,24 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     </button>
                   )}
                 </div>
+
+                {/* Canvas Live Preview Button */}
+                {detectedArtifact && onOpenArtifact && (
+                  <button
+                    onClick={() => onOpenArtifact(detectedArtifact)}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-iris/10 border border-iris/30 text-iris hover:bg-iris hover:text-white text-xs font-medium transition-all shadow-sm"
+                  >
+                    <Play size={12} />
+                    <span>Open Live Artifact Canvas</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* 3. Related Follow-Up Questions (Rendered only when available) */}
+      {/* 3. Related Follow-Up Questions */}
       {!message.isStreaming && !message.error && message.content && onSelectFollowup && followups.length > 0 && (
         <div className="pt-4 border-t border-white/[0.04] space-y-2">
           <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
@@ -179,4 +237,3 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     </div>
   );
 };
-

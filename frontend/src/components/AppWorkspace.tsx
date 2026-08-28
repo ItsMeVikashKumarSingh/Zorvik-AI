@@ -6,8 +6,10 @@ import { MessageItem } from './MessageItem';
 import { InputDock } from './InputDock';
 import { AuthModal, AuthModalTab } from './AuthModal';
 import { AccountModal } from './AccountModal';
-import { ChatSession, Message, ModelMode, UserProfile } from '../types';
-import { streamChat, fetchAutocomplete } from '../lib/api';
+import { ShareModal } from './ShareModal';
+import { ArtifactsCanvas } from './ArtifactsCanvas';
+import { ChatSession, Message, ModelMode, UserProfile, FileAttachment, ArtifactContent } from '../types';
+import { streamChat } from '../lib/api';
 import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
 
 interface AppWorkspaceProps {
@@ -21,6 +23,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<ModelMode>('auto');
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
@@ -29,7 +32,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<AuthModalTab>('signin');
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [autocompleteHint, setAutocompleteHint] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState<Message | null>(null);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactContent | null>(null);
+  const [artifactCanvasOpen, setArtifactCanvasOpen] = useState(false);
+
   const [user, setUser] = useState<UserProfile>({
     id: getOrCreateGuestId(),
     email: null,
@@ -38,7 +45,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const autocompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const closeSidebarIfMobile = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -139,36 +145,20 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   }, []);
 
   // Get active session
-  const activeSession = sessions.find(s => s.id === activeSessionId) || null;
+  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
   // Scroll to bottom when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeSession?.messages, isStreaming]);
 
-  // Handle Autocomplete prediction as user types
-  const handleInputChange = (val: string) => {
-    setInput(val);
-
-    if (autocompleteTimerRef.current) {
-      clearTimeout(autocompleteTimerRef.current);
-    }
-
-    if (val.trim().length > 3 && !isStreaming) {
-      autocompleteTimerRef.current = setTimeout(async () => {
-        const hint = await fetchAutocomplete(val);
-        setAutocompleteHint(hint);
-      }, 350);
-    } else {
-      setAutocompleteHint(null);
-    }
+  // Attachment helpers
+  const handleAddAttachment = (file: FileAttachment) => {
+    setAttachments((prev) => [...prev, file]);
   };
 
-  const handleAcceptAutocomplete = () => {
-    if (autocompleteHint) {
-      setInput(prev => prev + (prev.endsWith(' ') ? '' : ' ') + autocompleteHint);
-      setAutocompleteHint(null);
-    }
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
   // Create new session
@@ -186,6 +176,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     saveSessions([newSession, ...sessions]);
     setActiveSessionId(newSession.id);
     setInput('');
+    setAttachments([]);
     closeSidebarIfMobile();
   };
 
@@ -195,13 +186,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       handleStopStreaming();
     }
     setActiveSessionId(id);
+    setAttachments([]);
     closeSidebarIfMobile();
   };
 
   // Delete session
   const handleDeleteSession = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = sessions.filter(s => s.id !== id);
+    const updated = sessions.filter((s) => s.id !== id);
     saveSessions(updated);
     if (activeSessionId === id) {
       setActiveSessionId(updated.length > 0 ? updated[0].id : null);
@@ -226,12 +218,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   };
 
   // Send message
-  const handleSend = async (customPrompt?: string) => {
+  const handleSend = async (customPrompt?: string, filesToSend?: FileAttachment[]) => {
     const textToSend = (customPrompt || input).trim();
-    if (!textToSend || isStreaming) return;
+    const currentAttachments = filesToSend || attachments;
+
+    if ((!textToSend && currentAttachments.length === 0) || isStreaming) return;
 
     setInput('');
-    setAutocompleteHint(null);
+    setAttachments([]);
 
     let currentSession = activeSession;
     let updatedSessions = [...sessions];
@@ -240,7 +234,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     if (!currentSession) {
       currentSession = {
         id: 'sess_' + crypto.randomUUID(),
-        title: textToSend.slice(0, 36) + (textToSend.length > 36 ? '...' : ''),
+        title: (textToSend || currentAttachments[0]?.name || 'Chat').slice(0, 36),
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messages: [],
@@ -248,14 +242,15 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       updatedSessions = [currentSession, ...sessions];
       setActiveSessionId(currentSession.id);
     } else if (currentSession.messages.length === 0) {
-      currentSession.title = textToSend.slice(0, 36) + (textToSend.length > 36 ? '...' : '');
+      currentSession.title = (textToSend || currentAttachments[0]?.name || 'Chat').slice(0, 36);
     }
 
     const userMessage: Message = {
       id: 'msg_' + crypto.randomUUID(),
       role: 'user',
-      content: textToSend,
+      content: textToSend || `Sent ${currentAttachments.length} file(s)`,
       timestamp: Date.now(),
+      attachments: currentAttachments.length > 0 ? currentAttachments : undefined,
     };
 
     const assistantMessageId = 'msg_' + crypto.randomUUID();
@@ -274,7 +269,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       messages: [...currentSession.messages, userMessage, placeholderAssistant],
     };
 
-    const nextSessions = updatedSessions.map(s => (s.id === sessionWithUser.id ? sessionWithUser : s));
+    const nextSessions = updatedSessions.map((s) => (s.id === sessionWithUser.id ? sessionWithUser : s));
     saveSessions(nextSessions);
     setIsStreaming(true);
 
@@ -283,25 +278,26 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
 
     let accumulatedContent = '';
 
-    // Pass prior conversation history for full multi-turn conversational memory
+    // Pass prior conversation history for multi-turn conversational memory
     const priorHistory = currentSession.messages
-      .filter(m => m.content && !m.isStreaming)
-      .map(m => ({ role: m.role, content: m.content }));
+      .filter((m) => m.content && !m.isStreaming)
+      .map((m) => ({ role: m.role, content: m.content }));
 
     await streamChat({
       message: textToSend,
       sessionId: currentSession.id,
       history: priorHistory,
       mode,
+      files: currentAttachments,
       signal: controller.signal,
-      onChunk: chunk => {
+      onChunk: (chunk) => {
         accumulatedContent += chunk;
-        setSessions(prev =>
-          prev.map(s => {
+        setSessions((prev) =>
+          prev.map((s) => {
             if (s.id !== currentSession?.id) return s;
             return {
               ...s,
-              messages: s.messages.map(m =>
+              messages: s.messages.map((m) =>
                 m.id === assistantMessageId ? { ...m, content: accumulatedContent } : m
               ),
             };
@@ -311,12 +307,12 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       onDone: (finalContent, metadata) => {
         setIsStreaming(false);
         abortControllerRef.current = null;
-        setSessions(prev => {
-          const finalSessions = prev.map(s => {
+        setSessions((prev) => {
+          const finalSessions = prev.map((s) => {
             if (s.id !== currentSession?.id) return s;
             return {
               ...s,
-              messages: s.messages.map(m =>
+              messages: s.messages.map((m) =>
                 m.id === assistantMessageId
                   ? {
                       ...m,
@@ -339,15 +335,15 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           return finalSessions;
         });
       },
-      onError: error => {
+      onError: (error) => {
         setIsStreaming(false);
         abortControllerRef.current = null;
-        setSessions(prev =>
-          prev.map(s => {
+        setSessions((prev) =>
+          prev.map((s) => {
             if (s.id !== currentSession?.id) return s;
             return {
               ...s,
-              messages: s.messages.map(m =>
+              messages: s.messages.map((m) =>
                 m.id === assistantMessageId
                   ? {
                       ...m,
@@ -367,11 +363,23 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   // Regenerate last assistant response
   const handleRegenerate = () => {
     if (!activeSession || activeSession.messages.length < 2 || isStreaming) return;
-    const userMessages = activeSession.messages.filter(m => m.role === 'user');
+    const userMessages = activeSession.messages.filter((m) => m.role === 'user');
     const lastUserMessage = userMessages[userMessages.length - 1];
     if (lastUserMessage) {
-      handleSend(lastUserMessage.content);
+      handleSend(lastUserMessage.content, lastUserMessage.attachments);
     }
+  };
+
+  // Open Share Dialog
+  const handleOpenShareModal = (msg?: Message) => {
+    setShareMessage(msg || null);
+    setShareModalOpen(true);
+  };
+
+  // Open Artifacts Canvas
+  const handleOpenArtifact = (art: ArtifactContent) => {
+    setActiveArtifact(art);
+    setArtifactCanvasOpen(true);
   };
 
   return (
@@ -394,10 +402,10 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         onNavigateHome={onNavigateHome}
       />
 
-      {/* Main Perplexity Workspace Canvas */}
+      {/* Main Workspace Canvas */}
       <div className="flex-1 flex flex-col h-full min-w-0 bg-[#050510] relative">
         <Header
-          onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           sidebarOpen={sidebarOpen}
           user={user}
           onOpenAuth={handleOpenAuth}
@@ -411,21 +419,24 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           {!activeSession || activeSession.messages.length === 0 ? (
             <WelcomeHero
               input={input}
-              onInputChange={handleInputChange}
-              onSend={prompt => handleSend(prompt)}
+              onInputChange={setInput}
+              onSend={(prompt, files) => handleSend(prompt, files)}
               mode={mode}
               onModeChange={setMode}
-              autocompleteHint={autocompleteHint}
-              onAcceptAutocomplete={handleAcceptAutocomplete}
+              attachments={attachments}
+              onAddAttachment={handleAddAttachment}
+              onRemoveAttachment={handleRemoveAttachment}
             />
           ) : (
             <div className="max-w-3xl mx-auto w-full flex-1 pb-4">
-              {activeSession.messages.map(msg => (
+              {activeSession.messages.map((msg) => (
                 <MessageItem
                   key={msg.id}
                   message={msg}
-                  onSelectFollowup={prompt => handleSend(prompt)}
+                  onSelectFollowup={(prompt) => handleSend(prompt)}
                   onRegenerate={msg.role === 'assistant' ? handleRegenerate : undefined}
+                  onOpenShare={() => handleOpenShareModal(msg)}
+                  onOpenArtifact={handleOpenArtifact}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -437,24 +448,40 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         {activeSession && activeSession.messages.length > 0 && (
           <InputDock
             input={input}
-            onInputChange={handleInputChange}
+            onInputChange={setInput}
             onSend={() => handleSend()}
             onStop={handleStopStreaming}
             isStreaming={isStreaming}
             mode={mode}
             onModeChange={setMode}
-            autocompleteHint={autocompleteHint}
-            onAcceptAutocomplete={handleAcceptAutocomplete}
+            attachments={attachments}
+            onAddAttachment={handleAddAttachment}
+            onRemoveAttachment={handleRemoveAttachment}
           />
         )}
       </div>
+
+      {/* Live Artifacts / Sandbox Canvas Panel */}
+      <ArtifactsCanvas
+        artifact={activeArtifact}
+        isOpen={artifactCanvasOpen}
+        onClose={() => setArtifactCanvasOpen(false)}
+      />
+
+      {/* Share & Export Dialog */}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        session={activeSession}
+        selectedMessage={shareMessage}
+      />
 
       {/* Auth Modal */}
       <AuthModal
         isOpen={authModalOpen}
         initialTab={authModalTab}
         onClose={() => setAuthModalOpen(false)}
-        onUserUpdate={updatedUser => setUser(updatedUser)}
+        onUserUpdate={(updatedUser) => setUser(updatedUser)}
       />
 
       {/* Account & Personalization Hub */}
@@ -462,9 +489,8 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         isOpen={accountModalOpen}
         onClose={() => setAccountModalOpen(false)}
         user={user}
-        onUserUpdate={updatedUser => setUser(updatedUser)}
+        onUserUpdate={(updatedUser) => setUser(updatedUser)}
       />
     </div>
   );
 };
-

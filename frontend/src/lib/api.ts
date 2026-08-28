@@ -1,4 +1,4 @@
-import { ModelMode, SourceItem } from '../types';
+import { ModelMode, SourceItem, FileAttachment } from '../types';
 import { getSupabase } from './supabase';
 
 const API_BASE = '/api/v1';
@@ -8,8 +8,12 @@ export interface StreamChatOptions {
   sessionId: string;
   history?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   mode?: ModelMode;
+  files?: FileAttachment[];
   onChunk: (chunk: string) => void;
-  onDone: (fullText: string, metadata?: { model?: string; intent?: string; sources?: SourceItem[]; relatedQuestions?: string[] }) => void;
+  onDone: (
+    fullText: string,
+    metadata?: { model?: string; intent?: string; sources?: SourceItem[]; relatedQuestions?: string[] }
+  ) => void;
   onError: (error: Error) => void;
   signal?: AbortSignal;
 }
@@ -22,6 +26,7 @@ export async function streamChat({
   sessionId,
   history = [],
   mode = 'auto',
+  files = [],
   onChunk,
   onDone,
   onError,
@@ -45,6 +50,13 @@ export async function streamChat({
       }
     }
 
+    // Format file attachments for backend
+    const formattedFiles = files.map((f) => ({
+      name: f.name,
+      mimeType: f.mimeType || f.type,
+      base64: f.base64 || (f.dataUrl.includes(',') ? f.dataUrl.split(',')[1] : f.dataUrl),
+    }));
+
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers,
@@ -54,6 +66,7 @@ export async function streamChat({
         session_id: sessionId,
         history,
         mode,
+        files: formattedFiles,
         stream: true,
       }),
       signal,
@@ -74,6 +87,7 @@ export async function streamChat({
     let accumulatedText = '';
     let modelMetadata: string | undefined;
     let intentMetadata: string | undefined;
+    let sourcesMetadata: SourceItem[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
@@ -105,11 +119,13 @@ export async function streamChat({
           if (parsed.intent) {
             intentMetadata = parsed.intent;
           }
+          if (Array.isArray(parsed.sources) && parsed.sources.length > 0) {
+            sourcesMetadata = parsed.sources;
+          }
           if (parsed.error) {
             throw new Error(parsed.error);
           }
         } catch (err: unknown) {
-          // If not JSON, append as raw text chunk
           if (dataStr && !dataStr.startsWith('{')) {
             accumulatedText += dataStr;
             onChunk(dataStr);
@@ -120,33 +136,17 @@ export async function streamChat({
       }
     }
 
-    onDone(accumulatedText, { model: modelMetadata, intent: intentMetadata });
+    onDone(accumulatedText, {
+      model: modelMetadata,
+      intent: intentMetadata,
+      sources: sourcesMetadata,
+    });
   } catch (error: unknown) {
     if (signal?.aborted) {
       console.log('[Stream Aborted by User]');
       return;
     }
     onError(error instanceof Error ? error : new Error(String(error)));
-  }
-}
-
-/**
- * Fetch predictive next-token autocomplete hint
- */
-export async function fetchAutocomplete(prompt: string, signal?: AbortSignal): Promise<string | null> {
-  if (!prompt || prompt.length < 3) return null;
-  try {
-    const response = await fetch(`${API_BASE}/autocomplete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-      signal,
-    });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.suggestion || null;
-  } catch {
-    return null;
   }
 }
 
@@ -224,4 +224,3 @@ export async function deleteUserMemory(id: string): Promise<{ memories: UserMemo
   if (!res.ok) throw new Error('Failed to delete memory');
   return res.json();
 }
-

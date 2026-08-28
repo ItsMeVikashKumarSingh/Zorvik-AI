@@ -2,6 +2,25 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [0.9.0] - 2026-08-29
+### True SSE Streaming, Google Search Grounding, Multi-Modal Vision, Live Canvas Artifacts, & Autonomous Memory
+- **True Native Upstream SSE Streaming Pipeline ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Replaced simulated word-split loop with native HTTP SSE chunk stream piping directly from Gemini, Groq, Cerebras, Mistral, and OpenRouter for sub-200ms Time-to-First-Token.
+- **Google Gemini Search Grounding & Web Citations ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - Activated native `googleSearch` grounding tools on Gemini 2.5 Flash during Search focus mode and fresh queries.
+  - Automatically parses `groundingMetadata.groundingChunks` into structured clickable source cards with domain badges.
+- **Autonomous Neural Memory Ingestion & Adaptive Tone Learning ([`autoMemoryExtractor.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/autoMemoryExtractor.js))**:
+  - Automatically extracts user personal facts, project stacks, and stated preferences asynchronously in the background.
+  - Dynamically infers and calibrates the user's conversational tone vibe without requiring manual input.
+- **Multi-Modal Vision & File Attachments ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx))**:
+  - Added paperclip file attachment, image drag-and-drop, and direct clipboard screenshot pasting (`Ctrl+V`) with visual thumbnail preview chips.
+- **Live Code Artifacts / Canvas Sandbox ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:
+  - Collapsible side-panel for live sandboxed HTML/CSS/JS execution, SVG rendering, and full code inspection with reload, fullscreen, and download.
+- **Comprehensive Share & Export Dialog ([`ShareModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ShareModal.tsx))**:
+  - Shareable link generator, Markdown (`.md`) download, structured JSON export, and styled Print/Save-to-PDF.
+- **Legacy & Autocomplete Codebase Purge**:
+  - Removed duplicate `backend/` directory, unused Python `tokenization-server/`, static HTML prototypes, and unneeded autocomplete/predict endpoints.
+
 ## [0.8.0] - 2026-08-29
 ### Neural Long-Term Memories & Account Personalization Hub
 - **Account & Personalization Modal ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:

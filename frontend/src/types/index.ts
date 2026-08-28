@@ -1,6 +1,6 @@
 export type Role = 'user' | 'assistant' | 'system';
 
-export type ModelMode = 'auto' | 'casual' | 'deep' | 'code';
+export type ModelMode = 'auto' | 'search' | 'deep' | 'code' | 'casual' | 'creative';
 
 export interface SourceItem {
   id: string;
@@ -8,6 +8,16 @@ export interface SourceItem {
   url: string;
   domain: string;
   snippet?: string;
+}
+
+export interface FileAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+  base64?: string;
+  mimeType?: string;
 }
 
 export interface ReasoningStep {
@@ -29,6 +39,7 @@ export interface Message {
   reasoningSteps?: ReasoningStep[];
   relatedQuestions?: string[];
   durationMs?: number;
+  attachments?: FileAttachment[];
 }
 
 export interface ChatSession {
@@ -45,8 +56,9 @@ export interface UserProfile {
   isGuest: boolean;
 }
 
-export interface AutocompleteSuggestion {
-  text: string;
-  confidence?: number;
+export interface ArtifactContent {
+  id: string;
+  title: string;
+  language: string;
+  code: string;
 }
-

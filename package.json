@@ -1,6 +1,6 @@
 {
   "name": "zorvik-ai",
-  "version": "0.3.1",
+  "version": "0.9.0",
   "description": "Zorvik AI — Standalone Free AI Platform & Multi-Tenant Microservice",
   "main": "server.js",
   "scripts": {

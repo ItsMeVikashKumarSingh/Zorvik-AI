@@ -7,7 +7,7 @@ const router = express.Router();
 const { tenantAuthMiddleware } = require("../middleware/tenantAuth");
 const { userAuthMiddleware } = require("../middleware/userAuth");
 const { securityShield } = require("../middleware/securityShield");
-const { routeQuery } = require("../services/modelRouter");
+const { routeQueryStream, routeQuery } = require("../services/modelRouter");
 const { buildSystemPrompt } = require("../services/intentEngine");
 const {
   getSessionHistory,
@@ -20,7 +20,7 @@ const {
   deleteUserMemory,
   clearUserMemories,
 } = require("../services/memoryEngine");
-const { predictNextWords } = require("../services/tokenPrediction");
+const { processTurnMemoryAndTone } = require("../services/autoMemoryExtractor");
 const { circuitBreaker } = require("../services/circuitBreaker");
 const { estimateTokens } = require("../lib/utils");
 const { supabase, isConfigured: isSupabaseConfigured } = require("../lib/supabase");
@@ -32,10 +32,10 @@ router.use(securityShield);
 
 /**
  * POST /api/v1/chat & POST /api/v1/chat/stream
- * Primary chat endpoint supporting streaming (SSE) or standard JSON response
+ * Primary chat endpoint supporting true upstream SSE streaming or standard JSON response
  */
 router.post(["/chat", "/chat/stream"], async (req, res) => {
-  const { mode = "auto", session_id = null } = req.body;
+  const { mode = "auto", session_id = null, files = [] } = req.body;
   const prompt = req.body.prompt || req.body.message;
   const stream = req.path.endsWith("/stream") || req.body.stream === true;
 
@@ -79,7 +79,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     customInstructions,
   });
 
-  // 3. Handle Streaming Response (SSE)
+  // 4. Handle Real-Time Streaming Response (True SSE Pipeline)
   if (stream) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
@@ -87,22 +87,28 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     res.flushHeaders();
 
     try {
-      const result = await routeQuery({
+      const result = await routeQueryStream({
         systemPrompt,
         history,
         prompt,
         mode,
+        files,
+        onChunk: (chunk) => {
+          res.write(`data: ${JSON.stringify({ token: chunk, content: chunk })}\n\n`);
+        },
       });
-
-      // Stream words with slight delay to mimic real-time token stream
-      const words = result.text.split(/(\s+)/);
-      for (const word of words) {
-        res.write(`data: ${JSON.stringify({ token: word, content: word })}\n\n`);
-        await new Promise((r) => setTimeout(r, 15));
-      }
 
       // Save turn to hot sliding memory
       await appendSessionTurn(sessionId, prompt, result.text);
+
+      // Trigger Autonomous Neural Memory Ingestion & Tone Learning in the background
+      if (req.user && req.user.id) {
+        processTurnMemoryAndTone({
+          userId: req.user.id,
+          prompt,
+          response: result.text,
+        }).catch((err) => console.warn("[Memory Auto-Extraction Non-Blocking]", err.message));
+      }
 
       // Save message to Supabase if configured and user is present
       if (isSupabaseConfigured() && req.user) {
@@ -133,6 +139,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
           model: result.model,
           provider: result.provider,
           latencyMs: result.latencyMs,
+          sources: result.sources || [],
         })}\n\n`
       );
       res.write("data: [DONE]\n\n");
@@ -143,17 +150,27 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     }
   }
 
-  // 4. Standard Non-Streaming JSON Response
+  // 5. Standard Non-Streaming JSON Response
   try {
     const result = await routeQuery({
       systemPrompt,
       history,
       prompt,
       mode,
+      files,
     });
 
     // Save turn to hot sliding memory
     await appendSessionTurn(sessionId, prompt, result.text);
+
+    // Trigger Autonomous Neural Memory Ingestion & Tone Learning in the background
+    if (req.user && req.user.id) {
+      processTurnMemoryAndTone({
+        userId: req.user.id,
+        prompt,
+        response: result.text,
+      }).catch((err) => console.warn("[Memory Auto-Extraction Non-Blocking]", err.message));
+    }
 
     // Save message to Supabase if configured and user is present
     if (isSupabaseConfigured() && req.user) {
@@ -188,6 +205,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
       session_id: sessionId,
       tokens_estimated: estimateTokens(prompt) + estimateTokens(result.text),
       latency_ms: result.latencyMs,
+      sources: result.sources || [],
       tenant: {
         id: tenant.id,
         name: tenant.name,
@@ -203,20 +221,6 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
 });
 
 /**
- * POST /api/v1/predict
- * Fast next-word & phrase autocomplete for real-time Tab completion
- */
-router.post("/predict", (req, res) => {
-  const { prompt } = req.body;
-  if (!prompt || typeof prompt !== "string") {
-    return res.status(400).json({ error: "Missing or invalid prompt string" });
-  }
-
-  const nextWords = predictNextWords(prompt);
-  return res.json({ next_words: nextWords });
-});
-
-/**
  * GET /api/v1/models
  * List available zero-cost models and circuit breaker status
  */
@@ -225,8 +229,8 @@ router.get("/models", (_req, res) => {
   return res.json({
     models: [
       {
-        id: "gemini-2.0-flash",
-        name: "Google Gemini 2.0 Flash",
+        id: "gemini-2.5-flash",
+        name: "Google Gemini 2.5 Flash (Vision & Grounding)",
         provider: "Google AI Studio",
         tier: "free",
         status: status.gemini.status,
@@ -237,6 +241,20 @@ router.get("/models", (_req, res) => {
         provider: "Groq Cloud (500+ tok/s)",
         tier: "free",
         status: status.groq.status,
+      },
+      {
+        id: "llama-3.3-70b",
+        name: "Cerebras Llama 3.3 70B (2,000+ tok/s)",
+        provider: "Cerebras Cloud LPU",
+        tier: "free",
+        status: status.cerebras?.status || "online",
+      },
+      {
+        id: "codestral-latest",
+        name: "Mistral Codestral",
+        provider: "Mistral AI",
+        tier: "free",
+        status: status.mistral?.status || "online",
       },
       {
         id: "deepseek-r1:free",
@@ -258,7 +276,7 @@ router.get("/health", (req, res) => {
   return res.json({
     status: "healthy",
     service: "zorvik-ai-microservice",
-    version: "0.1.0",
+    version: "0.8.1",
     uptime_seconds: Math.floor(process.uptime()),
     tenant: req.tenant ? req.tenant.id : "none",
     providers: circuitBreaker.getStatus(),
