@@ -71,6 +71,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           email: session.user.email || null,
           isGuest: false,
         });
+
+        // Clean up OAuth access_token hash from address bar
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
       }
     });
 
@@ -86,6 +91,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           email: session.user.email || null,
           isGuest: false,
         });
+
+        // Clean up OAuth access_token hash from address bar
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser({
           id: getOrCreateGuestId(),

@@ -3,9 +3,24 @@ import { LandingPage } from './components/LandingPage';
 import { AppWorkspace } from './components/AppWorkspace';
 import { LegalPage, LegalPageType } from './components/LegalPage';
 
+import { getSupabase } from './lib/supabase';
+
 const getInitialView = (): 'landing' | 'app' | LegalPageType => {
   if (typeof window === 'undefined') return 'landing';
   const path = window.location.pathname;
+  const hash = window.location.hash;
+  const search = window.location.search;
+
+  // Auto-detect OAuth redirect (access_token, refresh_token, or code)
+  if (
+    hash.includes('access_token=') ||
+    hash.includes('refresh_token=') ||
+    hash.includes('type=recovery') ||
+    search.includes('code=')
+  ) {
+    return 'app';
+  }
+
   if (path === '/app' || path === '/chat' || path.startsWith('/app/')) {
     return 'app';
   }
@@ -35,7 +50,26 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    // Listen for OAuth sign-in completion to automatically navigate to app
+    const supabase = getSupabase();
+    let authSub: { unsubscribe: () => void } | null = null;
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          if (window.location.pathname !== '/app') {
+            window.history.pushState({}, '', '/app');
+            setCurrentView('app');
+          }
+        }
+      });
+      authSub = data.subscription;
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (authSub) authSub.unsubscribe();
+    };
   }, []);
 
   const navigateToApp = () => {

@@ -2,6 +2,14 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [0.7.3] - 2026-08-29
+### OAuth Post-Login Session Handling & Clean Address Bar Routing
+- **OAuth Session Hash Auto-Routing ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx))**:
+  - Added auto-detection for `#access_token=...` and `#refresh_token=...` hash fragments on mount so OAuth logins immediately transition to `/app`.
+  - Added global `supabase.auth.onAuthStateChange` listener to automatically redirect authenticated users into the app workspace.
+- **Address Bar Cleanup ([`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx))**:
+  - Automatically wipes the verbose access token hash fragment from the browser's URL using `window.history.replaceState` once the session is active.
+
 ## [0.7.2] - 2026-08-28
 ### Multi-Tier AI Cascade (Cerebras LPU & Mistral Reasoning) + Persona Overhaul
 - **Cerebras Cloud LPU Integration (3rd Tier Fallback)**:
