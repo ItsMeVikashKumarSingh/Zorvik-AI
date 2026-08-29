@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Plus, Trash2, Search, Clock, MessageSquare, PanelLeftClose } from 'lucide-react';
+import { Plus, Trash2, Search, Clock, MessageSquare, PanelLeftClose, BookOpen } from 'lucide-react';
 import { ChatSession, UserProfile } from '../types';
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ interface SidebarProps {
   user: UserProfile;
   onOpenAuth: () => void;
   onOpenAccount?: () => void;
+  onOpenPromptLibrary?: () => void;
   onNavigateHome: () => void;
 }
 
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user,
   onOpenAuth,
   onOpenAccount,
+  onOpenPromptLibrary,
   onNavigateHome,
 }) => {
   const filteredSessions = useMemo(() => {
@@ -106,8 +108,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* New Thread Action */}
-        <div className="p-3 border-b border-white/[0.04] min-w-[260px]">
+        {/* New Thread & Prompt Library Actions */}
+        <div className="p-3 border-b border-white/[0.04] min-w-[260px] space-y-1.5">
           <button
             onClick={onNewChat}
             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 hover:bg-iris/10 text-xs text-white transition-all group"
@@ -115,6 +117,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="font-medium">New Thread</span>
             <Plus size={14} className="text-silver/50 group-hover:text-iris" />
           </button>
+
+          {onOpenPromptLibrary && (
+            <button
+              onClick={onOpenPromptLibrary}
+              className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-iris/30 hover:bg-white/[0.04] text-xs text-silver/70 hover:text-white transition-all group"
+              title="Explore prompt blueprints and templates"
+            >
+              <div className="flex items-center gap-2">
+                <BookOpen size={13} className="text-iris/70 group-hover:text-iris transition-colors" />
+                <span className="font-light">Prompt Library</span>
+              </div>
+            </button>
+          )}
         </div>
 
 

@@ -37,6 +37,16 @@ const getInitialView = (): AppView => {
   if (path === '/privacy') return 'privacy';
   if (path === '/terms') return 'terms';
   if (path === '/security') return 'security';
+
+  // First time visiting root '/' in this session: go straight to /app
+  const hasVisited = sessionStorage.getItem('zorvik_visited_session');
+  if (!hasVisited && path === '/') {
+    sessionStorage.setItem('zorvik_visited_session', 'true');
+    window.history.replaceState({}, '', '/app');
+    return 'app';
+  }
+
+  // If manually navigating back or removing /app from the URL, let it stay on landing
   return 'landing';
 };
 
@@ -91,7 +101,12 @@ export const App: React.FC = () => {
             email: session.user.email || null,
             isGuest: false,
           });
-          if (window.location.pathname !== '/app' && window.location.pathname !== '/admin' && window.location.pathname !== '/settings') {
+          // Only auto-redirect to /app if returning from an OAuth callback
+          if (
+            window.location.hash.includes('access_token=') ||
+            window.location.hash.includes('refresh_token=') ||
+            window.location.search.includes('code=')
+          ) {
             window.history.pushState({}, '', '/app');
             setCurrentView('app');
           }
@@ -128,6 +143,7 @@ export const App: React.FC = () => {
   };
 
   const navigateToLanding = () => {
+    sessionStorage.setItem('zorvik_visited_session', 'true');
     window.history.pushState({}, '', '/');
     setCurrentView('landing');
   };

@@ -606,6 +606,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         user={user}
         onOpenAuth={() => handleOpenAuth('signin')}
         onOpenAccount={() => (onNavigateSettings ? onNavigateSettings() : setAccountModalOpen(true))}
+        onOpenPromptLibrary={() => setPromptLibraryOpen(true)}
         onNavigateHome={onNavigateHome}
       />
 

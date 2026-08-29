@@ -2,6 +2,13 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.11] - 2026-08-29
+### Landing Page Preservation on Root URL & Sidebar Prompt Library Integration
+- **Preserved Landing Page on Root Domain ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx))**:
+  - Removed aggressive automatic auth redirects on root `/` so visiting `ai.zorviktech.com` always renders the marketing landing page unless returning directly from an active OAuth callback or clicking "Launch App".
+- **Sidebar Prompt Blueprints Access ([`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx), [`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx))**:
+  - Added a dedicated "Prompt Library" quick action button in the sidebar navigation lockup in addition to the InputDock trigger.
+
 ## [1.0.10] - 2026-08-29
 ### Auto-Expanding Prompt Input, Dedicated Profile & Control Center, Clean Link Opens & UX Hardening
 - **Auto-Expanding Multi-Line Prompt Input ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx))**:
