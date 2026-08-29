@@ -14,8 +14,17 @@ import {
   Check,
   Plus,
   Trash2,
+  Edit3,
+  User,
+  Sparkle,
+  Layers,
+  FileText,
+  Cloud,
 } from 'lucide-react';
 import { ModelMode } from '../types';
+import { saveUserPersonas, loadUserPersonas } from '../lib/supabase';
+
+export type PersonaCategory = 'companion' | 'health_medical' | 'career' | 'tech_architecture' | 'custom';
 
 export interface PromptBlueprint {
   id: string;
@@ -28,17 +37,24 @@ export interface PromptBlueprint {
   template: string;
 }
 
+export interface PersonaSlider {
+  id: string;
+  name: string;
+  value: number; // 0 - 100
+  minLabel: string;
+  maxLabel: string;
+  accentColor: string;
+}
+
 export interface CustomCharacter {
   id: string;
   name: string;
+  category: PersonaCategory;
   role: string;
-  nickname: string;
-  archetype: 'romantic_gf' | 'romantic_bf' | 'therapist' | 'doctor' | 'coach' | 'mentor';
-  affectionLevel: number; // 0 - 100
-  banterLevel: number; // 0 - 100
-  empathyLevel: number; // 0 - 100
-  expertiseLevel: number; // 0 - 100
-  customContext: string;
+  salutation: string; // e.g. "Sweetheart" / "Dr. / Patient" / "Senior Architect" / "Founder"
+  customPrompt?: string; // Direct custom prompt instructions
+  customContext?: string; // Shared background / context
+  sliders: PersonaSlider[];
   createdAt: number;
 }
 
@@ -48,7 +64,14 @@ interface PromptLibraryModalProps {
   onSelectBlueprint: (template: string, mode: ModelMode) => void;
 }
 
-type CategoryTab = 'all' | 'companion' | 'health_medical' | 'career' | 'tech_architecture' | 'custom_studio';
+type CategoryTab =
+  | 'all'
+  | 'my_characters'
+  | 'companion'
+  | 'health_medical'
+  | 'career'
+  | 'tech_architecture'
+  | 'custom_studio';
 
 const BLUEPRINTS: PromptBlueprint[] = [
   // 💖 Romance & Companions
@@ -138,45 +161,41 @@ Here is the situation / text message I want to reply to:
     mode: 'deep',
     badge: 'Clinical Psychology',
     template: `Act as Dr. Reed, a senior Clinical Psychologist specializing in Cognitive Behavioral Therapy (CBT) and Acceptance & Commitment Therapy (ACT).
-Approach & Clinical Framework:
-1. Empathy First: Validate feelings with unconditional positive regard and warm, non-judgmental presence.
-2. Socratic Exploration: Ask thoughtful, gentle probing questions to uncover core automatic thoughts and cognitive distortions (e.g., catastrophizing, black-and-white thinking, fortune-telling).
-3. Evidence Testing: Help objectively examine the evidence for and against distressing beliefs.
-4. Actionable Reframing: Provide constructive alternative perspectives and somatic grounding exercises (e.g., 4-7-8 physiological sigh, 5-4-3-2-1 sensory grounding).
-5. Professional Safety: Maintain ethical clinical boundaries while providing deeply comforting, evidence-based psychological support.
+I am dealing with [EXPLAIN EMOTIONAL / ANXIOUS SITUATION].
 
-Hello. I am here with you in a completely safe, confidential space. Take your time—what thoughts or feelings have been weighing on you lately?`,
+Guide me through a structured clinical session:
+1. Socratic Inquiry: Ask 2 targeted questions to identify the underlying cognitive distortion (e.g. catastrophizing, black-and-white thinking).
+2. Thought Record Exercise: Help me formulate evidence for vs. evidence against my automated negative thoughts.
+3. Rational Reframing: Provide a grounded, objective cognitive reframe.
+4. Somatic Grounding Technique: Provide an immediate 2-minute nervous system regulation exercise (e.g. physiological sigh, box breathing).`,
   },
   {
-    id: 'health-clinical-physician',
+    id: 'health-internal-medicine',
     category: 'health_medical',
     title: 'Internal Medicine & Diagnostic Physician',
-    subtitle: 'Systematic differential diagnosis, symptom triage & lab analysis',
-    description: 'An internal medicine specialist that breaks down complex symptoms, orders of investigation, differential diagnoses, and evidence-based clinical treatment pathways.',
+    subtitle: 'Differential diagnosis, lab biomarker breakdown & clinical triage',
+    description: 'A meticulous medical doctor who analyzes symptoms, bloodwork panels, and biomarker trends with clinical differential diagnostic rigor and actionable patient questions.',
     mode: 'deep',
-    badge: 'Medical Science',
-    template: `Act as a senior Board-Certified Internal Medicine Physician and Clinical Diagnostician.
-Clinical Analysis Protocol:
-1. Comprehensive Symptom Intake: Categorize onset, duration, severity (1-10), aggravating/alleviating factors, and associated systemic symptoms.
-2. Differential Diagnosis Matrix: Formulate a prioritized list of potential etiologies (Most Likely, Secondary Considerations, and Critical 'Do Not Miss' Red Flags).
-3. Diagnostic Workup: Recommend targeted laboratory biomarkers (CBC, CMP, Inflammatory markers, Hormonal panel) and imaging modalities where clinically indicated.
-4. Mechanism of Action: Explain underlying physiology in clear, rigorous medical terms while remaining accessible.
-5. Clinical Disclaimer: Provide structured medical education while reminding when emergency care or in-person physician evaluation is essential.
+    badge: 'Internal Medicine',
+    template: `Act as a senior Board-Certified Internal Medicine Physician.
+Here are my symptoms / blood test lab results:
+[PASTE SYMPTOMS / LAB VALUES / DURATION]
 
-Patient Presentation:
-- Primary Complaint: [DESCRIBE SYMPTOMS HERE]
-- Duration & Progression: [e.g. 5 days, worsening at night]
-- Relevant History / Medications: [LIST ANY DETAILS]`,
+Provide a structured clinical assessment:
+1. Primary Differential Diagnoses (ordered by probability, with physiological rationale).
+2. Red Flag Symptoms & Urgent Triage: Warning signs that require immediate emergency evaluation.
+3. Recommended Follow-Up Diagnostic Tests (e.g. specific blood panels, imaging, specialist referrals).
+4. Key Questions to Ask My Attending Doctor at my next appointment.`,
   },
   {
-    id: 'health-longevity-biohacker',
+    id: 'health-longevity-specialist',
     category: 'health_medical',
-    title: 'Functional Medicine & Longevity Specialist',
-    subtitle: 'VO2 max protocols, circadian sleep optimization & metabolic biohacking',
-    description: 'Advanced protocols for mitochondrial health, insulin sensitivity, zone 2 cardio, deep sleep architecture, and cellular longevity biomarkers.',
+    title: 'Longevity & Cellular Biohacking Specialist',
+    subtitle: 'Circadian protocols, metabolic optimization, VO2 max & blood markers',
+    description: 'An expert longevity physician and biohacker focused on healthspan extension, mitochondrial health, Zone 2 cardio, deep sleep architecture, and biomarker tracking.',
     mode: 'deep',
-    badge: 'Biohacking & Longevity',
-    template: `Act as a Functional Medicine and Human Performance Longevity Specialist (combining protocols from Peter Attia, Andrew Huberman, and Bryan Johnson).
+    badge: 'Longevity & Biohacking',
+    template: `Act as an elite Longevity Physician and Performance Biohacking Specialist.
 Please formulate an optimized biohacking protocol for [MY GOAL, e.g. Maximize Deep Sleep & Metabolic Flexibility].
 
 Dimensions to address:
@@ -297,6 +316,48 @@ Provide a structured Vulnerability Ledger (Severity, Attack Vector, Concrete Fix
   },
 ];
 
+// Helper to generate category-tailored default sliders
+function getDefaultSlidersForCategory(cat: PersonaCategory): PersonaSlider[] {
+  switch (cat) {
+    case 'companion':
+      return [
+        { id: 'aff', name: '💖 Affection & Romance', value: 85, minLabel: 'Platonic / Polite', maxLabel: 'Deeply Romantic & Flirtatious', accentColor: 'rose' },
+        { id: 'ban', name: '✨ Playfulness & Banter', value: 75, minLabel: 'Serious & Gentle', maxLabel: 'Witty, Teasing & Sarcastic', accentColor: 'cyan' },
+        { id: 'emp', name: '🧠 Empathy & Listening', value: 90, minLabel: 'Task-Oriented', maxLabel: 'Deeply Attuned & Comforting', accentColor: 'emerald' },
+        { id: 'int', name: '💬 Conversational Warmth', value: 85, minLabel: 'Reserved / Formal', maxLabel: 'Intimate & Open-Hearted', accentColor: 'amber' },
+      ];
+    case 'health_medical':
+      return [
+        { id: 'diag', name: '🩺 Diagnostic & Clinical Rigor', value: 90, minLabel: 'General Wellness Advice', maxLabel: 'Rigorous Evidence-Based Clinical Audit', accentColor: 'cyan' },
+        { id: 'emp', name: '🧠 Patient Empathy & Listening', value: 85, minLabel: 'Direct & Concise', maxLabel: 'Compassionate & Psychologically Attuned', accentColor: 'emerald' },
+        { id: 'bio', name: '🔬 Biomarker & Lab Depth', value: 90, minLabel: 'High-Level Overview', maxLabel: 'Molecular & Biochemical Precision', accentColor: 'purple' },
+        { id: 'act', name: '📋 Actionable Protocol Structuring', value: 85, minLabel: 'Exploratory Discussion', maxLabel: 'Step-by-Step Prescriptive Routine', accentColor: 'amber' },
+      ];
+    case 'career':
+      return [
+        { id: 'lev', name: '💼 Strategic Leverage & Power', value: 90, minLabel: 'Passive / Standard', maxLabel: 'High-Stakes Executive Leverage', accentColor: 'amber' },
+        { id: 'con', name: '🎯 Executive Conciseness', value: 85, minLabel: 'Long-Form Discussion', maxLabel: 'Punchy Bulleted C-Suite Briefings', accentColor: 'cyan' },
+        { id: 'fin', name: '📊 Unit Economics & Data Rigor', value: 85, minLabel: 'Qualitative Vision', maxLabel: 'Mathematical & Financial Rigor', accentColor: 'emerald' },
+        { id: 'ton', name: '🤝 Executive Polish & Tone', value: 90, minLabel: 'Casual Peer', maxLabel: 'Seasoned C-Level Executive Presence', accentColor: 'purple' },
+      ];
+    case 'tech_architecture':
+      return [
+        { id: 'typ', name: '💻 Production Code & Type Strictness', value: 95, minLabel: 'Pseudocode / Fast Mock', maxLabel: 'Strict Production TypeScript / Go / Rust', accentColor: 'cyan' },
+        { id: 'sec', name: '🛡️ Edge-Case & Security Paranoia', value: 90, minLabel: 'Standard Best-Effort', maxLabel: 'Zero-Trust OWASP Hardened Security', accentColor: 'rose' },
+        { id: 'per', name: '⚡ Low-Latency Performance Focus', value: 90, minLabel: 'Standard Performance', maxLabel: 'Sub-10ms Micro-Optimized Throughput', accentColor: 'amber' },
+        { id: 'mod', name: '📐 Modularity & Clean Architecture', value: 90, minLabel: 'Monolithic Scripts', maxLabel: 'Decoupled Event-Driven Clean Architecture', accentColor: 'emerald' },
+      ];
+    case 'custom':
+    default:
+      return [
+        { id: 'cre', name: '⚡ Creativity vs Factuality', value: 70, minLabel: 'Strictly Grounded & Deterministic', maxLabel: 'Imaginative & Highly Creative', accentColor: 'purple' },
+        { id: 'ana', name: '🧠 Analytical Reasoning Depth', value: 85, minLabel: 'Concise Summary', maxLabel: 'Rigorous Multi-Step Chain of Thought', accentColor: 'cyan' },
+        { id: 'dir', name: '🎯 Output Directness & Brevity', value: 80, minLabel: 'Conversational Prose', maxLabel: 'Direct, Zero-Fluff Precision', accentColor: 'emerald' },
+        { id: 'for', name: '🎭 Formality & Tone', value: 60, minLabel: 'Relaxed & Casual', maxLabel: 'Academic & Formal', accentColor: 'amber' },
+      ];
+  }
+}
+
 export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
   isOpen,
   onClose,
@@ -308,28 +369,40 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
 
   // Custom Character Studio State
   const [customCharacters, setCustomCharacters] = useState<CustomCharacter[]>([]);
+  const [editingCharId, setEditingCharId] = useState<string | null>(null);
+  const [creatorCategory, setCreatorCategory] = useState<PersonaCategory>('companion');
   const [charName, setCharName] = useState('');
   const [charRole, setCharRole] = useState('Affectionate Romantic Partner');
-  const [charNickname, setCharNickname] = useState('babe');
-  const [charArchetype, setCharArchetype] = useState<CustomCharacter['archetype']>('romantic_gf');
-  const [affectionLevel, setAffectionLevel] = useState(85);
-  const [banterLevel, setBanterLevel] = useState(70);
-  const [empathyLevel, setEmpathyLevel] = useState(90);
-  const [expertiseLevel, setExpertiseLevel] = useState(60);
+  const [charSalutation, setCharSalutation] = useState('Sweetheart');
+  const [customPromptText, setCustomPromptText] = useState('');
   const [customContext, setCustomContext] = useState('');
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [sliders, setSliders] = useState<PersonaSlider[]>(() => getDefaultSlidersForCategory('companion'));
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
 
-  // Load custom characters from localStorage
+  // Load custom characters from Cloud / LocalStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('zorvik_custom_characters');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) setCustomCharacters(parsed);
+    loadUserPersonas().then((personas) => {
+      if (Array.isArray(personas)) {
+        // Deduplicate by name (case-insensitive) to prevent duplicate cards
+        const seen = new Set<string>();
+        const deduped: CustomCharacter[] = [];
+        for (const item of personas as CustomCharacter[]) {
+          const key = (item.name || '').trim().toLowerCase();
+          if (key && !seen.has(key)) {
+            seen.add(key);
+            deduped.push({
+              ...item,
+              category: item.category || 'companion',
+              salutation: item.salutation || (item as unknown as { nickname?: string }).nickname || 'Sweetheart',
+              sliders: Array.isArray(item.sliders) && item.sliders.length > 0
+                ? item.sliders
+                : getDefaultSlidersForCategory(item.category || 'companion'),
+            });
+          }
+        }
+        setCustomCharacters(deduped);
       }
-    } catch (_e) {
-      // Non-blocking
-    }
+    });
   }, []);
 
   if (!isOpen) return null;
@@ -341,67 +414,180 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleSaveCustomCharacter = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!charName.trim()) return;
-
-    const newChar: CustomCharacter = {
-      id: 'char_' + Date.now(),
-      name: charName.trim(),
-      role: charRole.trim() || 'Custom Character',
-      nickname: charNickname.trim() || 'friend',
-      archetype: charArchetype,
-      affectionLevel,
-      banterLevel,
-      empathyLevel,
-      expertiseLevel,
-      customContext: customContext.trim(),
-      createdAt: Date.now(),
-    };
-
-    const updated = [newChar, ...customCharacters];
-    setCustomCharacters(updated);
-    try {
-      localStorage.setItem('zorvik_custom_characters', JSON.stringify(updated));
-    } catch (_e) {
-      // Non-blocking
+  const handleCategorySwitchInStudio = (cat: PersonaCategory) => {
+    setCreatorCategory(cat);
+    setSliders(getDefaultSlidersForCategory(cat));
+    if (!editingCharId) {
+      if (cat === 'companion') {
+        setCharRole('Affectionate Romantic Partner');
+        setCharSalutation('Sweetheart');
+      } else if (cat === 'health_medical') {
+        setCharRole('Internal Medicine & Diagnostic Physician');
+        setCharSalutation('Patient');
+      } else if (cat === 'career') {
+        setCharRole('Executive Salary & Strategy Negotiator');
+        setCharSalutation('Executive');
+      } else if (cat === 'tech_architecture') {
+        setCharRole('Distributed Systems & Security Architect');
+        setCharSalutation('Lead Engineer');
+      } else {
+        setCharRole('Specialized Intelligence Persona');
+        setCharSalutation('User');
+      }
     }
-
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
   };
 
-  const handleDeleteCustomChar = (id: string, e: React.MouseEvent) => {
+  const handleResetForm = () => {
+    setEditingCharId(null);
+    setCreatorCategory('companion');
+    setCharName('');
+    setCharRole('Affectionate Romantic Partner');
+    setCharSalutation('Sweetheart');
+    setCustomPromptText('');
+    setCustomContext('');
+    setSliders(getDefaultSlidersForCategory('companion'));
+  };
+
+  const handleEditCustomChar = (char: CustomCharacter, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingCharId(char.id);
+    const cat = char.category || 'companion';
+    setCreatorCategory(cat);
+    setCharName(char.name);
+    setCharRole(char.role);
+    setCharSalutation(char.salutation || 'Sweetheart');
+    setCustomPromptText(char.customPrompt || '');
+    setCustomContext(char.customContext || '');
+    setSliders(
+      Array.isArray(char.sliders) && char.sliders.length > 0
+        ? char.sliders
+        : getDefaultSlidersForCategory(cat)
+    );
+    setActiveTab('custom_studio');
+  };
+
+  const handleSliderChange = (sliderId: string, newValue: number) => {
+    setSliders((prev) =>
+      prev.map((s) => (s.id === sliderId ? { ...s, value: newValue } : s))
+    );
+  };
+
+  const handleSaveCustomCharacter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = charName.trim();
+    if (!trimmedName) return;
+
+    // Check if character with exact same name already exists to prevent duplicate cards
+    const existingIndex = customCharacters.findIndex(
+      (c) =>
+        (editingCharId && c.id === editingCharId) ||
+        c.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    let updated: CustomCharacter[];
+    let successMsg = 'Persona Created & Synced to Account!';
+
+    if (existingIndex >= 0) {
+      // Update existing character in place
+      const existing = customCharacters[existingIndex];
+      const updatedChar: CustomCharacter = {
+        ...existing,
+        name: trimmedName,
+        category: creatorCategory,
+        role: charRole.trim() || 'Specialized Persona',
+        salutation: charSalutation.trim() || 'User',
+        customPrompt: customPromptText.trim(),
+        customContext: customContext.trim(),
+        sliders,
+        createdAt: Date.now(),
+      };
+      updated = [...customCharacters];
+      updated[existingIndex] = updatedChar;
+      successMsg = `"${trimmedName}" Updated in Cloud & Storage!`;
+    } else {
+      // Create new character
+      const newChar: CustomCharacter = {
+        id: 'char_' + Date.now(),
+        name: trimmedName,
+        category: creatorCategory,
+        role: charRole.trim() || 'Specialized Persona',
+        salutation: charSalutation.trim() || 'User',
+        customPrompt: customPromptText.trim(),
+        customContext: customContext.trim(),
+        sliders,
+        createdAt: Date.now(),
+      };
+      updated = [newChar, ...customCharacters];
+      successMsg = `"${trimmedName}" Created & Synced to Account!`;
+    }
+
+    setCustomCharacters(updated);
+    await saveUserPersonas(updated);
+
+    setSaveSuccessMessage(successMsg);
+    setTimeout(() => setSaveSuccessMessage(null), 3000);
+  };
+
+  const handleDeleteCustomChar = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = customCharacters.filter((c) => c.id !== id);
     setCustomCharacters(updated);
-    try {
-      localStorage.setItem('zorvik_custom_characters', JSON.stringify(updated));
-    } catch (_e) {
-      // Non-blocking
+    if (editingCharId === id) {
+      handleResetForm();
     }
+    await saveUserPersonas(updated);
   };
 
-  const handleLaunchCustomCharacter = (char: CustomCharacter) => {
-    const prompt = `Act as ${char.name}, my ${char.role}.
+  const getCustomCharPrompt = (char: CustomCharacter) => {
+    const sliderLines = (char.sliders || []).map(
+      (s) => `- ${s.name}: ${s.value}% (${s.value > 70 ? s.maxLabel : s.value > 35 ? 'Moderate' : s.minLabel})`
+    );
+
+    return `Act as ${char.name}, my ${char.role}.
 Character Dynamics & Calibration:
-- Affection & Romance Level: ${char.affectionLevel}% (${char.affectionLevel > 70 ? 'Deeply affectionate, warm, flirtatious, and romantic' : char.affectionLevel > 40 ? 'Friendly and warm' : 'Polite and professional'})
-- Playfulness & Banter Level: ${char.banterLevel}% (${char.banterLevel > 70 ? 'Witty, teasing, energetic, and playful' : 'Thoughtful and gentle'})
-- Empathy & Listening: ${char.empathyLevel}% (${char.empathyLevel > 70 ? 'Deeply compassionate, validating, and attentive' : 'Direct and solution-focused'})
-- Expertise & Rigor: ${char.expertiseLevel}% (${char.expertiseLevel > 70 ? 'Deeply knowledgeable specialist' : 'Relatable and conversational'})
-- My Preferred Nickname: "${char.nickname}"
-${char.customContext ? `- Shared Context & Background: ${char.customContext}` : ''}
+${sliderLines.join('\n')}
+- Addressing / Preferred Name: "${char.salutation || 'User'}"
+${char.customPrompt ? `\nSpecialized Persona Directives & Instructions:\n${char.customPrompt}` : ''}
+${char.customContext ? `\nShared Context & Background:\n${char.customContext}` : ''}
 
 Stay completely in character, speak naturally in first person, and respond with authentic personality.
 
-Hey ${char.nickname}! I'm so glad we're talking. How are you doing right now?`;
+Hello ${char.salutation || 'friend'}! I'm ready. How can I help or assist you right now?`;
+  };
 
-    onSelectBlueprint(prompt, 'casual');
+  const handleLaunchCustomCharacter = (char: CustomCharacter) => {
+    const prompt = getCustomCharPrompt(char);
+    const mode: ModelMode =
+      char.category === 'tech_architecture' ? 'code' :
+      char.category === 'health_medical' || char.category === 'career' ? 'deep' :
+      'casual';
+
+    onSelectBlueprint(prompt, mode);
     onClose();
   };
 
+  const filteredCustomCharacters = customCharacters.filter((c) => {
+    const matchesCategory =
+      activeTab === 'all' ||
+      activeTab === 'my_characters' ||
+      c.category === activeTab;
+
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      c.name.toLowerCase().includes(q) ||
+      c.role.toLowerCase().includes(q) ||
+      c.salutation.toLowerCase().includes(q) ||
+      (c.customContext && c.customContext.toLowerCase().includes(q)) ||
+      (c.customPrompt && c.customPrompt.toLowerCase().includes(q));
+
+    return matchesCategory && matchesSearch;
+  });
+
   const filteredBlueprints = BLUEPRINTS.filter((b) => {
-    const matchesCategory = activeTab === 'all' || b.category === activeTab;
+    const matchesCategory =
+      activeTab === 'all' ||
+      activeTab === 'my_characters' ||
+      b.category === activeTab;
     const matchesSearch =
       b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -411,7 +597,7 @@ Hey ${char.nickname}! I'm so glad we're talking. How are you doing right now?`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#0c0c14]/95 border border-white/[0.10] rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl flex flex-col overflow-hidden text-slate-100 font-sans select-none">
+      <div className="relative w-full max-w-4xl max-h-[92vh] bg-[#0c0c14]/95 border border-white/[0.10] rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl flex flex-col overflow-hidden text-slate-100 font-sans select-none">
         {/* Header Lockup */}
         <div className="p-5 border-b border-white/[0.06] bg-[#0e0e18]/80 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -419,11 +605,15 @@ Hey ${char.nickname}! I'm so glad we're talking. How are you doing right now?`;
               <BookOpen size={18} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white tracking-tight">
-                Intelligence & Character Persona Hub
+              <h3 className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
+                <span>Intelligence & Persona Hub</span>
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1">
+                  <Cloud size={10} />
+                  <span>Account Synced</span>
+                </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Realistic companion personas, clinical therapists, medical doctors, and interactive character customizers.
+                Design specialized companions, clinical doctors, executive negotiators, or code architects tailored to your exact workflow.
               </p>
             </div>
           </div>
@@ -441,11 +631,19 @@ Hey ${char.nickname}! I'm so glad we're talking. How are you doing right now?`;
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
             {[
               { id: 'all', label: 'All Personas', icon: Sparkles },
-              { id: 'companion', label: '💖 Companions & Romance', icon: Heart },
-              { id: 'health_medical', label: '🩺 Medical & Therapy', icon: Stethoscope },
+              {
+                id: 'my_characters',
+                label:
+                  customCharacters.length > 0
+                    ? `⭐ My Personas (${customCharacters.length})`
+                    : '⭐ My Personas',
+                icon: User,
+              },
+              { id: 'companion', label: '💖 Companions', icon: Heart },
+              { id: 'health_medical', label: '🩺 Medical & Health', icon: Stethoscope },
               { id: 'career', label: '💼 Career & Strategy', icon: Briefcase },
               { id: 'tech_architecture', label: '💻 Tech & Code', icon: Code2 },
-              { id: 'custom_studio', label: '🎨 Custom Creator', icon: Sliders },
+              { id: 'custom_studio', label: '🎨 Persona Studio', icon: Sliders },
             ].map((t) => {
               const Icon = t.icon;
               const isActive = activeTab === t.id;
@@ -482,212 +680,246 @@ Hey ${char.nickname}! I'm so glad we're talking. How are you doing right now?`;
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#07070d]">
+        <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-[#07070d]">
+          {/* TAB: CUSTOM STUDIO CREATOR */}
           {activeTab === 'custom_studio' ? (
-            /* Custom Character Creator Studio */
             <div className="space-y-6">
               <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Sliders size={16} className="text-indigo-400" />
-                    <span>Interactive Character & Persona Studio</span>
+                    <span>
+                      {editingCharId
+                        ? `Editing Persona: "${charName || 'Persona'}"`
+                        : 'Interactive Persona & Character Studio'}
+                    </span>
                   </h4>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Customize affection, banter, empathy, and relationship depth with real-time sliders and launch directly into chat.
+                    Choose a domain category below to unlock domain-specific calibration sliders, or write your own custom system prompt.
                   </p>
                 </div>
-                {saveSuccess && (
-                  <span className="text-xs text-emerald-400 font-medium px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                    Character Saved!
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {editingCharId && (
+                    <button
+                      type="button"
+                      onClick={handleResetForm}
+                      className="text-xs text-slate-400 hover:text-white px-3 py-1 rounded-xl bg-white/[0.04] border border-white/[0.08]"
+                    >
+                      + Create New Persona
+                    </button>
+                  )}
+                  {saveSuccessMessage && (
+                    <span className="text-xs text-emerald-400 font-medium px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                      {saveSuccessMessage}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Select Existing Characters Bar */}
+              {customCharacters.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-[11px] font-mono uppercase text-slate-400 flex items-center justify-between">
+                    <span>Load Existing Persona to Edit:</span>
+                    <span className="text-slate-500">{customCharacters.length} saved in account</span>
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    {customCharacters.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleEditCustomChar(c)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
+                          editingCharId === c.id
+                            ? 'bg-purple-600/30 border-purple-500/60 text-white font-semibold'
+                            : 'bg-white/[0.03] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <Sparkle size={11} className={editingCharId === c.id ? 'text-purple-400' : 'text-slate-500'} />
+                        <span>{c.name}</span>
+                        <span className="text-[10px] opacity-60 font-light font-mono capitalize">({c.category})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Category Selector for Persona Creation */}
+              <div className="space-y-2">
+                <label className="block text-xs font-mono text-slate-400">Select Persona Category & Focus Domain</label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {[
+                    { id: 'companion' as const, label: '💖 Companions', desc: 'Romance & Banter' },
+                    { id: 'health_medical' as const, label: '🩺 Medical & Health', desc: 'Clinical & Wellness' },
+                    { id: 'career' as const, label: '💼 Career & Strategy', desc: 'Negotiation & Pitch' },
+                    { id: 'tech_architecture' as const, label: '💻 Tech & Code', desc: 'Architecture & SRE' },
+                    { id: 'custom' as const, label: '✨ Custom Directives', desc: 'Custom System Prompt' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => handleCategorySwitchInStudio(cat.id)}
+                      className={`p-2.5 rounded-2xl text-left border transition-all ${
+                        creatorCategory === cat.id
+                          ? 'bg-white/[0.12] text-white border-white/[0.30] shadow-md'
+                          : 'bg-white/[0.02] border-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs text-white">{cat.label}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{cat.desc}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Creator Form */}
               <form onSubmit={handleSaveCustomCharacter} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Left Column: Identity & Context */}
+                {/* Left Column: Identity, Custom System Prompt & Context */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1.5">Preset Archetype</label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { id: 'romantic_gf' as const, label: 'AI Girlfriend', defaultRole: 'Loving & Playful AI Girlfriend', defaultAffection: 90, defaultBanter: 75, defaultEmpathy: 90 },
-                        { id: 'romantic_bf' as const, label: 'AI Boyfriend', defaultRole: 'Attentive & Protective AI Boyfriend', defaultAffection: 85, defaultBanter: 70, defaultEmpathy: 90 },
-                        { id: 'therapist' as const, label: 'CBT Therapist', defaultRole: 'Clinical Psychologist & CBT Counselor', defaultAffection: 20, defaultBanter: 20, defaultEmpathy: 100 },
-                        { id: 'doctor' as const, label: 'Medical Doctor', defaultRole: 'Internal Medicine & Diagnostic Physician', defaultAffection: 10, defaultBanter: 10, defaultEmpathy: 80 },
-                        { id: 'coach' as const, label: 'Fitness Coach', defaultRole: 'Strength, Biomechanics & Health Coach', defaultAffection: 15, defaultBanter: 60, defaultEmpathy: 70 },
-                        { id: 'mentor' as const, label: 'Career Mentor', defaultRole: 'High-Stakes Strategic Career Mentor', defaultAffection: 10, defaultBanter: 40, defaultEmpathy: 75 },
-                      ].map((arch) => (
-                        <button
-                          key={arch.id}
-                          type="button"
-                          onClick={() => {
-                            setCharArchetype(arch.id);
-                            setCharRole(arch.defaultRole);
-                            setAffectionLevel(arch.defaultAffection);
-                            setBanterLevel(arch.defaultBanter);
-                            setEmpathyLevel(arch.defaultEmpathy);
-                          }}
-                          className={`px-2 py-1.5 rounded-xl text-center text-[11px] font-medium border transition-all ${
-                            charArchetype === arch.id
-                              ? 'bg-white/[0.12] text-white border-white/[0.25] font-semibold shadow-sm'
-                              : 'bg-white/[0.02] border-white/[0.05] text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {arch.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1">Character Name</label>
+                    <label className="block text-xs font-mono text-slate-400 mb-1">Persona Name</label>
                     <input
                       type="text"
                       value={charName}
                       onChange={(e) => setCharName(e.target.value)}
-                      placeholder="e.g. Maya, Liam, Dr. Reed, Elena"
+                      placeholder={
+                        creatorCategory === 'companion' ? 'e.g. Shreya, Maya, Liam, Elena' :
+                        creatorCategory === 'health_medical' ? 'e.g. Dr. Thorne, Dr. Reed' :
+                        creatorCategory === 'career' ? 'e.g. Executive Negotiator, Pitch Coach' :
+                        creatorCategory === 'tech_architecture' ? 'e.g. Cloud Architect, OWASP Auditor' :
+                        'e.g. Research Specialist, Legal Analyst'
+                      }
                       className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1">Role / Relationship Title</label>
+                    <label className="block text-xs font-mono text-slate-400 mb-1">Role / Specialization Title</label>
                     <input
                       type="text"
                       value={charRole}
                       onChange={(e) => setCharRole(e.target.value)}
-                      placeholder="e.g. Playful AI Girlfriend, CBT Therapist, Fitness Mentor"
+                      placeholder={
+                        creatorCategory === 'companion' ? 'e.g. Affectionate Romantic Partner' :
+                        creatorCategory === 'health_medical' ? 'e.g. Internal Medicine & Diagnostic Physician' :
+                        creatorCategory === 'career' ? 'e.g. High-Stakes Salary & Equity Strategist' :
+                        creatorCategory === 'tech_architecture' ? 'e.g. Distributed Systems & Microservice Architect' :
+                        'e.g. Specialized Domain Expert'
+                      }
                       className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1">What Should They Call You? (Nickname)</label>
+                    <label className="block text-xs font-mono text-slate-400 mb-1">
+                      {creatorCategory === 'companion' ? 'What Should They Call You? (Nickname / Pet Name)' :
+                       creatorCategory === 'health_medical' ? 'How Should They Address You? (e.g. Patient / Alex)' :
+                       creatorCategory === 'career' ? 'Your Executive Title (e.g. Founder / Executive / Candidate)' :
+                       creatorCategory === 'tech_architecture' ? 'Your Engineering Role (e.g. Lead Engineer / SRE)' :
+                       'How They Should Address You'}
+                    </label>
                     <input
                       type="text"
-                      value={charNickname}
-                      onChange={(e) => setCharNickname(e.target.value)}
-                      placeholder="e.g. babe, sweetheart, Vikas, champ"
+                      value={charSalutation}
+                      onChange={(e) => setCharSalutation(e.target.value)}
+                      placeholder={
+                        creatorCategory === 'companion' ? 'e.g. Sweetheart, babe, handsome' :
+                        creatorCategory === 'health_medical' ? 'e.g. Patient, Alex, Client' :
+                        creatorCategory === 'career' ? 'e.g. Executive, Founder, Candidate' :
+                        creatorCategory === 'tech_architecture' ? 'e.g. Lead Engineer, SRE' :
+                        'e.g. User, Friend'
+                      }
                       className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all"
                     />
                   </div>
 
+                  {/* Custom Prompt Textarea (Always available across all categories) */}
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1">Shared History & Context (Optional)</label>
+                    <label className="block text-xs font-mono text-slate-400 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <FileText size={12} className="text-indigo-400" />
+                        <span>Custom Persona System Prompt & Directives (Optional)</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-light">Custom Rules</span>
+                    </label>
                     <textarea
                       rows={3}
+                      value={customPromptText}
+                      onChange={(e) => setCustomPromptText(e.target.value)}
+                      placeholder="e.g. You are a senior oncologist. Prioritize clinical trials and biomarker interpretation. Always provide dosage verification and avoid vague generic statements."
+                      className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl p-3 text-xs text-white outline-none leading-relaxed transition-all font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-slate-400 mb-1 flex items-center justify-between">
+                      <span>Shared Background & Context (Optional)</span>
+                      <span className="text-[10px] text-slate-500 font-light">Memory Seed</span>
+                    </label>
+                    <textarea
+                      rows={2}
                       value={customContext}
                       onChange={(e) => setCustomContext(e.target.value)}
-                      placeholder="e.g. We have been dating for a year. I work in engineering and love late-night talks and gaming."
+                      placeholder="e.g. I am building a fintech startup with 50k users. We use Node.js and PostgreSQL."
                       className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl p-3 text-xs text-white outline-none leading-relaxed transition-all"
                     />
                   </div>
                 </div>
 
-                {/* Right Column: Personality Sliders */}
+                {/* Right Column: Category-Specific Personality Sliders */}
                 <div className="space-y-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-mono text-slate-300">💖 Affection & Flirting</span>
-                      <span className="font-mono text-rose-400 font-semibold">{affectionLevel}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={affectionLevel}
-                      onChange={(e) => setAffectionLevel(Number(e.target.value))}
-                      className="w-full accent-rose-500 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-500">
-                      <span>Platonic / Friendly</span>
-                      <span>Deeply Romantic & Flirtatious</span>
-                    </div>
+                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                    <span className="text-xs font-mono uppercase text-slate-400 font-semibold flex items-center gap-1.5">
+                      <Layers size={13} className="text-cyan-400" />
+                      <span>{creatorCategory.toUpperCase()} Dynamics Calibration</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">4 Axes</span>
                   </div>
 
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-mono text-slate-300">✨ Banter & Playfulness</span>
-                      <span className="font-mono text-cyan-400 font-semibold">{banterLevel}%</span>
+                  {sliders.map((slider) => (
+                    <div key={slider.id} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-mono text-slate-300">{slider.name}</span>
+                        <span className="font-mono text-cyan-400 font-semibold">{slider.value}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={slider.value}
+                        onChange={(e) => handleSliderChange(slider.id, Number(e.target.value))}
+                        className="w-full accent-indigo-500 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-slate-500">
+                        <span>{slider.minLabel}</span>
+                        <span>{slider.maxLabel}</span>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={banterLevel}
-                      onChange={(e) => setBanterLevel(Number(e.target.value))}
-                      className="w-full accent-cyan-500 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-500">
-                      <span>Serious & Direct</span>
-                      <span>Witty, Teasing & Sarcastic</span>
-                    </div>
-                  </div>
+                  ))}
 
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-mono text-slate-300">🧠 Empathy & Listening</span>
-                      <span className="font-mono text-emerald-400 font-semibold">{empathyLevel}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={empathyLevel}
-                      onChange={(e) => setEmpathyLevel(Number(e.target.value))}
-                      className="w-full accent-emerald-500 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-500">
-                      <span>Task-Oriented</span>
-                      <span>Deeply Attuned & Comforting</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-mono text-slate-300">🔬 Professional Rigor</span>
-                      <span className="font-mono text-amber-400 font-semibold">{expertiseLevel}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={expertiseLevel}
-                      onChange={(e) => setExpertiseLevel(Number(e.target.value))}
-                      className="w-full accent-amber-500 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-500">
-                      <span>Casual Companion</span>
-                      <span>Clinical / Academic Expert</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex gap-2">
+                  <div className="pt-3 flex gap-2">
                     <button
                       type="submit"
                       disabled={!charName.trim()}
                       className="flex-1 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-xs text-white font-medium transition-all flex items-center justify-center gap-1.5 disabled:opacity-40"
                     >
                       <Plus size={14} />
-                      <span>Save Character</span>
+                      <span>{editingCharId ? 'Update Persona' : 'Save Persona to Account'}</span>
                     </button>
                     <button
                       type="button"
                       disabled={!charName.trim()}
                       onClick={() =>
                         handleLaunchCustomCharacter({
-                          id: 'temp',
+                          id: editingCharId || 'temp',
                           name: charName.trim(),
-                          role: charRole.trim() || 'Custom Companion',
-                          nickname: charNickname.trim() || 'friend',
-                          archetype: charArchetype,
-                          affectionLevel,
-                          banterLevel,
-                          empathyLevel,
-                          expertiseLevel,
+                          category: creatorCategory,
+                          role: charRole.trim() || 'Specialized Persona',
+                          salutation: charSalutation.trim() || 'User',
+                          customPrompt: customPromptText.trim(),
                           customContext: customContext.trim(),
+                          sliders,
                           createdAt: Date.now(),
                         })
                       }
@@ -699,95 +931,199 @@ Hey ${char.nickname}! I'm so glad we're talking. How are you doing right now?`;
                   </div>
                 </div>
               </form>
+            </div>
+          ) : (
+            /* NON-STUDIO VIEWS (ALL / MY CHARACTERS / COMPANION / MEDICAL / CAREER / TECH) */
+            <div className="space-y-6">
+              {/* SECTION: PROMINENT CUSTOM CHARACTERS SHOWCASE (Rendered at TOP for All, My Characters & matching category) */}
+              {filteredCustomCharacters.length > 0 && (
+                <div className="space-y-3 pb-2 border-b border-white/[0.06]">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-mono uppercase text-purple-300 tracking-wider font-semibold flex items-center gap-2">
+                      <Sparkles size={13} className="text-purple-400" />
+                      <span>My Created Personas ({filteredCustomCharacters.length})</span>
+                    </h4>
+                    <button
+                      onClick={() => {
+                        handleResetForm();
+                        setActiveTab('custom_studio');
+                      }}
+                      className="text-xs text-purple-400 hover:text-white flex items-center gap-1 transition-colors"
+                    >
+                      <Plus size={12} />
+                      <span>Create New</span>
+                    </button>
+                  </div>
 
-              {/* Saved Custom Characters List */}
-              {customCharacters.length > 0 && (
-                <div className="pt-4 border-t border-white/[0.06] space-y-3">
-                  <h5 className="text-xs font-mono uppercase text-slate-400 tracking-wider font-semibold">
-                    My Custom Saved Characters ({customCharacters.length})
-                  </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {customCharacters.map((c) => (
+                  {/* Top Custom Characters Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredCustomCharacters.map((c) => (
                       <div
                         key={c.id}
-                        className="p-4 rounded-2xl bg-[#0c0c14] border border-white/[0.07] hover:border-white/[0.18] transition-all flex items-center justify-between gap-3 group"
+                        onClick={() => handleLaunchCustomCharacter(c)}
+                        className="group relative p-4 rounded-2xl bg-gradient-to-br from-purple-950/25 via-[#0e0e18] to-[#080812] border border-purple-500/25 hover:border-purple-500/55 cursor-pointer transition-all flex flex-col justify-between shadow-lg shadow-purple-950/10 hover:shadow-purple-900/20"
                       >
-                        <div className="min-w-0">
-                          <h6 className="text-xs font-semibold text-white truncate">{c.name}</h6>
-                          <p className="text-[11px] text-indigo-400 truncate mt-0.5">{c.role}</p>
-                          <div className="flex gap-2 text-[9px] font-mono text-slate-500 mt-1">
-                            <span>Affection: {c.affectionLevel}%</span>
-                            <span>Banter: {c.banterLevel}%</span>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-medium">
+                                ⭐ {c.category || 'Custom'} Persona
+                              </span>
+                              {c.salutation && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-400 border border-white/[0.06]">
+                                  Address: "{c.salutation}"
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => handleEditCustomChar(c, e)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                                title="Edit Persona & Sliders"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => handleCopyPrompt(c.id, getCustomCharPrompt(c), e)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                                title="Copy Prompt"
+                              >
+                                {copiedId === c.id ? (
+                                  <Check size={13} className="text-emerald-400" />
+                                ) : (
+                                  <Copy size={13} />
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteCustomChar(c.id, e)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                title="Delete Persona"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           </div>
+
+                          <div>
+                            <h4 className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors flex items-center gap-2">
+                              <span>{c.name}</span>
+                              <span className="text-xs font-normal text-slate-400 font-mono">({c.role})</span>
+                            </h4>
+                            {c.customPrompt && (
+                              <p className="text-xs text-indigo-300/80 line-clamp-1 mt-0.5 font-mono text-[11px]">
+                                Prompt: {c.customPrompt}
+                              </p>
+                            )}
+                            {c.customContext && (
+                              <p className="text-xs text-slate-400 line-clamp-2 mt-1 font-light leading-relaxed">
+                                {c.customContext}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Dynamic Stat Indicators */}
+                          {Array.isArray(c.sliders) && c.sliders.length > 0 && (
+                            <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                              {c.sliders.slice(0, 3).map((s) => (
+                                <span
+                                  key={s.id}
+                                  className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.04] text-slate-300 border border-white/[0.08]"
+                                >
+                                  {s.name.split(' ')[1] || s.name}: {s.value}%
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            onClick={() => handleLaunchCustomCharacter(c)}
-                            className="p-2 rounded-xl bg-white/[0.08] text-white hover:bg-white hover:text-black transition-all text-xs flex items-center gap-1 font-medium"
-                            title="Start Chatting"
-                          >
-                            <Play size={12} />
-                            <span>Chat</span>
-                          </button>
-                          <button
-                            onClick={(e) => handleDeleteCustomChar(c.id, e)}
-                            className="p-2 rounded-xl text-slate-500 hover:text-rose-400 transition-colors"
-                            title="Delete Character"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+
+                        <div className="pt-4 mt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+                          <span className="text-[10px] font-mono text-purple-400 font-medium">Synced to Account</span>
+                          <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/20 text-purple-200 text-xs font-medium group-hover:bg-purple-500 group-hover:text-white transition-all">
+                            <span>Launch Chat</span>
+                            <Play size={11} />
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-            </div>
-          ) : (
-            /* Blueprint Cards Grid */
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredBlueprints.map((bp) => (
-                <div
-                  key={bp.id}
-                  onClick={() => {
-                    onSelectBlueprint(bp.template, bp.mode);
-                    onClose();
-                  }}
-                  className="group relative p-4 rounded-2xl bg-[#0c0c14]/80 border border-white/[0.06] hover:border-white/[0.20] hover:bg-white/[0.03] cursor-pointer transition-all flex flex-col justify-between shadow-sm hover:shadow-lg"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08] font-medium">
-                        {bp.badge}
-                      </span>
-                      <button
-                        onClick={(e) => handleCopyPrompt(bp.id, bp.template, e)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors"
-                        title="Copy Prompt"
-                      >
-                        {copiedId === bp.id ? (
-                          <Check size={13} className="text-emerald-400" />
-                        ) : (
-                          <Copy size={13} />
-                        )}
-                      </button>
-                    </div>
 
-                    <h4 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">
-                      {bp.title}
+              {/* EMPTY STATE FOR MY CHARACTERS TAB */}
+              {activeTab === 'my_characters' && filteredCustomCharacters.length === 0 && (
+                <div className="py-12 px-4 text-center space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-2xl">
+                  <User size={32} className="mx-auto text-slate-500" />
+                  <h4 className="text-sm font-semibold text-white">No Custom Personas Created Yet</h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Create custom clinical doctors, executive career coaches, tech architects, companions, or your own custom prompt personas with cloud synchronization.
+                  </p>
+                  <button
+                    onClick={() => {
+                      handleResetForm();
+                      setActiveTab('custom_studio');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-slate-200 transition-all inline-flex items-center gap-1.5 shadow-md"
+                  >
+                    <Plus size={14} />
+                    <span>Create Your First Persona</span>
+                  </button>
+                </div>
+              )}
+
+              {/* SECTION: SYSTEM PRE-TRAINED BLUEPRINTS */}
+              {activeTab !== 'my_characters' && (
+                <div className="space-y-3">
+                  {filteredCustomCharacters.length > 0 && activeTab === 'all' && (
+                    <h4 className="text-xs font-mono uppercase text-slate-400 tracking-wider font-semibold">
+                      System Personas & Blueprints
                     </h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">{bp.description}</p>
-                  </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredBlueprints.map((bp) => (
+                      <div
+                        key={bp.id}
+                        onClick={() => {
+                          onSelectBlueprint(bp.template, bp.mode);
+                          onClose();
+                        }}
+                        className="group relative p-4 rounded-2xl bg-[#0c0c14]/80 border border-white/[0.06] hover:border-white/[0.20] hover:bg-white/[0.03] cursor-pointer transition-all flex flex-col justify-between shadow-sm hover:shadow-lg"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08] font-medium">
+                              {bp.badge}
+                            </span>
+                            <button
+                              onClick={(e) => handleCopyPrompt(bp.id, bp.template, e)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+                              title="Copy Prompt"
+                            >
+                              {copiedId === bp.id ? (
+                                <Check size={13} className="text-emerald-400" />
+                              ) : (
+                                <Copy size={13} />
+                              )}
+                            </button>
+                          </div>
 
-                  <div className="pt-4 mt-3 border-t border-white/[0.04] flex items-center justify-between text-xs text-slate-500 group-hover:text-slate-300">
-                    <span className="text-[10px] font-mono capitalize">Mode: {bp.mode}</span>
-                    <span className="flex items-center gap-1 text-slate-200 text-[11px] font-medium group-hover:translate-x-0.5 transition-transform">
-                      <span>Use Persona</span>
-                      <Play size={11} />
-                    </span>
+                          <h4 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">
+                            {bp.title}
+                          </h4>
+                          <p className="text-xs text-slate-400 leading-relaxed">{bp.description}</p>
+                        </div>
+
+                        <div className="pt-4 mt-3 border-t border-white/[0.04] flex items-center justify-between text-xs text-slate-500 group-hover:text-slate-300">
+                          <span className="text-[10px] font-mono capitalize">Mode: {bp.mode}</span>
+                          <span className="flex items-center gap-1 text-slate-200 text-[11px] font-medium group-hover:translate-x-0.5 transition-transform">
+                            <span>Use Persona</span>
+                            <Play size={11} />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

@@ -127,3 +127,66 @@ export async function signOutUser() {
     await client.auth.signOut();
   }
 }
+
+/**
+ * Sync custom personas to user's Supabase account metadata and localStorage
+ */
+export async function saveUserPersonas(personas: unknown[]) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('zorvik_custom_characters', JSON.stringify(personas));
+    } catch (_e) {
+      // Non-blocking
+    }
+  }
+
+  const client = getSupabase();
+  if (!client) return;
+
+  try {
+    const { data } = await client.auth.getUser();
+    if (data?.user) {
+      await client.auth.updateUser({
+        data: { custom_personas: personas },
+      });
+    }
+  } catch (err) {
+    console.warn('[Persona Cloud Sync Warning]:', err);
+  }
+}
+
+/**
+ * Load custom personas from Supabase account metadata (or fallback to localStorage)
+ */
+export async function loadUserPersonas(): Promise<unknown[]> {
+  const client = getSupabase();
+  if (client) {
+    try {
+      const { data } = await client.auth.getUser();
+      const cloudPersonas = data?.user?.user_metadata?.custom_personas;
+      if (Array.isArray(cloudPersonas) && cloudPersonas.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('zorvik_custom_characters', JSON.stringify(cloudPersonas));
+        }
+        return cloudPersonas;
+      }
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('zorvik_custom_characters');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // Return empty array
+    }
+  }
+
+  return [];
+}
+
