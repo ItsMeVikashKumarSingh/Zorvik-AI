@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed md:relative z-50 h-full bg-[#050510] border-r border-white/[0.06] flex flex-col transition-all duration-200 ease-in-out shrink-0 ${
+        className={`fixed md:relative z-50 h-full bg-[#07070a] border-r border-white/[0.06] flex flex-col transition-all duration-200 ease-in-out shrink-0 ${
           isOpen
             ? 'w-[260px] translate-x-0 opacity-100'
             : 'w-0 -translate-x-full md:w-0 md:translate-x-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
@@ -96,11 +96,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="flex items-center gap-2 text-left group"
           >
             <img src="/logo.png" alt="Zorvik AI" className="w-5 h-5 rounded-md object-contain" />
-            <span className="font-semibold tracking-wider text-white text-sm">Zorvik AI</span>
+            <span className="font-semibold tracking-wide text-white text-sm">Zorvik AI</span>
           </button>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-silver/50 hover:text-white hover:bg-white/[0.04] transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             title="Collapse Sidebar"
             aria-label="Collapse sidebar"
           >
@@ -112,38 +112,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 border-b border-white/[0.04] min-w-[260px] space-y-1.5">
           <button
             onClick={onNewChat}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 hover:bg-iris/10 text-xs text-white transition-all group"
+            className="w-full flex items-center justify-between px-3.5 py-2 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.20] hover:bg-white/[0.08] text-xs text-white transition-all group font-medium"
           >
-            <span className="font-medium">New Thread</span>
-            <Plus size={14} className="text-silver/50 group-hover:text-iris" />
+            <span>New Thread</span>
+            <Plus size={14} className="text-slate-400 group-hover:text-white transition-colors" />
           </button>
 
           {onOpenPromptLibrary && (
             <button
               onClick={onOpenPromptLibrary}
-              className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-iris/30 hover:bg-white/[0.04] text-xs text-silver/70 hover:text-white transition-all group"
+              className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-transparent hover:bg-white/[0.03] text-xs text-slate-400 hover:text-slate-200 transition-all group"
               title="Explore prompt blueprints and templates"
             >
               <div className="flex items-center gap-2">
-                <BookOpen size={13} className="text-iris/70 group-hover:text-iris transition-colors" />
-                <span className="font-light">Prompt Library</span>
+                <BookOpen size={13} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+                <span className="font-normal">Prompt Library</span>
               </div>
             </button>
           )}
         </div>
 
-
         {/* Search History Filter */}
         {sessions.length > 2 && (
           <div className="px-3 pt-2 pb-1">
             <div className="relative flex items-center">
-              <Search size={12} className="absolute left-2.5 text-silver/40" />
+              <Search size={12} className="absolute left-2.5 text-slate-500" />
               <input
                 type="text"
                 placeholder="Search library..."
                 value={searchQuery}
                 onChange={e => onSearchChange(e.target.value)}
-                className="w-full bg-white/[0.02] border border-white/[0.05] focus:border-iris/40 rounded-lg pl-7 pr-2 py-1 text-xs text-white placeholder-silver/30 outline-none font-light transition-all"
+                className="w-full bg-white/[0.02] border border-white/[0.06] focus:border-white/[0.20] rounded-xl pl-7 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
               />
             </div>
           </div>
@@ -152,15 +151,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Grouped Threads List */}
         <div className="flex-1 overflow-y-auto px-3 py-2 space-y-4">
           {groupedSessions.length === 0 ? (
-            <div className="py-8 text-center text-xs text-silver/30 font-light flex flex-col items-center gap-2">
-              <MessageSquare size={16} className="text-silver/20" />
+            <div className="py-8 text-center text-xs text-slate-600 font-light flex flex-col items-center gap-2">
+              <MessageSquare size={16} className="text-slate-700" />
               <span>No search threads yet</span>
             </div>
           ) : (
             groupedSessions.map(group => (
               <div key={group.label} className="space-y-1">
-                <div className="px-2 text-[10px] font-mono uppercase tracking-wider text-silver/40 flex items-center gap-1.5">
-                  <Clock size={10} className="text-silver/30" />
+                <div className="px-2 text-[10px] font-mono uppercase tracking-wider text-slate-500 flex items-center gap-1.5 font-semibold">
+                  <Clock size={10} className="text-slate-600" />
                   <span>{group.label}</span>
                 </div>
                 {group.items.map(session => {
@@ -169,16 +168,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div
                       key={session.id}
                       onClick={() => onSelectSession(session.id)}
-                      className={`group relative flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-all ${
+                      className={`group relative flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs cursor-pointer transition-all ${
                         isActive
-                          ? 'bg-white/[0.06] text-white font-medium border border-white/[0.08]'
-                          : 'text-silver/60 hover:text-white hover:bg-white/[0.03] font-light'
+                          ? 'bg-white/[0.08] text-white font-medium shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
                       }`}
                     >
                       <span className="truncate pr-2">{session.title || 'Untitled'}</span>
                       <button
                         onClick={e => onDeleteSession(session.id, e)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-silver/40 hover:text-crimson transition-opacity shrink-0"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-opacity shrink-0"
                         title="Delete Thread"
                       >
                         <Trash2 size={12} />
@@ -192,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Minimal Footer */}
-        <div className="p-3 border-t border-white/[0.04] space-y-1.5 text-xs text-silver/60">
+        <div className="p-3 border-t border-white/[0.04] space-y-1.5 text-xs text-slate-400">
           <div
             onClick={() => {
               if (user.isGuest) {
@@ -203,10 +202,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onOpenAuth();
               }
             }}
-            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-white/[0.03] cursor-pointer transition-colors"
+            className="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-white/[0.04] cursor-pointer transition-colors"
           >
-            <span className="text-[11px] font-mono truncate">{user.isGuest ? 'Guest' : user.email}</span>
-            <span className="text-[10px] font-mono text-iris uppercase">{user.isGuest ? 'Sign In' : 'Account'}</span>
+            <span className="text-[11px] font-mono truncate">{user.isGuest ? 'Guest User' : user.email}</span>
+            <span className="text-[10px] font-mono text-indigo-400 uppercase font-semibold">{user.isGuest ? 'Sign In' : 'Settings'}</span>
           </div>
         </div>
       </aside>

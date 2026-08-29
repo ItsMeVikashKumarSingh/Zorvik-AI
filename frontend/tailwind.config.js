@@ -7,27 +7,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        void: "#000000",
-        'bone-white': "#ffffff",
-        'ash-gray': "#9a9a9a",
-        'silver-mist': "#bdbdbd",
+        void: "#07070a",
+        surface: {
+          0: "#07070a",
+          1: "#0d0d14",
+          2: "#13131e",
+          3: "#1a1a28",
+          4: "#222234",
+        },
+        border: {
+          subtle: "rgba(255, 255, 255, 0.06)",
+          DEFAULT: "rgba(255, 255, 255, 0.09)",
+          strong: "rgba(255, 255, 255, 0.16)",
+        },
+        'bone-white': "#f8fafc",
+        'ash-gray': "#94a3b8",
+        'silver-mist': "#cbd5e1",
         'electric-iris': {
-          DEFAULT: "#8052ff",
-          hover: "#9268ff",
-          glow: "rgba(128, 82, 255, 0.25)",
+          DEFAULT: "#6366f1",
+          hover: "#4f46e5",
+          glow: "rgba(99, 102, 241, 0.20)",
         },
-        'saffron-spark': "#ffb829",
-        'deep-verdant': "#15846e",
-        // Legacy fallbacks
         iris: {
-          DEFAULT: "#8052ff",
-          hover: "#9268ff",
-          glow: "rgba(128, 82, 255, 0.25)",
+          DEFAULT: "#6366f1",
+          hover: "#4f46e5",
+          glow: "rgba(99, 102, 241, 0.20)",
         },
-        saffron: "#ffb829",
-        cyan: "#22d3ee",
-        ash: "#9a9a9a",
-        silver: "#bdbdbd",
+        saffron: "#f59e0b",
+        cyan: {
+          DEFAULT: "#06b6d4",
+          hover: "#0891b2",
+        },
+        crimson: {
+          DEFAULT: "#f43f5e",
+          hover: "#e11d48",
+        },
+        ash: "#94a3b8",
+        silver: "#cbd5e1",
       },
       fontFamily: {
         sans: ['PPNeueMontreal', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],

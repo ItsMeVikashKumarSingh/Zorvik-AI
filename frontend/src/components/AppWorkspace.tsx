@@ -89,8 +89,8 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
           isGuest: false,
         });
 
-        // Clean up OAuth access_token hash from address bar
-        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+        // Clean up OAuth query parameters/hash from address bar
+        if (typeof window !== 'undefined' && (window.location.hash.includes('access_token') || window.location.search.includes('code='))) {
           window.history.replaceState(null, '', window.location.pathname);
         }
       }
@@ -109,7 +109,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
           isGuest: false,
         });
 
-        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+        if (typeof window !== 'undefined' && (window.location.hash.includes('access_token') || window.location.search.includes('code='))) {
           window.history.replaceState(null, '', window.location.pathname);
         }
       } else if (event === 'SIGNED_OUT') {

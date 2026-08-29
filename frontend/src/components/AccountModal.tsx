@@ -296,9 +296,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <div
-        className="relative w-full max-w-xl bg-[#090912] border border-white/[0.08] rounded-2xl p-6 sm:p-7 shadow-2xl shadow-purple-950/30 flex flex-col max-h-[90vh] overflow-hidden"
+        className="relative w-full max-w-xl bg-[#0c0c14] border border-white/[0.10] rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] flex flex-col max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

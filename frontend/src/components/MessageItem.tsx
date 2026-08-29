@@ -135,7 +135,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   if (isUser) {
     return (
       <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-        <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-white text-sm sm:text-base font-light shadow-lg">
+        <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl rounded-tr-md bg-[#12121c] border border-white/[0.09] px-4 py-3 text-slate-100 text-sm sm:text-base font-normal shadow-md">
           {message.attachments && message.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {message.attachments.map((att) => {
@@ -143,12 +143,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 return (
                   <div
                     key={att.id}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-xs text-silver/80"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/40 border border-white/10 text-xs text-slate-300"
                   >
                     {isImage ? (
                       <img src={att.dataUrl} alt={att.name} className="w-5 h-5 rounded object-cover" />
                     ) : (
-                      <FileText size={12} className="text-iris" />
+                      <FileText size={12} className="text-indigo-400" />
                     )}
                     <span className="truncate max-w-[120px]">{att.name}</span>
                   </div>
@@ -170,7 +170,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       {/* 1. Grounded Search Sources with Live Favicons */}
       {message.sources && message.sources.length > 0 && (
         <div className="space-y-2 pb-2">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-silver/50 tracking-wider">
+          <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400 tracking-wider font-semibold">
             <Globe size={13} className="text-cyan-400" />
             <span>GROUNDED SOURCES ({message.sources.length})</span>
           </div>
@@ -192,9 +192,9 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   href={src.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#090916]/80 border border-white/[0.08] hover:border-cyan-500/40 hover:bg-white/[0.04] transition-all shrink-0 max-w-[240px] group shadow-lg backdrop-blur-sm"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-[#0c0c14] border border-white/[0.08] hover:border-white/[0.20] hover:bg-white/[0.03] transition-all shrink-0 max-w-[240px] group shadow-sm"
                 >
-                  <div className="w-5 h-5 rounded-md bg-white/[0.04] flex items-center justify-center shrink-0 overflow-hidden border border-white/[0.06]">
+                  <div className="w-5 h-5 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0 overflow-hidden border border-white/[0.06]">
                     {faviconUrl ? (
                       <img
                         src={faviconUrl}
@@ -209,14 +209,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-white/90 group-hover:text-white font-medium truncate">
+                    <div className="text-xs text-slate-200 group-hover:text-white font-medium truncate">
                       {src.title || domain}
                     </div>
-                    <div className="text-[10px] font-mono text-silver/40 truncate flex items-center gap-1 group-hover:text-cyan-400/70 transition-colors">
+                    <div className="text-[10px] font-mono text-slate-400 truncate flex items-center gap-1 group-hover:text-cyan-400/80 transition-colors">
                       <span>{domain}</span>
                     </div>
                   </div>
-                  <ExternalLink size={11} className="text-silver/30 group-hover:text-cyan-400 shrink-0 transition-colors" />
+                  <ExternalLink size={11} className="text-slate-500 group-hover:text-cyan-400 shrink-0 transition-colors" />
                 </a>
               );
             })}

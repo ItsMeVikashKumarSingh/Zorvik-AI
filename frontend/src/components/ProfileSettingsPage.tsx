@@ -221,27 +221,32 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
     }
   };
 
+  const handleClearLocalStorage = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
   const filteredMemories = memories.filter((m) =>
     m.text.toLowerCase().includes(memorySearch.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#050510] text-slate-100 font-sans flex flex-col antialiased">
-      {/* Top Navbar */}
-      <header className="h-14 border-b border-white/[0.06] bg-[#070714]/90 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+    <div className="min-h-screen bg-[#07070a] text-slate-100 font-sans flex flex-col select-none">
+      {/* Top Header Bar */}
+      <header className="px-6 py-4 border-b border-white/[0.06] bg-[#0c0c14]/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <button
             onClick={onNavigateBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-xs text-silver/80 hover:text-white transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-xs text-slate-400 hover:text-white transition-all"
           >
-            <ArrowLeft size={14} />
-            <span>Back to Workspace</span>
+            <ArrowLeft size={13} />
+            <span>Workspace</span>
           </button>
-          <div className="h-4 w-px bg-white/[0.1] hidden sm:block" />
+          <div className="h-4 w-px bg-white/[0.08] hidden sm:block" />
           <button onClick={onNavigateHome} className="flex items-center gap-2">
             <img src="/logo.png" alt="Zorvik AI" className="w-5 h-5 rounded-md object-contain" />
-            <span className="font-semibold tracking-wider text-white text-sm">Zorvik AI</span>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-iris/20 text-iris border border-iris/30">
+            <span className="font-semibold tracking-wide text-white text-sm">Zorvik AI</span>
+            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08]">
               Control Center
             </span>
           </button>
@@ -251,7 +256,7 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
           {!user.isGuest && (
             <button
               onClick={() => signOutUser().then(onNavigateHome)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-xs text-crimson transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-xs text-rose-400 transition-all"
             >
               <LogOut size={13} />
               <span>Sign Out</span>
@@ -266,8 +271,8 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
         <aside className="w-full md:w-64 shrink-0 space-y-1.5">
           <div className="px-3 pb-3 mb-2 border-b border-white/[0.06]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-cyan-500 p-0.5 shadow-lg">
-                <div className="w-full h-full rounded-full bg-[#070714] flex items-center justify-center font-bold text-sm text-white">
+              <div className="w-10 h-10 rounded-full bg-white/[0.08] p-0.5 border border-white/[0.12] shadow-md">
+                <div className="w-full h-full rounded-full bg-[#0c0c14] flex items-center justify-center font-bold text-sm text-white">
                   {user.email ? user.email.slice(0, 2).toUpperCase() : 'GS'}
                 </div>
               </div>
@@ -275,7 +280,7 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                 <h4 className="text-sm font-semibold text-white truncate">
                   {user.email || 'Guest User'}
                 </h4>
-                <span className="text-[11px] font-mono text-silver/50">
+                <span className="text-[11px] font-mono text-slate-500">
                   {user.isGuest ? 'Local Identity' : 'Verified Member'}
                 </span>
               </div>
@@ -284,10 +289,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-colors ${
               activeTab === 'profile'
-                ? 'bg-iris/20 text-iris border border-iris/40 shadow-sm'
-                : 'text-silver/60 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-white/[0.08] text-white border border-white/[0.14] shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
             <User size={15} />
@@ -296,10 +301,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           <button
             onClick={() => setActiveTab('instructions')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-colors ${
               activeTab === 'instructions'
-                ? 'bg-iris/20 text-iris border border-iris/40 shadow-sm'
-                : 'text-silver/60 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-white/[0.08] text-white border border-white/[0.14] shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
             <Sliders size={15} />
@@ -308,10 +313,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           <button
             onClick={() => setActiveTab('memories')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-colors ${
               activeTab === 'memories'
-                ? 'bg-iris/20 text-iris border border-iris/40 shadow-sm'
-                : 'text-silver/60 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-white/[0.08] text-white border border-white/[0.14] shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
             <Brain size={15} />
@@ -320,10 +325,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           <button
             onClick={() => setActiveTab('quotas')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-colors ${
               activeTab === 'quotas'
-                ? 'bg-iris/20 text-iris border border-iris/40 shadow-sm'
-                : 'text-silver/60 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-white/[0.08] text-white border border-white/[0.14] shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
             <Activity size={15} />
@@ -332,10 +337,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           <button
             onClick={() => setActiveTab('appearance')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-colors ${
               activeTab === 'appearance'
-                ? 'bg-iris/20 text-iris border border-iris/40 shadow-sm'
-                : 'text-silver/60 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-white/[0.08] text-white border border-white/[0.14] shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
             <Palette size={15} />
@@ -344,10 +349,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           <button
             onClick={() => setActiveTab('data')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-colors ${
               activeTab === 'data'
-                ? 'bg-iris/20 text-iris border border-iris/40 shadow-sm'
-                : 'text-silver/60 hover:text-white hover:bg-white/[0.03]'
+                ? 'bg-white/[0.08] text-white border border-white/[0.14] shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
             <Database size={15} />
@@ -356,16 +361,16 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
         </aside>
 
         {/* Tab Detail Pane */}
-        <main className="flex-1 min-w-0 bg-[#080816] rounded-2xl border border-white/[0.08] p-6 sm:p-8 shadow-2xl relative">
+        <main className="flex-1 min-w-0 bg-[#0c0c14]/90 rounded-3xl border border-white/[0.08] p-6 sm:p-8 shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl relative">
           {/* Notifications */}
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-crimson/10 border border-crimson/30 flex items-center gap-3 text-xs text-crimson">
+            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-3 text-xs text-rose-400">
               <AlertCircle size={16} className="shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
           {successMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3 text-xs text-emerald-400">
+            <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3 text-xs text-emerald-400">
               <CheckCircle2 size={16} className="shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -373,20 +378,20 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           {/* Tab 1: Profile & Security */}
           {activeTab === 'profile' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-white">Profile & Identity</h3>
-                <p className="text-xs text-silver/50">Manage your credentials, security keys, and access privileges.</p>
+                <p className="text-xs text-slate-400">Manage your credentials, security keys, and access privileges.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
-                  <span className="text-[11px] font-mono uppercase text-silver/40">User Identifier</span>
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-1">
+                  <span className="text-[11px] font-mono uppercase text-slate-400">User Identifier</span>
                   <div className="font-mono text-xs text-white truncate">{user.id}</div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
-                  <span className="text-[11px] font-mono uppercase text-silver/40">Account Status</span>
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-1">
+                  <span className="text-[11px] font-mono uppercase text-slate-400">Account Status</span>
                   <div className="flex items-center gap-2 text-xs text-emerald-400">
                     <Shield size={14} />
                     <span>{user.isGuest ? 'Guest Local Session' : 'Secured Member (Active)'}</span>
@@ -399,7 +404,7 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-medium text-white">Password & Security</h4>
-                      <p className="text-xs text-silver/50">Update your account authentication credentials.</p>
+                      <p className="text-xs text-slate-400">Update your account authentication credentials.</p>
                     </div>
                     <button
                       onClick={() => setShowPasswordForm(!showPasswordForm)}
@@ -410,31 +415,31 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   </div>
 
                   {showPasswordForm && (
-                    <form onSubmit={handlePasswordChange} className="space-y-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <form onSubmit={handlePasswordChange} className="space-y-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
                       <div>
-                        <label className="block text-xs font-mono text-silver/60 mb-1">New Password</label>
+                        <label className="block text-xs font-mono text-slate-400 mb-1">New Password</label>
                         <input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full bg-[#050510] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:border-iris/60 outline-none"
+                          className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-mono text-silver/60 mb-1">Confirm Password</label>
+                        <label className="block text-xs font-mono text-slate-400 mb-1">Confirm Password</label>
                         <input
                           type="password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full bg-[#050510] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:border-iris/60 outline-none"
+                          className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={loading}
-                        className="px-4 py-2 rounded-xl bg-iris hover:bg-iris-light text-white text-xs font-medium transition-all"
+                        className="px-4 py-2 rounded-xl bg-white text-black hover:bg-slate-200 text-xs font-medium transition-all shadow-md"
                       >
                         {loading ? 'Updating...' : 'Save New Password'}
                       </button>
@@ -442,8 +447,8 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-iris/10 border border-iris/30 text-xs text-silver/80 space-y-2">
-                  <div className="flex items-center gap-2 text-iris font-medium">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] text-xs text-slate-300 space-y-2">
+                  <div className="flex items-center gap-2 text-indigo-400 font-medium">
                     <Sparkles size={15} />
                     <span>Create a Free Cloud Account</span>
                   </div>
@@ -457,15 +462,15 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           {/* Tab 2: Custom Instructions & Persona */}
           {activeTab === 'instructions' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-white">Custom Instructions & Persona</h3>
-                <p className="text-xs text-silver/50">Tailor how Zorvik AI formats responses, technical depth, and architectural reasoning.</p>
+                <p className="text-xs text-slate-400">Tailor how Zorvik AI formats responses, technical depth, and architectural reasoning.</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono uppercase text-silver/50 mb-2">Technical Persona Role</label>
+                  <label className="block text-xs font-mono uppercase text-slate-400 mb-2">Technical Persona Role</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {[
                       { id: 'general', label: 'Polymath Engineer', desc: 'Balanced architecture, full-stack, and reasoning' },
@@ -476,21 +481,21 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                       <button
                         key={p.id}
                         onClick={() => setSelectedPersona(p.id)}
-                        className={`text-left p-3 rounded-xl border transition-all ${
+                        className={`text-left p-3.5 rounded-2xl border transition-all ${
                           selectedPersona === p.id
-                            ? 'bg-iris/20 border-iris text-white shadow-sm'
-                            : 'bg-white/[0.02] border-white/[0.06] text-silver/60 hover:text-white hover:bg-white/[0.04]'
+                            ? 'bg-white/[0.10] border-white/[0.22] text-white shadow-sm'
+                            : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.04]'
                         }`}
                       >
                         <div className="text-xs font-semibold">{p.label}</div>
-                        <div className="text-[10px] text-silver/40 mt-0.5">{p.desc}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{p.desc}</div>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono uppercase text-silver/50 mb-2">Conversational Tone</label>
+                  <label className="block text-xs font-mono uppercase text-slate-400 mb-2">Conversational Tone</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { id: 'auto', label: 'Adaptive Auto' },
@@ -503,8 +508,8 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                         onClick={() => setSelectedTone(t.id)}
                         className={`p-2.5 rounded-xl text-center text-xs font-medium border transition-all ${
                           selectedTone === t.id
-                            ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
-                            : 'bg-white/[0.02] border-white/[0.06] text-silver/60 hover:text-white hover:bg-white/[0.04]'
+                            ? 'bg-white/[0.12] border-white/[0.22] text-white font-semibold'
+                            : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.04]'
                         }`}
                       >
                         {t.label}
@@ -514,7 +519,7 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono uppercase text-silver/50 mb-2">
+                  <label className="block text-xs font-mono uppercase text-slate-400 mb-2">
                     Persistent System Instructions
                   </label>
                   <textarea
@@ -522,7 +527,7 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                     value={customInstructions}
                     onChange={(e) => setCustomInstructions(e.target.value)}
                     placeholder="e.g. Always write TypeScript instead of plain JS. Prioritize functional programming and provide code explanations concisely."
-                    className="w-full bg-[#050510] border border-white/[0.1] rounded-xl p-3 text-xs text-white focus:border-iris/60 outline-none leading-relaxed"
+                    className="w-full bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-2xl p-3.5 text-xs text-white outline-none leading-relaxed transition-all"
                   />
                 </div>
 
@@ -530,7 +535,7 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   <button
                     onClick={handleSavePreferences}
                     disabled={savingPreferences}
-                    className="px-5 py-2.5 rounded-xl bg-iris hover:bg-iris-light text-white text-xs font-medium transition-all shadow-md flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-xl bg-white text-black hover:bg-slate-200 text-xs font-semibold transition-all shadow-md flex items-center gap-2"
                   >
                     {savingPreferences ? <RefreshCw size={13} className="animate-spin" /> : <Sparkles size={13} />}
                     <span>Save Instructions</span>
@@ -542,15 +547,15 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           {/* Tab 3: Autonomous Neural Memory */}
           {activeTab === 'memories' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h3 className="text-lg font-semibold text-white">Autonomous Neural Memory</h3>
-                  <p className="text-xs text-silver/50">Facts, stack preferences, and goals remembered automatically across chats.</p>
+                  <p className="text-xs text-slate-400">Facts, stack preferences, and goals remembered automatically across chats.</p>
                 </div>
                 <button
                   onClick={handleExportMemories}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs text-silver/80 hover:text-white transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs text-slate-300 hover:text-white transition-all"
                 >
                   <Download size={13} />
                   <span>Export JSON</span>
@@ -564,12 +569,12 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   value={newMemoryText}
                   onChange={(e) => setNewMemoryText(e.target.value)}
                   placeholder="Teach Zorvik a permanent fact (e.g. 'I work on Next.js 15 & PostgreSQL')..."
-                  className="flex-1 bg-[#050510] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:border-iris/60 outline-none"
+                  className="flex-1 bg-[#080810] border border-white/[0.08] focus:border-white/[0.22] rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all"
                 />
                 <button
                   type="submit"
                   disabled={addingMemory || !newMemoryText.trim()}
-                  className="px-4 py-2 rounded-xl bg-iris hover:bg-iris-light disabled:opacity-40 text-white text-xs font-medium transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-white text-black hover:bg-slate-200 disabled:opacity-40 text-xs font-semibold transition-all flex items-center gap-1.5 shadow-md"
                 >
                   <Plus size={14} />
                   <span>Remember</span>
@@ -583,30 +588,30 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   value={memorySearch}
                   onChange={(e) => setMemorySearch(e.target.value)}
                   placeholder="Filter remembered facts..."
-                  className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-1.5 text-xs text-silver/80 outline-none"
+                  className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-3.5 py-1.5 text-xs text-slate-300 outline-none"
                 />
               )}
 
               {/* Memory Cards */}
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {filteredMemories.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-silver/30 font-light flex flex-col items-center gap-2">
-                    <Brain size={24} className="text-silver/20" />
+                  <div className="py-8 text-center text-xs text-slate-500 font-light flex flex-col items-center gap-2">
+                    <Brain size={24} className="text-slate-600" />
                     <span>No neural memories stored yet. As you chat, key facts will be captured automatically.</span>
                   </div>
                 ) : (
                   filteredMemories.map((m) => (
                     <div
                       key={m.id}
-                      className="group flex items-start justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/30 text-xs text-silver/90 transition-all gap-3"
+                      className="group flex items-start justify-between p-3.5 rounded-2xl bg-[#080810] border border-white/[0.06] hover:border-white/[0.18] text-xs text-slate-200 transition-all gap-3"
                     >
                       <div className="flex items-start gap-2.5 flex-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-iris mt-1.5 shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
                         <span className="leading-relaxed select-text">{m.text}</span>
                       </div>
                       <button
                         onClick={() => handleDeleteMemory(m.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-silver/40 hover:text-crimson transition-opacity shrink-0"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-opacity shrink-0"
                         title="Forget this memory"
                       >
                         <Trash2 size={13} />
@@ -620,28 +625,28 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           {/* Tab 4: Quotas & Telemetry */}
           {activeTab === 'quotas' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-white">Quota & Engine Matrix</h3>
-                <p className="text-xs text-silver/50">Real-time telemetry on rate limits, token allocations, and active inference engines.</p>
+                <p className="text-xs text-slate-400">Real-time telemetry on rate limits, token allocations, and active inference engines.</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-silver/60">Monthly Token Allocation</span>
+                  <span className="text-slate-400">Monthly Token Allocation</span>
                   <span className="text-white">Active (Uncapped $0 Tier)</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-iris to-cyan-400 w-1/4 rounded-full" />
+                  <div className="h-full bg-white w-1/4 rounded-full" />
                 </div>
-                <div className="text-[11px] font-mono text-silver/40 flex justify-between">
+                <div className="text-[11px] font-mono text-slate-400 flex justify-between">
                   <span>Usage: Healthy</span>
                   <span>Rate Limit: 60 req / min</span>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-xs font-mono uppercase text-silver/50 mb-3">Multi-Engine Neural Matrix</h4>
+                <h4 className="text-xs font-mono uppercase text-slate-400 mb-3">Multi-Engine Neural Matrix</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { name: 'Google Gemini 2.5 Flash', role: 'Primary Vision & Web Grounding Engine', status: 'Operational' },
@@ -649,10 +654,10 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                     { name: 'Mistral & Codestral', role: 'Specialized Code Intelligence', status: 'Operational' },
                     { name: 'OpenRouter (DeepSeek R1)', role: 'Deep Multi-Step Mathematical Reasoning', status: 'Operational' },
                   ].map((eng, idx) => (
-                    <div key={idx} className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                    <div key={idx} className="p-3.5 rounded-2xl bg-[#080810] border border-white/[0.06] flex items-center justify-between">
                       <div>
                         <div className="text-xs font-medium text-white">{eng.name}</div>
-                        <div className="text-[10px] text-silver/40">{eng.role}</div>
+                        <div className="text-[10px] text-slate-400">{eng.role}</div>
                       </div>
                       <span className="text-[10px] font-mono text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                         {eng.status}
@@ -666,31 +671,31 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           {/* Tab 5: Appearance & Interface */}
           {activeTab === 'appearance' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-white">Interface & Aesthetics</h3>
-                <p className="text-xs text-silver/50">Customize the visual density, cyber glow effects, and animation intensity.</p>
+                <p className="text-xs text-slate-400">Customize the visual density, cyber glow effects, and animation intensity.</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono uppercase text-silver/50 mb-2">Accent Glow Theme</label>
+                  <label className="block text-xs font-mono uppercase text-slate-400 mb-2">Accent Glow Theme</label>
                   <div className="flex gap-3">
                     {[
-                      { id: 'iris', label: 'Iris Purple', color: 'bg-purple-600' },
+                      { id: 'iris', label: 'Electric Indigo', color: 'bg-indigo-500' },
                       { id: 'cyan', label: 'Cyber Cyan', color: 'bg-cyan-500' },
-                      { id: 'crimson', label: 'Neon Crimson', color: 'bg-rose-500' },
+                      { id: 'crimson', label: 'Neon Rose', color: 'bg-rose-500' },
                     ].map((th) => (
                       <button
                         key={th.id}
                         onClick={() => setAccentColor(th.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
                           accentColor === th.id
-                            ? 'border-white/40 bg-white/[0.06] text-white shadow-md'
-                            : 'border-white/[0.06] bg-white/[0.02] text-silver/60 hover:text-white'
+                            ? 'border-white/30 bg-white/[0.08] text-white shadow-sm'
+                            : 'border-white/[0.06] bg-white/[0.02] text-slate-400 hover:text-white'
                         }`}
                       >
-                        <span className={`w-3 h-3 rounded-full ${th.color}`} />
+                        <span className={`w-2.5 h-2.5 rounded-full ${th.color}`} />
                         <span>{th.label}</span>
                       </button>
                     ))}
@@ -701,26 +706,26 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs font-medium text-white">Smooth Motion Animations</div>
-                      <div className="text-[10px] text-silver/40">Enable Glassmorphism 2.0 animated floating backgrounds.</div>
+                      <div className="text-[10px] text-slate-400">Enable Glassmorphism 2.0 animated floating backgrounds.</div>
                     </div>
                     <input
                       type="checkbox"
                       checked={animationsEnabled}
                       onChange={(e) => setAnimationsEnabled(e.target.checked)}
-                      className="accent-purple-600 rounded"
+                      className="accent-white rounded cursor-pointer"
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs font-medium text-white">Format Math with LaTeX</div>
-                      <div className="text-[10px] text-silver/40">Render formulas like $E=mc^2$ via KaTeX engine.</div>
+                      <div className="text-[10px] text-slate-400">Render formulas like $E=mc^2$ via KaTeX engine.</div>
                     </div>
                     <input
                       type="checkbox"
                       checked={includeLatex}
                       onChange={(e) => setIncludeLatex(e.target.checked)}
-                      className="accent-purple-600 rounded"
+                      className="accent-white rounded cursor-pointer"
                     />
                   </div>
                 </div>
@@ -730,17 +735,17 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
 
           {/* Tab 6: Data, Privacy & Exports */}
           {activeTab === 'data' && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-white">Data, Privacy & Local Storage</h3>
-                <p className="text-xs text-silver/50">Export your conversation transcripts, wipe cache, or inspect security protocols.</p>
+                <p className="text-xs text-slate-400">Export your conversation transcripts, wipe cache, or inspect security protocols.</p>
               </div>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-medium text-white">Export All Conversations</h4>
-                    <p className="text-[10px] text-silver/40">Download a complete JSON backup of all stored thread histories.</p>
+                    <p className="text-[10px] text-slate-400">Download a complete JSON backup of all stored thread histories.</p>
                   </div>
                   <button
                     onClick={handleExportChatHistory}
@@ -751,14 +756,18 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
                   </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-medium text-white">Security & Encryption</h4>
-                    <p className="text-[10px] text-silver/40">All requests are TLS 1.3 encrypted with ephemeral token streaming.</p>
+                    <h4 className="text-xs font-medium text-rose-400">Reset Local Browser State</h4>
+                    <p className="text-[10px] text-slate-400">Clear cached guest settings, local sessions, and temporary state.</p>
                   </div>
-                  <span className="text-[10px] font-mono text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-                    AES-256 Active
-                  </span>
+                  <button
+                    onClick={handleClearLocalStorage}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-xs text-rose-400 font-medium transition-all"
+                  >
+                    <Trash2 size={13} />
+                    <span>Clear Storage</span>
+                  </button>
                 </div>
               </div>
             </div>

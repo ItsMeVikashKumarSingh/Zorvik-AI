@@ -80,10 +80,29 @@ export const App: React.FC = () => {
 
     window.addEventListener('popstate', handlePopState);
 
-    // Sync active session user
+    // Sync active session user & handle OAuth code exchange
     const supabase = getSupabase();
     let authSub: { unsubscribe: () => void } | null = null;
     if (supabase) {
+      // Explicitly exchange OAuth code if present in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      if (code) {
+        supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+          if (!error && data?.session?.user) {
+            setUser({
+              id: data.session.user.id,
+              email: data.session.user.email || null,
+              isGuest: false,
+            });
+            window.history.replaceState({}, '', '/app');
+            setCurrentView('app');
+          }
+        }).catch(() => {
+          // Handled by onAuthStateChange fallback
+        });
+      }
+
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
           setUser({
@@ -95,19 +114,19 @@ export const App: React.FC = () => {
       });
 
       const { data } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
           setUser({
             id: session.user.id,
             email: session.user.email || null,
             isGuest: false,
           });
-          // Only auto-redirect to /app if returning from an OAuth callback
+          // Clean up OAuth query parameters/hash and switch to /app
           if (
             window.location.hash.includes('access_token=') ||
             window.location.hash.includes('refresh_token=') ||
             window.location.search.includes('code=')
           ) {
-            window.history.pushState({}, '', '/app');
+            window.history.replaceState({}, '', '/app');
             setCurrentView('app');
           }
         } else if (event === 'SIGNED_OUT') {

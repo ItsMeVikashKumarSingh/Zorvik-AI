@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
   ArrowUp,
-  StopCircle,
+  Square,
   Globe,
   Search,
   Brain,
@@ -235,39 +235,39 @@ export const InputDock: React.FC<InputDockProps> = ({
 
       {/* Input Box Container */}
       <div
-        className={`relative rounded-2xl bg-[#080812]/95 border transition-all p-3 sm:p-3.5 shadow-2xl ${
+        className={`relative rounded-2xl bg-[#0c0c14]/90 border transition-all p-3 sm:p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-2xl ${
           isListening
-            ? 'border-crimson/80 shadow-[0_0_32px_rgba(244,63,94,0.25)] ring-1 ring-crimson/50'
-            : 'border-white/[0.10] focus-within:border-iris/50 focus-within:shadow-[0_0_24px_rgba(128,82,255,0.12)]'
+            ? 'border-rose-500/70 shadow-[0_0_32px_rgba(244,63,94,0.20)] ring-1 ring-rose-500/40'
+            : 'border-white/[0.08] focus-within:border-white/[0.22] focus-within:ring-1 focus-within:ring-white/[0.10]'
         }`}
       >
         {/* Live Audio Visualizer Waveform Animation when Recording */}
         {isListening && (
-          <div className="flex items-center justify-between px-3 py-2 mb-2 rounded-xl bg-crimson/10 border border-crimson/30 shadow-[0_0_20px_rgba(244,63,94,0.15)] animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-3.5 py-2 mb-2 rounded-xl bg-rose-500/10 border border-rose-500/20 shadow-sm animate-in fade-in duration-150">
             <div className="flex items-center gap-2.5">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-crimson" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
               </span>
-              <span className="text-xs font-mono text-crimson uppercase tracking-wider font-semibold">
+              <span className="text-xs font-mono text-rose-400 uppercase tracking-wider font-semibold">
                 Listening to Voice...
               </span>
             </div>
 
             {/* Live Responsive Waveform Spectrum */}
-            <div className="flex items-center gap-1 h-6 px-2">
+            <div className="flex items-center gap-1 h-5 px-2">
               <style>{`
                 @keyframes zorvikWave {
-                  0%, 100% { height: 4px; opacity: 0.35; }
-                  50% { height: 20px; opacity: 1; }
+                  0%, 100% { height: 3px; opacity: 0.3; }
+                  50% { height: 18px; opacity: 1; }
                 }
               `}</style>
-              {[0, 150, 300, 80, 220, 380, 120, 260, 40, 190, 340, 100, 280, 60].map((delay, idx) => (
+              {[0, 140, 280, 70, 210, 350, 110, 250, 35, 180, 320, 90, 260, 50].map((delay, idx) => (
                 <span
                   key={idx}
-                  className="w-1 rounded-full bg-gradient-to-t from-crimson to-rose-400"
+                  className="w-0.5 rounded-full bg-gradient-to-t from-rose-500 to-rose-300"
                   style={{
-                    height: '6px',
+                    height: '5px',
                     animation: `zorvikWave 0.75s ease-in-out infinite alternate`,
                     animationDelay: `${delay}ms`,
                   }}
@@ -283,9 +283,9 @@ export const InputDock: React.FC<InputDockProps> = ({
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={isListening ? 'Speak now, transcribing in real-time...' : 'Ask anything, attach code/images, or search...'}
+          placeholder={isListening ? 'Listening in real-time...' : 'Message Zorvik AI, attach code/images, or search...'}
           rows={1}
-          className="w-full bg-transparent text-sm sm:text-base font-light text-white placeholder-silver/30 resize-none outline-none py-1 px-1 min-h-[26px] max-h-48 overflow-y-auto leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
+          className="w-full bg-transparent text-sm sm:text-base font-normal text-slate-100 placeholder-slate-500 resize-none outline-none py-1 px-1 min-h-[26px] max-h-48 overflow-y-auto leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
         />
 
         {/* Hidden File Input */}
@@ -299,13 +299,13 @@ export const InputDock: React.FC<InputDockProps> = ({
         />
 
         {/* Bottom Actions Row */}
-        <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/[0.04]">
+        <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-white/[0.04]">
           {/* Left: Mode Dropdown, Prompt Library, & File Attach */}
           <div className="flex items-center gap-1.5 relative" ref={dropdownRef}>
             {/* File Attach Button */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 rounded-lg text-silver/50 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center gap-1 text-xs"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors flex items-center gap-1 text-xs"
               title="Attach image or file"
             >
               <Paperclip size={14} />
@@ -315,18 +315,18 @@ export const InputDock: React.FC<InputDockProps> = ({
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 text-xs text-white transition-all font-light"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.16] hover:bg-white/[0.06] text-xs text-slate-200 transition-all font-medium select-none"
                 title="Select Intelligence Mode"
               >
-                <CurrentIcon size={12} className="text-iris" />
+                <CurrentIcon size={12} className="text-indigo-400" />
                 <span className="text-[11px] font-medium">{currentFocusMode.label}</span>
-                <ChevronDown size={11} className="text-silver/40" />
+                <ChevronDown size={11} className="text-slate-400" />
               </button>
 
               {/* Mode Selection Popover */}
               {isDropdownOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl bg-[#090914] border border-white/[0.08] p-2 shadow-2xl z-50 animate-fadeIn space-y-1">
-                  <div className="px-2 py-1 border-b border-white/[0.04] text-[10px] font-mono text-silver/40 uppercase">
+                <div className="absolute bottom-full left-0 mb-2 w-64 rounded-2xl bg-[#0e0e18]/95 border border-white/[0.10] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-0.5">
+                  <div className="px-2.5 py-1 text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
                     Intelligence Modes
                   </div>
 
@@ -340,16 +340,16 @@ export const InputDock: React.FC<InputDockProps> = ({
                           onModeChange(f.id);
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full flex items-start gap-2 px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                        className={`w-full flex items-start gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all ${
                           isActive
-                            ? 'bg-iris/20 text-iris border border-iris/30'
-                            : 'text-silver/70 hover:text-white hover:bg-white/[0.04]'
+                            ? 'bg-white/[0.08] text-white font-medium shadow-sm'
+                            : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
                         }`}
                       >
-                        <ModeIcon size={13} className={`mt-0.5 shrink-0 ${isActive ? 'text-iris' : 'text-silver/40'}`} />
+                        <ModeIcon size={13} className={`mt-0.5 shrink-0 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-medium leading-tight">{f.label}</div>
-                          <div className="text-[10px] text-silver/40 font-light truncate">{f.desc}</div>
+                          <div className="text-[10px] text-slate-400 font-light truncate mt-0.5">{f.desc}</div>
                         </div>
                       </button>
                     );
@@ -358,56 +358,49 @@ export const InputDock: React.FC<InputDockProps> = ({
               )}
             </div>
 
-            {/* Dedicated Prompt Blueprint Library Button (Separated from Mode Dropdown) */}
+            {/* Dedicated Prompt Blueprint Library Button */}
             {onOpenPromptLibrary && (
               <button
                 onClick={onOpenPromptLibrary}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 hover:bg-iris/10 text-xs text-silver/80 hover:text-white transition-all font-light group"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.16] hover:bg-white/[0.06] text-xs text-slate-300 hover:text-white transition-all font-medium select-none group"
                 title="Open Prompt Blueprint Library"
               >
-                <BookOpen size={12} className="text-iris group-hover:scale-110 transition-transform" />
+                <BookOpen size={12} className="text-indigo-400 group-hover:scale-110 transition-transform" />
                 <span className="text-[11px] font-medium hidden sm:inline">Prompts</span>
               </button>
             )}
           </div>
 
-          {/* Right Side: Mic on Right & Send/Cancel Trigger */}
+          {/* Right Side: Mic & Send / Stop Button */}
           <div className="flex items-center gap-1.5">
-            {/* Voice Dictation Button (Placed on the Right) */}
             <button
               onClick={toggleListening}
               className={`p-1.5 rounded-xl transition-all flex items-center justify-center ${
                 isListening
-                  ? 'bg-crimson text-white animate-pulse shadow-md shadow-crimson/30'
-                  : 'text-silver/50 hover:text-white hover:bg-white/[0.04]'
+                  ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04]'
               }`}
               title={isListening ? 'Stop Listening' : 'Voice Dictation'}
             >
               {isListening ? <MicOff size={15} /> : <Mic size={15} />}
             </button>
 
-            {/* Action Trigger: Prominent Cancel/Stop while responding or Send */}
             {isStreaming ? (
               <button
                 onClick={onStop}
-                className="p-1.5 px-3 rounded-xl bg-crimson/20 border border-crimson/40 text-crimson hover:bg-crimson hover:text-white transition-all shadow-sm flex items-center gap-1 text-xs font-medium"
-                title="Cancel response"
+                className="p-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 hover:bg-rose-500/30 hover:text-rose-300 transition-all flex items-center justify-center shadow-sm"
+                title="Cancel Generation"
               >
-                <StopCircle size={14} />
-                <span>Cancel</span>
+                <Square size={14} />
               </button>
             ) : (
               <button
-                onClick={onSend}
+                onClick={() => onSend()}
                 disabled={!input.trim() && attachments.length === 0}
-                className={`p-1.5 rounded-xl transition-all flex items-center gap-1 ${
-                  input.trim() || attachments.length > 0
-                    ? 'bg-iris text-white hover:bg-iris/80 shadow-md shadow-iris/20'
-                    : 'bg-white/[0.04] text-silver/20 cursor-not-allowed'
-                }`}
-                title="Send message (Enter)"
+                className="p-2 rounded-xl bg-white text-black hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-white transition-all flex items-center justify-center font-medium shadow-md shadow-black/40 active:scale-95"
+                title="Send Message"
               >
-                <ArrowUp size={15} />
+                <ArrowUp size={15} strokeWidth={2.5} />
               </button>
             )}
           </div>

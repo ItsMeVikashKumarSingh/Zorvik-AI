@@ -22,6 +22,7 @@ export function getSupabase(): SupabaseClient | null {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
+          flowType: 'pkce',
         },
       });
     } catch (err) {
@@ -69,6 +70,20 @@ export async function signUpWithEmail(email: string, password: string) {
   return client.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined,
+    },
+  });
+}
+
+export async function resendVerificationEmail(email: string) {
+  const client = getSupabase();
+  if (!client) {
+    throw new Error('Supabase client is not initialized. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
+  }
+  return client.auth.resend({
+    type: 'signup',
+    email,
     options: {
       emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined,
     },

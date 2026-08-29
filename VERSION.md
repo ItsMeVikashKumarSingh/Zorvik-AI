@@ -2,6 +2,30 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.12] - 2026-08-29
+### Enterprise UI/UX Overhaul, Character Studio & Luxury Dark Palette
+- **Enterprise Dark Palette & Surface Tokens ([`tailwind.config.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/tailwind.config.js), [`index.css`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/styles/index.css))**:
+  - Replaced harsh neon purple/cyan palette with a unified **Deep Obsidian palette** (`#07070a` base, `#0c0c14` surfaces, `#12121c` elevated cards).
+  - Subdued 1px neutral borders (`rgba(255,255,255,0.06)` to `rgba(255,255,255,0.12)`), silky minimal scrollbars, and refined Slate-400 typography hierarchy.
+- **Floating Command Docks ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx))**:
+  - Linear/Raycast-inspired floating command dock with subtle inner shadow, sleek focus rings, minimalist mode pill selectors, and clean voice waveforms.
+- **Expanded Intelligence & Character Persona Hub ([`PromptLibraryModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/PromptLibraryModal.tsx))**:
+  - **💖 Romance & Companions**: Added Affectionate AI Girlfriend (Maya), Charming AI Boyfriend (Liam), Devoted Life Partner (Elena), and Elite Charisma & Flirtation Coach.
+  - **🩺 Clinical Medical & Therapy**: Added Clinical CBT Psychologist (Dr. Reed), Internal Medicine & Diagnostic Physician, Longevity & Biohacking Specialist, and Hypertrophy Biomechanics Coach.
+  - **🎨 Interactive Custom Character Studio**: Real-time sliders for Affection/Romance, Banter/Wit, Empathy/Listening, and Professional Rigor, custom nicknames, shared history context, local storage persistence, and 1-click chat launch.
+- **Executive Control Center Dashboard ([`ProfileSettingsPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ProfileSettingsPage.tsx))**:
+  - Clean Apple/Linear segmented cards, refined sidebar navigation grouping, and polished form inputs.
+- **Instantaneous Tab & Modal Transitions ([`ProfileSettingsPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ProfileSettingsPage.tsx), [`PromptLibraryModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/PromptLibraryModal.tsx), [`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:
+  - Completely eliminated all artificial fade-in/fade-out blinks and layout interpolation delays during tab switching. Tab state changes are now 100% instant and native-feeling.
+- **Email Verification Guard & Resend Modal ([`AuthModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AuthModal.tsx), [`supabase.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/lib/supabase.ts))**:
+  - Prevented automatic session login when email confirmation is pending (`data.session === null` or unconfirmed).
+  - Added a dedicated "Check Your Inbox" verification screen with the user's email, instructions, a 60-second cooldown "Resend Verification Email" button, and back-to-login controls.
+- **Google OAuth PKCE Code Exchange Resolution ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx), [`supabase.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/lib/supabase.ts))**:
+  - Preserved OAuth query parameters (`?code=...`) upon landing from Google sign-in.
+  - Implemented explicit `exchangeCodeForSession(code)` with `flowType: 'pkce'`, ensuring seamless auth state transition and direct route into `/app`.
+- **Header, Sidebar & Message Bubble Polish ([`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx), [`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx), [`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - Crisp typography, minimal border dividers, refined citation chips, and sleek hover states.
+
 ## [1.0.11] - 2026-08-29
 ### Landing Page Preservation on Root URL & Sidebar Prompt Library Integration
 - **Preserved Landing Page on Root Domain ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx))**:
