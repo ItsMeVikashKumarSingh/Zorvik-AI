@@ -244,7 +244,6 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
           </button>
           <div className="h-4 w-px bg-white/[0.08] hidden sm:block" />
           <button onClick={onNavigateHome} className="flex items-center gap-2">
-            <img src="/logo.png" alt="Zorvik AI" className="w-5 h-5 rounded-md object-contain" />
             <span className="font-semibold tracking-wide text-white text-sm">Zorvik AI</span>
             <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08]">
               Control Center
@@ -358,6 +357,23 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
             <Database size={15} />
             <span>Data, Privacy & Exports</span>
           </button>
+
+          {/* Brand Attribution */}
+          <div className="pt-6 mt-6 border-t border-white/[0.06] text-[11px] text-slate-500 space-y-1 px-1">
+            <p className="font-semibold text-slate-300">Zorvik AI</p>
+            <p className="text-[11px] text-slate-400">
+              Powered by{' '}
+              <a
+                href="https://zorviktech.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+              >
+                Zorvik Tech
+              </a>
+            </p>
+            <p className="text-[10px] font-mono text-slate-600">© 2026 Zorvik Tech. All rights reserved.</p>
+          </div>
         </aside>
 
         {/* Tab Detail Pane */}

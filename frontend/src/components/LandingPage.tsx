@@ -482,15 +482,12 @@ print(response.content)`,
             {/* 1. Brand & Socials */}
             <div className="space-y-4 lg:col-span-1">
               <div className="flex items-center gap-3">
-                <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-void">
-                  <img src="/zorvik-logo.jpg" alt="Zorvik Logo" className="h-full w-full object-cover" />
-                </div>
                 <span className="font-mono text-base font-bold tracking-tight text-bone-white">
                   ZORVIK <span className="text-saffron-spark font-light">ΛI</span>
                 </span>
               </div>
               <p className="text-xs text-silver-mist/70 font-extralight leading-relaxed max-w-xs">
-                The intelligence that speaks your language. Autonomous reasoning, cultural fluency, and enterprise speed on demand.
+                Next-generation multi-model intelligence and autonomous reasoning. Zorvik AI is designed and powered by <a href="https://zorviktech.com" target="_blank" rel="noopener noreferrer" className="text-bone-white underline underline-offset-2 hover:text-white transition-colors">Zorvik Tech</a>.
               </p>
 
               {/* Social Buttons */}

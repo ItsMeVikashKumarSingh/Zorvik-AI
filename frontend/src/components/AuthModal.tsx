@@ -222,8 +222,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Brand Lockup */}
-        <div className="flex items-center gap-2 mb-2">
-          <img src="/logo.png" alt="Zorvik AI" className="w-6 h-6 rounded-lg object-contain" />
+        <div className="mb-2">
           <span className="font-semibold tracking-wider text-white text-base">Zorvik AI</span>
         </div>
 

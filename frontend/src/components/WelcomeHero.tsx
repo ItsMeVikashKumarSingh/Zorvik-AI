@@ -230,11 +230,8 @@ export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full my-auto px-2">
-      {/* Brand Icon & Heading */}
+      {/* Heading & Subtitle */}
       <div className="text-center mb-6 space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-900/40 via-iris/20 to-cyan-500/20 border border-white/[0.08] flex items-center justify-center mx-auto shadow-xl shadow-purple-950/20">
-          <img src="/logo.png" alt="Zorvik AI" className="w-6 h-6 object-contain" />
-        </div>
         <h2 className="text-2xl sm:text-3xl font-medium text-white tracking-tight">
           What do you want to explore?
         </h2>
