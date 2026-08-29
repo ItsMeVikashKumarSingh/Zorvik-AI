@@ -18,6 +18,10 @@ marked.setOptions({
 marked.use({
   renderer: {
     code({ text, lang }) {
+      if (lang === 'mermaid') {
+        return `<div class="mermaid-block my-4 p-4 rounded-xl border border-white/[0.08] bg-[#070710] overflow-x-auto text-center shadow-xl"><pre class="mermaid !bg-transparent !p-0 !m-0 font-sans text-xs">${text.trim()}</pre></div>`;
+      }
+
       const language = lang && Prism.languages[lang] ? lang : (lang === 'ts' || lang === 'tsx' ? 'typescript' : (lang === 'js' || lang === 'jsx' ? 'javascript' : (lang === 'sh' || lang === 'shell' ? 'bash' : 'plaintext')));
       let highlighted = text;
       if (language !== 'plaintext' && Prism.languages[language]) {
@@ -93,7 +97,46 @@ export function renderMarkdown(content: string): string {
 
   // 3. Sanitize HTML to prevent XSS
   return DOMPurify.sanitize(rawHtml, {
-    ADD_TAGS: ['math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'span', 'svg', 'path'],
-    ADD_ATTR: ['class', 'style', 'viewBox', 'fill', 'xmlns', 'd', 'stroke', 'stroke-width', 'stroke-linecap', 'aria-hidden'],
+    ADD_TAGS: [
+      'math',
+      'mrow',
+      'mi',
+      'mo',
+      'mn',
+      'msup',
+      'msub',
+      'mfrac',
+      'span',
+      'svg',
+      'g',
+      'path',
+      'rect',
+      'circle',
+      'text',
+      'line',
+      'polygon',
+      'polyline',
+      'marker',
+      'defs',
+      'clippath',
+      'foreignobject',
+      'pre',
+    ],
+    ADD_ATTR: [
+      'class',
+      'style',
+      'viewBox',
+      'fill',
+      'xmlns',
+      'd',
+      'stroke',
+      'stroke-width',
+      'stroke-linecap',
+      'aria-hidden',
+      'id',
+      'transform',
+      'width',
+      'height',
+    ],
   });
 }

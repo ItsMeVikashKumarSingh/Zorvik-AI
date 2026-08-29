@@ -5,6 +5,7 @@
  */
 const { circuitBreaker } = require("./circuitBreaker");
 const { groundPrompt, extractDomain } = require("./webGrounding");
+const { detectHeuristicToolCall, executeTool } = require("./toolRegistry");
 
 /**
  * Helper to sanitize and format conversation history for Google Gemini API
@@ -106,6 +107,7 @@ async function streamGemini({
   apiKey,
   model = "gemini-2.5-flash",
   searchGrounding = false,
+  signal,
   onChunk,
 }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
@@ -132,6 +134,7 @@ async function streamGemini({
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal,
   });
 
   if (!response.ok) {
@@ -217,6 +220,7 @@ async function streamOpenAICompatible({
   systemPrompt,
   history,
   prompt,
+  signal,
   onChunk,
 }) {
   const messages = formatOpenAIMessages(systemPrompt, history, prompt);
@@ -236,6 +240,7 @@ async function streamOpenAICompatible({
       ...headers,
     },
     body: JSON.stringify(payload),
+    signal,
   });
 
   if (!response.ok) {
@@ -330,6 +335,7 @@ async function routeQueryStream({
   prompt,
   mode = "auto",
   files = [],
+  signal,
   onChunk,
 }) {
   const startTime = Date.now();
@@ -339,11 +345,22 @@ async function routeQueryStream({
   const mistralKey = process.env.MISTRAL_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
-  // 1. Universal Real-Time Web Grounding & Live URL Scraper
-  const grounding = await groundPrompt({ prompt, mode });
+  // 1. Dynamic Tool & Function Calling Execution
   let effectiveSystemPrompt = systemPrompt;
+  const toolCall = detectHeuristicToolCall(prompt);
+  if (toolCall) {
+    try {
+      const toolOutput = await executeTool(toolCall.toolName, toolCall.args);
+      effectiveSystemPrompt = `${effectiveSystemPrompt}\n\n### DETERMINISTIC TOOL EXECUTION RESULT (${toolCall.toolName}):\n${JSON.stringify(toolOutput, null, 2)}`;
+    } catch (_toolErr) {
+      // Non-blocking tool execution failure
+    }
+  }
+
+  // 2. Universal Real-Time Web Grounding & Live URL Scraper
+  const grounding = await groundPrompt({ prompt, mode });
   if (grounding.hasGrounding && grounding.enrichedContext) {
-    effectiveSystemPrompt = `${systemPrompt}\n\n${grounding.enrichedContext}`;
+    effectiveSystemPrompt = `${effectiveSystemPrompt}\n\n${grounding.enrichedContext}`;
   }
 
   const isSearchRequested =
@@ -361,6 +378,7 @@ async function routeQueryStream({
         apiKey: geminiKey,
         model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
         searchGrounding: isSearchRequested,
+        signal,
         onChunk,
       });
       circuitBreaker.recordSuccess("gemini");
@@ -389,6 +407,7 @@ async function routeQueryStream({
         systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
+        signal,
         onChunk,
       });
       circuitBreaker.recordSuccess("mistral");
@@ -414,6 +433,7 @@ async function routeQueryStream({
         systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
+        signal,
         onChunk,
       });
       circuitBreaker.recordSuccess("groq");
@@ -439,6 +459,7 @@ async function routeQueryStream({
         systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
+        signal,
         onChunk,
       });
       circuitBreaker.recordSuccess("cerebras");
@@ -464,6 +485,7 @@ async function routeQueryStream({
         systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
+        signal,
         onChunk,
       });
       circuitBreaker.recordSuccess("mistral");
@@ -493,6 +515,7 @@ async function routeQueryStream({
         systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
+        signal,
         onChunk,
       });
       circuitBreaker.recordSuccess("openrouter");

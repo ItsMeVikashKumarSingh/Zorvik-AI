@@ -138,8 +138,46 @@ async function tenantAuthMiddleware(req, res, next) {
   next();
 }
 
+/**
+ * Deduct estimated tokens from tenant's monthly quota and trigger threshold warnings
+ * @param {string} tenantId
+ * @param {number} tokens
+ * @returns {Promise<{ used: number, quota: number, pct: number, warning: string | null }>}
+ */
+async function deductTenantTokens(tenantId, tokens = 0) {
+  if (!tenantId || tokens <= 0) return { used: 0, quota: 0, pct: 0, warning: null };
+  const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-08"
+  const quotaKey = `zorvik:tenant:${tenantId}:tokens:${currentMonth}`;
+
+  try {
+    const totalUsed = await redis.incrby(quotaKey, tokens);
+    const tenant = await getTenantConfig(tenantId);
+    const quota = tenant?.monthly_token_quota || 5000000;
+    const pct = (totalUsed / quota) * 100;
+
+    let warning = null;
+    if (pct >= 100) {
+      warning = `CRITICAL: Monthly token quota exhausted (${totalUsed.toLocaleString()} / ${quota.toLocaleString()}).`;
+      console.warn(`[Quota Alert] Tenant ${tenantId} reached 100% quota limit.`);
+    } else if (pct >= 80) {
+      warning = `WARNING: Monthly token quota reached ${pct.toFixed(1)}% (${totalUsed.toLocaleString()} / ${quota.toLocaleString()}).`;
+      console.warn(`[Quota Alert] Tenant ${tenantId} reached 80% threshold.`);
+    }
+
+    return {
+      used: totalUsed,
+      quota,
+      pct: Number(pct.toFixed(2)),
+      warning,
+    };
+  } catch (_err) {
+    return { used: 0, quota: 0, pct: 0, warning: null };
+  }
+}
+
 module.exports = {
   tenantAuthMiddleware,
   getTenantConfig,
+  deductTenantTokens,
   DEFAULT_TENANTS,
 };

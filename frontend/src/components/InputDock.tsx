@@ -241,19 +241,36 @@ export const InputDock: React.FC<InputDockProps> = ({
       >
         {/* Live Audio Visualizer Waveform Animation when Recording */}
         {isListening && (
-          <div className="flex items-center justify-between px-2 py-1.5 mb-2 rounded-xl bg-crimson/10 border border-crimson/20">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-crimson animate-ping" />
-              <span className="text-xs font-mono text-crimson uppercase tracking-wider">Listening to Voice...</span>
+          <div className="flex items-center justify-between px-3 py-2 mb-2 rounded-xl bg-crimson/10 border border-crimson/30 shadow-[0_0_20px_rgba(244,63,94,0.15)] animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-crimson" />
+              </span>
+              <span className="text-xs font-mono text-crimson uppercase tracking-wider font-semibold">
+                Listening to Voice...
+              </span>
             </div>
-            {/* Animated Audio Equalizer Bars */}
-            <div className="flex items-center gap-1">
-              <span className="w-1 h-3 bg-crimson rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1 h-5 bg-crimson rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1 h-2 bg-crimson rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              <span className="w-1 h-6 bg-crimson rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
-              <span className="w-1 h-4 bg-crimson rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-              <span className="w-1 h-2 bg-crimson rounded-full animate-bounce" style={{ animationDelay: '350ms' }} />
+
+            {/* Live Responsive Waveform Spectrum */}
+            <div className="flex items-center gap-1 h-6 px-2">
+              <style>{`
+                @keyframes zorvikWave {
+                  0%, 100% { height: 4px; opacity: 0.35; }
+                  50% { height: 20px; opacity: 1; }
+                }
+              `}</style>
+              {[0, 150, 300, 80, 220, 380, 120, 260, 40, 190, 340, 100, 280, 60].map((delay, idx) => (
+                <span
+                  key={idx}
+                  className="w-1 rounded-full bg-gradient-to-t from-crimson to-rose-400"
+                  style={{
+                    height: '6px',
+                    animation: `zorvikWave 0.75s ease-in-out infinite alternate`,
+                    animationDelay: `${delay}ms`,
+                  }}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -281,7 +298,7 @@ export const InputDock: React.FC<InputDockProps> = ({
 
         {/* Bottom Actions Row */}
         <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/[0.04]">
-          {/* Left: Mode Dropdown & File Attach */}
+          {/* Left: Mode Dropdown, Prompt Library, & File Attach */}
           <div className="flex items-center gap-1.5 relative" ref={dropdownRef}>
             {/* File Attach Button */}
             <button
@@ -292,19 +309,19 @@ export const InputDock: React.FC<InputDockProps> = ({
               <Paperclip size={14} />
             </button>
 
-            {/* Unified Intelligence & Mode Selector Dropdown */}
+            {/* Dedicated Intelligence Focus Mode Selector */}
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 text-xs text-white transition-all font-light"
-                title="Select Intelligence Mode & Blueprints"
+                title="Select Intelligence Mode"
               >
                 <CurrentIcon size={12} className="text-iris" />
                 <span className="text-[11px] font-medium">{currentFocusMode.label}</span>
                 <ChevronDown size={11} className="text-silver/40" />
               </button>
 
-              {/* Mode & Prompt Blueprint Popover */}
+              {/* Mode Selection Popover */}
               {isDropdownOpen && (
                 <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl bg-[#090914] border border-white/[0.08] p-2 shadow-2xl z-50 animate-fadeIn space-y-1">
                   <div className="px-2 py-1 border-b border-white/[0.04] text-[10px] font-mono text-silver/40 uppercase">
@@ -335,25 +352,21 @@ export const InputDock: React.FC<InputDockProps> = ({
                       </button>
                     );
                   })}
-
-                  {onOpenPromptLibrary && (
-                    <>
-                      <div className="pt-1 mt-1 border-t border-white/[0.04]" />
-                      <button
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          onOpenPromptLibrary();
-                        }}
-                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-white hover:bg-iris/10 hover:text-iris border border-transparent hover:border-iris/20 transition-all font-medium"
-                      >
-                        <BookOpen size={13} className="text-iris shrink-0" />
-                        <span>Prompt Blueprint Hub</span>
-                      </button>
-                    </>
-                  )}
                 </div>
               )}
             </div>
+
+            {/* Dedicated Prompt Blueprint Library Button (Separated from Mode Dropdown) */}
+            {onOpenPromptLibrary && (
+              <button
+                onClick={onOpenPromptLibrary}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 hover:bg-iris/10 text-xs text-silver/80 hover:text-white transition-all font-light group"
+                title="Open Prompt Blueprint Library"
+              >
+                <BookOpen size={12} className="text-iris group-hover:scale-110 transition-transform" />
+                <span className="text-[11px] font-medium hidden sm:inline">Prompts</span>
+              </button>
+            )}
           </div>
 
           {/* Right Side: Mic on Right & Send/Cancel Trigger */}

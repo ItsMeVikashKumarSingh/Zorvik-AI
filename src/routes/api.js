@@ -4,7 +4,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { tenantAuthMiddleware } = require("../middleware/tenantAuth");
+const { tenantAuthMiddleware, deductTenantTokens } = require("../middleware/tenantAuth");
 const { userAuthMiddleware } = require("../middleware/userAuth");
 const { securityShield } = require("../middleware/securityShield");
 const { routeQueryStream, routeQuery } = require("../services/modelRouter");
@@ -12,6 +12,8 @@ const { buildSystemPrompt } = require("../services/intentEngine");
 const {
   getSessionHistory,
   appendSessionTurn,
+  getSessionSummary,
+  updateRollingConversationSummary,
   clearSessionMemory,
   getUserProfileConfig,
   saveUserProfileConfig,
@@ -57,9 +59,12 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     req.body?.guest_uuid ||
     "guest_default";
 
-  // 1. Fetch multi-turn history from request body or hot sliding memory
+  // 1. Fetch multi-turn history & rolling executive summary
   const clientHistory = Array.isArray(req.body.history) && req.body.history.length > 0 ? req.body.history : null;
-  const serverHistory = await getSessionHistory(sessionId);
+  const [serverHistory, sessionSummary] = await Promise.all([
+    getSessionHistory(sessionId),
+    getSessionSummary(sessionId),
+  ]);
   const history = clientHistory || serverHistory || [];
 
   // 2. Fetch user personalization & long-term memories
@@ -92,17 +97,26 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     }
   }
 
-  // 3. Build system persona based on mode, intent, tenant overrides & user memories
+  // 3. Build system persona based on mode, intent, tenant overrides, summary & user memories
   const systemPrompt = buildSystemPrompt({
     mode,
     prompt,
     tenantPrompt: tenant.custom_system_prompt,
     userMemories,
     customInstructions,
+    conversationSummary: sessionSummary,
   });
 
   // 4. Handle Real-Time Streaming Response (True SSE Pipeline)
   if (stream) {
+    const abortController = new AbortController();
+    const onClose = () => {
+      if (!res.writableEnded) {
+        abortController.abort();
+      }
+    };
+    req.on("close", onClose);
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -115,13 +129,26 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
         prompt,
         mode,
         files,
+        signal: abortController.signal,
         onChunk: (chunk) => {
-          res.write(`data: ${JSON.stringify({ token: chunk, content: chunk })}\n\n`);
+          if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ token: chunk, content: chunk })}\n\n`);
+          }
         },
       });
 
-      // Save turn to hot sliding memory
+      // Save turn to hot sliding memory & update rolling executive summary
       await appendSessionTurn(sessionId, prompt, result.text);
+      updateRollingConversationSummary({ sessionId, prompt, response: result.text }).catch((err) =>
+        console.warn("[Rolling Summary Non-Blocking]", err.message)
+      );
+
+      // Deduct estimated tokens from tenant monthly quota
+      const promptTokens = estimateTokens(prompt);
+      const responseTokens = estimateTokens(result.text);
+      deductTenantTokens(tenant.id, promptTokens + responseTokens).catch((err) =>
+        console.warn("[Quota Deduction Non-Blocking]", err.message)
+      );
 
       // Trigger Autonomous Neural Memory Ingestion & Tone Learning in the background
       if (effectiveUserId) {
@@ -206,8 +233,18 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
       responseType = "Instant Culture Synthesis";
     }
 
-    // Save turn to hot sliding memory
+    // Save turn to hot sliding memory & update rolling executive summary
     await appendSessionTurn(sessionId, prompt, result.text);
+    updateRollingConversationSummary({ sessionId, prompt, response: result.text }).catch((err) =>
+      console.warn("[Rolling Summary Non-Blocking]", err.message)
+    );
+
+    // Deduct estimated tokens from tenant monthly quota
+    const promptTokens = estimateTokens(prompt);
+    const responseTokens = estimateTokens(result.text);
+    deductTenantTokens(tenant.id, promptTokens + responseTokens).catch((err) =>
+      console.warn("[Quota Deduction Non-Blocking]", err.message)
+    );
 
     // Trigger Autonomous Neural Memory Ingestion & Tone Learning in the background
     if (effectiveUserId) {

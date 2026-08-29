@@ -64,7 +64,7 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
 
   useEffect(() => {
     if (artifact) {
-      const isRenderable = ['html', 'javascript', 'js', 'svg', 'react', 'tsx', 'jsx'].includes(
+      const isRenderable = ['html', 'javascript', 'js', 'svg', 'react', 'tsx', 'jsx', 'python', 'py'].includes(
         artifact.language.toLowerCase()
       );
       setActiveTab(isRenderable ? 'preview' : 'code');
@@ -127,6 +127,51 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
       return artifact.code;
     }
 
+    // Interactive React / TSX / JSX Sandboxed Runner
+    if (['react', 'tsx', 'jsx', 'typescript', 'ts'].includes(lang)) {
+      // Clean import statements from raw code so Babel standalone executes in single script scope
+      const sanitizedCode = artifact.code
+        .replace(/import\s+(?:React\s*,?\s*)?(?:\{[^}]*\}\s*from\s*)?['"][^'"]+['"];?/g, '')
+        .replace(/export\s+default\s+/g, 'window.__MainComponent = ')
+        .replace(/export\s+(?:const|function|class)\s+([A-Z]\w+)/g, 'window.__MainComponent = $1;');
+
+      return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+            <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+            <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+            <style>
+              body { background: #080812; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; padding: 24px; min-height: 100vh; }
+              .sandbox-error { color: #f43f5e; background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); border-radius: 12px; padding: 16px; font-family: monospace; font-size: 13px; white-space: pre-wrap; }
+            </style>
+          </head>
+          <body>
+            <div id="root"></div>
+            <script type="text/babel" data-presets="react,typescript">
+              const { useState, useEffect, useRef, useMemo, useCallback } = React;
+              try {
+                ${sanitizedCode}
+
+                const TargetComponent = window.__MainComponent || (typeof App !== 'undefined' ? App : null);
+                if (TargetComponent) {
+                  const root = ReactDOM.createRoot(document.getElementById('root'));
+                  root.render(<TargetComponent />);
+                } else {
+                  document.getElementById('root').innerHTML = '<div class="sandbox-error">No exported React component found. Ensure you define a component or use "export default ComponentName".</div>';
+                }
+              } catch (err) {
+                document.getElementById('root').innerHTML = '<div class="sandbox-error">Runtime Compilation Error:\\n' + err.message + '</div>';
+              }
+            </script>
+          </body>
+        </html>
+      `;
+    }
+
     if (lang === 'javascript' || lang === 'js') {
       return `
         <!DOCTYPE html>
@@ -158,6 +203,74 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
                 err.textContent = 'Runtime Error: ' + e.message;
                 out.appendChild(err);
               }
+            </script>
+          </body>
+        </html>
+      `;
+    }
+
+    if (lang === 'python' || lang === 'py') {
+      const escapedCode = JSON.stringify(artifact.code);
+      return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+            <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+            <style>
+              body { background: #080812; color: #f8fafc; font-family: 'JetBrains Mono', monospace; padding: 20px; font-size: 13px; line-height: 1.6; }
+              .terminal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; margin-bottom: 12px; font-size: 11px; color: #94a3b8; }
+              .terminal-status { color: #22d3ee; }
+              .stdout-line { color: #f1f5f9; white-space: pre-wrap; word-break: break-all; }
+              .stderr-line { color: #f43f5e; white-space: pre-wrap; }
+              .loader { color: #a855f7; display: flex; align-items: center; gap: 8px; }
+            </style>
+          </head>
+          <body>
+            <div class="terminal-header">
+              <span>PYTHON 3.12 (PYODIDE WASM RUNTIME)</span>
+              <span id="status" class="terminal-status">Initializing WebAssembly...</span>
+            </div>
+            <div id="terminal-output">
+              <div id="loader" class="loader">Loading Python WebAssembly Environment...</div>
+            </div>
+            <script>
+              async function runPython() {
+                const out = document.getElementById('terminal-output');
+                const status = document.getElementById('status');
+                const loader = document.getElementById('loader');
+                try {
+                  const pyodide = await loadPyodide({
+                    stdout: (text) => {
+                      const el = document.createElement('div');
+                      el.className = 'stdout-line';
+                      el.textContent = text;
+                      out.appendChild(el);
+                    },
+                    stderr: (text) => {
+                      const el = document.createElement('div');
+                      el.className = 'stderr-line';
+                      el.textContent = text;
+                      out.appendChild(el);
+                    }
+                  });
+                  if (loader) loader.remove();
+                  status.textContent = 'Execution Complete (Exit: 0)';
+                  status.style.color = '#34d399';
+
+                  const rawCode = ${escapedCode};
+                  await pyodide.runPythonAsync(rawCode);
+                } catch (err) {
+                  if (loader) loader.remove();
+                  status.textContent = 'Runtime Error';
+                  status.style.color = '#f43f5e';
+                  const errEl = document.createElement('div');
+                  errEl.className = 'stderr-line';
+                  errEl.textContent = String(err);
+                  out.appendChild(errEl);
+                }
+              }
+              runPython();
             </script>
           </body>
         </html>

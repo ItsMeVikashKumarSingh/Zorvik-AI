@@ -5,8 +5,72 @@
 const { redis } = require("../lib/redis");
 const { supabase, isConfigured: isSupabaseConfigured } = require("../lib/supabase");
 
-const MAX_HOT_TURNS = 12; // Keep last 12 turns in hot sliding memory
+const MAX_HOT_TURNS = 8; // Keep last 8 turns in hot sliding memory
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const SUMMARY_TTL_SECONDS = 14 * 24 * 60 * 60; // 14 days
+
+/**
+ * Get executive conversation summary for an active session
+ * @param {string} sessionId
+ * @returns {Promise<string>}
+ */
+async function getSessionSummary(sessionId) {
+  if (!sessionId) return "";
+  const key = `zorvik:session:${sessionId}:summary`;
+  const data = await redis.get(key);
+  if (!data) return "";
+  return typeof data === "string" ? data : (data.summary || "");
+}
+
+/**
+ * Save executive conversation summary for an active session
+ * @param {string} sessionId
+ * @param {string} summary
+ */
+async function saveSessionSummary(sessionId, summary) {
+  if (!sessionId || !summary) return;
+  const key = `zorvik:session:${sessionId}:summary`;
+  await redis.set(key, typeof summary === "string" ? summary : JSON.stringify(summary), {
+    ex: SUMMARY_TTL_SECONDS,
+  });
+}
+
+/**
+ * Asynchronously update rolling conversation summary
+ * @param {object} params
+ * @param {string} params.sessionId
+ * @param {string} params.prompt
+ * @param {string} params.response
+ */
+async function updateRollingConversationSummary({ sessionId, prompt, response }) {
+  if (!sessionId || !prompt || !response) return;
+
+  try {
+    const existingSummary = await getSessionSummary(sessionId);
+    
+    // Quick extractive rolling compaction
+    const promptSnippet = prompt.trim().slice(0, 200).replace(/\s+/g, " ");
+    const responseSnippet = response.trim().slice(0, 250).replace(/\s+/g, " ");
+    
+    let updatedSummary = existingSummary;
+    const turnEntry = `- User: "${promptSnippet}" -> Key Outcome: "${responseSnippet}..."`;
+
+    if (!updatedSummary) {
+      updatedSummary = `Executive Context & Core Discussion:\n${turnEntry}`;
+    } else {
+      const lines = updatedSummary.split("\n");
+      // Keep executive header plus up to last 15 critical milestones
+      if (lines.length > 16) {
+        updatedSummary = lines.slice(0, 1).concat(lines.slice(-14)).join("\n");
+      }
+      updatedSummary += `\n${turnEntry}`;
+    }
+
+    await saveSessionSummary(sessionId, updatedSummary);
+  } catch (err) {
+    console.warn("[MemoryEngine] Rolling summary update notice:", err.message);
+  }
+}
 
 /**
  * Get hot conversation history for an active session
@@ -46,13 +110,14 @@ async function appendSessionTurn(sessionId, userMessage, assistantMessage) {
 }
 
 /**
- * Clear session memory
+ * Clear session memory and summary
  * @param {string} sessionId
  */
 async function clearSessionMemory(sessionId) {
   if (!sessionId) return;
-  const key = `zorvik:session:${sessionId}:turns`;
-  await redis.del(key);
+  const turnsKey = `zorvik:session:${sessionId}:turns`;
+  const summaryKey = `zorvik:session:${sessionId}:summary`;
+  await Promise.all([redis.del(turnsKey), redis.del(summaryKey)]);
 }
 
 /**
@@ -195,6 +260,9 @@ async function clearUserMemories(userId) {
 module.exports = {
   getSessionHistory,
   appendSessionTurn,
+  getSessionSummary,
+  saveSessionSummary,
+  updateRollingConversationSummary,
   clearSessionMemory,
   searchSemanticMemory,
   getUserProfileConfig,

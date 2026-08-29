@@ -37,7 +37,24 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
   const isUser = message.role === 'user';
+
+  // Run Mermaid diagrams when message content stabilizes
+  useEffect(() => {
+    if (!message.isStreaming && message.content && contentRef.current) {
+      const mermaidElements = contentRef.current.querySelectorAll('.mermaid');
+      if (mermaidElements.length > 0 && typeof window !== 'undefined' && (window as any).mermaid) {
+        try {
+          (window as any).mermaid.run({
+            nodes: Array.from(mermaidElements),
+          });
+        } catch (_e) {
+          // Non-blocking diagram render error
+        }
+      }
+    }
+  }, [message.content, message.isStreaming]);
 
   // Stop speech when message unmounts
   useEffect(() => {
@@ -202,6 +219,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         ) : (
           <div className="relative group">
             <div
+              ref={contentRef}
               className="prose-editorial text-sm sm:text-base font-light text-silver/90 leading-relaxed tracking-normal select-text"
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
@@ -244,18 +262,47 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     <span className="text-[11px] font-mono uppercase">{copied ? 'Copied' : 'Copy'}</span>
                   </button>
 
-                  {/* Audio Readback Button */}
+                  {/* Audio Readback Button with Active Equalizer Waveform */}
                   <button
                     onClick={handleToggleSpeech}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light transition-all ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-light transition-all ${
                       isSpeaking
-                        ? 'bg-iris/20 text-iris border border-iris/40'
+                        ? 'bg-iris/20 text-iris border border-iris/40 shadow-[0_0_15px_rgba(128,82,255,0.2)]'
                         : 'text-silver/50 hover:text-white hover:bg-white/[0.04]'
                     }`}
                     title={isSpeaking ? 'Stop Audio Readout' : 'Listen to Answer'}
                   >
-                    {isSpeaking ? <VolumeX size={13} className="text-iris animate-pulse" /> : <Volume2 size={13} />}
-                    <span className="text-[11px] font-mono uppercase">{isSpeaking ? 'Speaking' : 'Listen'}</span>
+                    {isSpeaking ? (
+                      <>
+                        <VolumeX size={13} className="text-iris" />
+                        <span className="text-[11px] font-mono uppercase font-medium text-iris">Speaking</span>
+                        {/* Dynamic Mini TTS Waveform Equalizer */}
+                        <div className="flex items-center gap-0.5 h-3 ml-0.5">
+                          <style>{`
+                            @keyframes ttsWave {
+                              0%, 100% { height: 3px; }
+                              50% { height: 12px; }
+                            }
+                          `}</style>
+                          {[0, 150, 300, 100].map((d, i) => (
+                            <span
+                              key={i}
+                              className="w-0.5 rounded-full bg-iris"
+                              style={{
+                                height: '3px',
+                                animation: `ttsWave 0.6s ease-in-out infinite alternate`,
+                                animationDelay: `${d}ms`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={13} />
+                        <span className="text-[11px] font-mono uppercase">Listen</span>
+                      </>
+                    )}
                   </button>
 
                   {/* Single Message Download */}

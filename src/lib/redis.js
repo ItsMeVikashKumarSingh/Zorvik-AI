@@ -103,6 +103,20 @@ const redis = {
     return val;
   },
 
+  async incrby(key, amount) {
+    const num = Number(amount) || 0;
+    if (redisClient) {
+      try {
+        return await redisClient.incrby(key, num);
+      } catch (err) {
+        console.warn(`Upstash INCRBY error for key ${key}:`, err.message);
+      }
+    }
+    const val = (Number(memoryStore.get(key)) || 0) + num;
+    memoryStore.set(key, val);
+    return val;
+  },
+
   async expire(key, seconds) {
     if (redisClient) {
       try {

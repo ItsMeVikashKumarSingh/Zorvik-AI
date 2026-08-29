@@ -2,6 +2,44 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.8] - 2026-08-29
+### In-Browser Python WASM Runtime, Mermaid Architecture Diagrams, Dynamic Tool Engine & Token Quotas
+- **In-Browser Python WebAssembly Execution ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:
+  - Embedded Pyodide WebAssembly runtime (Python 3.12) inside the preview tab with live stdout/stderr capture and terminal formatting, executing Python code completely client-side.
+- **Interactive Mermaid.js Architecture & Diagram Rendering ([`markdown.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/lib/markdown.ts), [`index.html`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/index.html), [`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - Chat messages containing ````mermaid ... ```` code blocks automatically render into interactive SVG flowcharts and architecture diagrams styled in dark neon cyber aesthetic.
+- **Dynamic Tool & Function Calling Registry ([`toolRegistry.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/toolRegistry.js), [`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js))**:
+  - Created deterministic tool registry supporting `calculate_expression`, `get_market_quote`, `get_weather_data`, and `inspect_url_headers`.
+  - Automatically enriches model reasoning with live deterministic tool outputs.
+- **Atomic Redis Token Quota Deduction & Threshold Warnings ([`tenantAuth.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/middleware/tenantAuth.js), [`redis.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/lib/redis.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Implemented atomic `incrby` token tracking in Redis with automated alerts when tenants reach 80% and 100% monthly quota limits.
+
+## [1.0.7] - 2026-08-29
+### Server-Side Stream Abort Pipeline, Live React Sandbox Execution, & IP Rate Limiting
+- **Server-Side Stream Abort / Cancel Pipeline ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Bound `req.on('close')` to an upstream `AbortController` signal across Google Gemini, Groq, Cerebras, Mistral, and OpenRouter requests.
+  - When users cancel generation or close browser sockets, upstream LLM token streaming terminates immediately, saving rate limits and token quotas.
+- **Live Interactive React / TSX Sandbox in Artifacts ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:
+  - Integrated dynamic in-browser compilation with Babel Standalone, React 18, and Tailwind CSS.
+  - Users can test interactive React components with state, event handlers, and styling directly inside the artifact preview tab.
+- **Sliding-Window IP Rate Limiting & Enhanced Injection Defense ([`securityShield.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/middleware/securityShield.js))**:
+  - Added sliding-window IP rate limiting via Upstash Redis (60 req/min for guest IPs) returning standard `429 Too Many Requests`.
+  - Added prompt injection rejection filters for system prompt harvesting.
+
+## [1.0.6] - 2026-08-29
+### Executive Conversation Summary Engine, Dynamic Voice Equalizer Waveforms, & Separated Prompt Library
+- **Persistent Executive Conversation Summary Engine ([`memoryEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/memoryEngine.js), [`intentEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/intentEngine.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Replaced rigid sliding-window turn truncation with a dual-tier memory system: maintains hot recent turns alongside a rolling, persistent Executive Conversation Summary (`zorvik:session:${sessionId}:summary`).
+  - Automatically captures critical milestones, decisions, user goals, and tech stack details without losing early context across extended chat sessions.
+  - Dynamically injects executive conversation summaries into the system prompt across both streaming and standard API completions.
+- **Dynamic Voice Dictation Waveform Visualizer ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx))**:
+  - Upgraded voice dictation feedback from static bouncing dots to a multi-bar animated cyber audio equalizer spectrum with real-time gradient glow and variable frequency delays.
+- **Text-to-Speech (TTS) Audio Equalizer Waveform ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - Added live pulsating audio equalizer wave bars directly inside the "Speaking" state of assistant messages during audio playback.
+- **Dedicated Prompt Blueprint Library Quick-Action ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx))**:
+  - Separated the Prompt Blueprint Library from the Intelligence Mode dropdown into a dedicated, clean button beside the mode selector.
+  - Streamlined the Intelligence Mode dropdown to focus strictly on model modes (*All*, *Web Search*, *Deep Thinker*, *Code Wizard*, *Casual*).
+
 ## [1.0.5] - 2026-08-29
 ### Universal Long-Term Neural Memory Sync, Model Anonymity, & Right-Dock Voice Visualizer
 - **Complete Internal Model Anonymity ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:

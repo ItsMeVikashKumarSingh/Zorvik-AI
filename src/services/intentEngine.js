@@ -179,6 +179,7 @@ function buildSystemPrompt({
   tenantPrompt = null,
   userMemories = [],
   customInstructions = "",
+  conversationSummary = "",
   liveWebContext = "",
 }) {
   const analysis = analyzePromptNuance(prompt);
@@ -251,6 +252,11 @@ Provide clear, accurate, conversational, and direct answers without repetitive f
 
   if (tenantPrompt) {
     promptBlocks.unshift(tenantPrompt);
+  }
+
+  // Inject Executive Conversation Summary if available
+  if (conversationSummary && typeof conversationSummary === "string" && conversationSummary.trim()) {
+    promptBlocks.push(`EXECUTIVE CONVERSATION SUMMARY & ESTABLISHED CONTEXT:\n${conversationSummary.trim()}`);
   }
 
   // Inject Live Web Grounding Context if available
