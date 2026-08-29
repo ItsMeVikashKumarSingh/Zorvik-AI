@@ -412,6 +412,63 @@ function toggleProvider(provider, enabled) {
   }
 }
 
+let activeOpenRouterModel = process.env.OPENROUTER_MODEL || "deepseek/deepseek-r1:free";
+
+function setActiveOpenRouterModel(modelName) {
+  if (modelName && typeof modelName === "string") {
+    activeOpenRouterModel = modelName.trim();
+  }
+}
+
+function getActiveOpenRouterModel() {
+  return activeOpenRouterModel;
+}
+
+/**
+ * Fetch live model catalog from OpenRouter or fallback to curated matrix
+ */
+async function fetchOpenRouterCatalog() {
+  const apiKey = getProviderKey("openrouter");
+  try {
+    const headers = { "HTTP-Referer": "https://zorvik.tech", "X-Title": "Zorvik AI" };
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    const res = await fetch("https://openrouter.ai/api/v1/models", { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data?.data) && data.data.length > 0) {
+        return {
+          success: true,
+          models: data.data.map((m) => ({
+            id: m.id,
+            name: m.name || m.id,
+            description: m.description || "",
+            contextLength: m.context_length || 128000,
+            pricing: m.pricing || { prompt: "0", completion: "0" },
+            isFree: m.id.endsWith(":free") || (m.pricing?.prompt === "0" && m.pricing?.completion === "0"),
+            architecture: m.architecture || {},
+          })),
+        };
+      }
+    }
+  } catch (_e) {
+    // Non-blocking fallback
+  }
+
+  // Curated Fallback Matrix (if offline or rate-limited)
+  const FALLBACK_CATALOG = [
+    { id: "anthropic/claude-3.7-sonnet", name: "Claude 3.7 Sonnet (Hybrid Reasoning)", contextLength: 200000, isFree: false, description: "State-of-the-art hybrid reasoning & deep architecture generation." },
+    { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Free)", contextLength: 64000, isFree: true, description: "Open reasoning model rivaling OpenAI o1 in mathematical proofs." },
+    { id: "deepseek/deepseek-chat", name: "DeepSeek V3", contextLength: 64000, isFree: false, description: "671B MoE architecture with ultra-fast inference and high accuracy." },
+    { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (Free)", contextLength: 131072, isFree: true, description: "Meta open powerhouse for general instruction following." },
+    { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B (Free)", contextLength: 32768, isFree: true, description: "Specialized code generation, debugging, and refactoring." },
+    { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash (Free)", contextLength: 1048576, isFree: true, description: "1M token context window with multi-modal capabilities." },
+    { id: "mistralai/mistral-small-24b-instruct-2501:free", name: "Mistral Small 24B (Free)", contextLength: 32768, isFree: true, description: "Ultra-fast European multilingual and reasoning model." },
+    { id: "openai/o3-mini", name: "OpenAI o3-mini", contextLength: 200000, isFree: false, description: "High-speed STEM and coding reasoning with tiered effort." },
+  ];
+
+  return { success: true, models: FALLBACK_CATALOG };
+}
+
 function getRuntimeKeys() {
   const result = {};
   for (const provider of Object.keys(runtimeKeyVault)) {
@@ -695,7 +752,7 @@ async function routeQueryStream({
             "HTTP-Referer": "https://zorvik.tech",
             "X-Title": "Zorvik AI",
           },
-          model: "deepseek/deepseek-r1:free",
+          model: activeOpenRouterModel || "deepseek/deepseek-r1:free",
           provider: "openrouter",
           systemPrompt: effectiveSystemPrompt,
           history,
@@ -756,4 +813,7 @@ module.exports = {
   toggleProvider,
   testProviderConnection,
   getProviderKey,
+  setActiveOpenRouterModel,
+  getActiveOpenRouterModel,
+  fetchOpenRouterCatalog,
 };

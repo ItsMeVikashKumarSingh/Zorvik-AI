@@ -2,6 +2,25 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.14] - 2026-08-30
+### Light E-Ink Paper Developer Console & Full OpenRouter Dynamic Model Catalog
+- **Light E-Ink Monochrome Developer Console ([`EInkDeploymentsConsole.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/EInkDeploymentsConsole.tsx), [`AdminLayout.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminLayout.tsx))**:
+  - Implemented high-density e-ink developer console palette: warm paper `#f4f1ea` ground, `#faf8f3` raised surfaces, near-black `#141310` ink, `rgba(20,19,16,0.14)` 1px hairline dividers, and zero drop shadows.
+  - **Single Chroma Signal Red (`#c8321e`)**: Strictly rationed for the failed deployment row, build error tokens, and redeploy actions.
+  - **Semantic Ink Status Glyphs**: Ready (`●` solid ink dot), Building (`◐` half-ring with live counting elapsed time), Queued (`○` stroked ring), Canceled (`◌` dashed ring), Failed (`⊗` red circle-x).
+  - **Two-Pane App Shell**:
+    - 240px Paper Sidebar with workspace switcher (`SD` Superdesign / Zorvik AI), search field (`⌘K`), navigation with 3px solid ink active indicator, `ENVIRONMENTS` section with ink status glyphs, solid-ink `Build minutes` usage meter (`412/600` at ~69%), and user row (`TM` Tim Marsh / `@tim`).
+    - Header bar with breadcrumb (`canvas-app / Deployments`), segmented control (`All / Production / Preview`), ghost Filter button, and solid `#141310` Deploy button.
+    - Current Production Hero Card with radial dot-grain texture (`radial-gradient(rgba(20,19,16,0.05) 0.5px, transparent 0.5px)` @ 4px grid), deploy ID, live domain link, commit chip, and 4-stage pipeline rail (`BUILD` 48s, `TEST` 1m 12s, `BUNDLE` 22s, `DEPLOY` 19s $\rightarrow$ summing to 2m 41s).
+    - Dense Hairline Deployments Table with tabular mono figures.
+    - Split Bottom: Last Failed Build mono log excerpt (with red error tail) + 14-day stepped ink bar chart (`38 deploys - median 2m 12s - 97% success`).
+- **Full Dynamic OpenRouter Model Catalog & Matrix ([`OpenRouterCatalog.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/OpenRouterCatalog.tsx), [`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`admin.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/admin.js))**:
+  - Live model discovery (`GET /api/v1/manage/openrouter/models`) fetching hundreds of available models from OpenRouter API with pricing, context length, and architecture tags.
+  - Dynamic Model Selector (`POST /api/v1/manage/openrouter/select`) with audit logging.
+  - Integrated in-UI model benchmark ping tests and category filtering (Free Tier, Reasoning / R1, Code Synthesis, Top Tier models like Claude 3.7 Sonnet, DeepSeek R1, DeepSeek V3, Llama 3.3 70B, Qwen 2.5 Coder, Gemini 2.0 Flash).
+- **Typography ([`index.html`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/index.html))**:
+  - Added `IBM Plex Sans` (400/500/600/700) for UI headings/labels and `IBM Plex Mono` (400/500/600/700) with `tabular-nums` for all telemetry, IDs, durations, and commit hashes.
+
 ## [1.0.13] - 2026-08-29
 ### Administrative Security Hardening, Supabase MFA & Dynamic Neural Key Vault
 - **URL Obfuscation & Hardened Management Routes ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx), [`AdminLayout.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminLayout.tsx), [`server.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/server.js))**:

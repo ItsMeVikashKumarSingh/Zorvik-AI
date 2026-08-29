@@ -14,6 +14,9 @@ const {
   getRuntimeKeys,
   toggleProvider,
   testProviderConnection,
+  setActiveOpenRouterModel,
+  getActiveOpenRouterModel,
+  fetchOpenRouterCatalog,
 } = require("../services/modelRouter");
 
 // Apply admin authentication across all admin endpoints
@@ -454,6 +457,47 @@ router.post("/keys/toggle", async (req, res) => {
   });
 
   return res.json({ success: true, enabled: Boolean(enabled) });
+});
+
+/**
+ * GET /api/v1/manage/openrouter/models
+ * Fetch live OpenRouter model catalog
+ */
+router.get("/openrouter/models", async (_req, res) => {
+  try {
+    const catalog = await fetchOpenRouterCatalog();
+    return res.json({
+      ...catalog,
+      activeModel: getActiveOpenRouterModel(),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch OpenRouter catalog: " + err.message });
+  }
+});
+
+/**
+ * POST /api/v1/manage/openrouter/select
+ * Select active OpenRouter model for routing
+ */
+router.post("/openrouter/select", async (req, res) => {
+  const { modelId } = req.body;
+  if (!modelId) {
+    return res.status(400).json({ error: "Model ID is required." });
+  }
+
+  setActiveOpenRouterModel(modelId);
+
+  await recordAuditLog({
+    adminId: req.admin.id,
+    adminEmail: req.admin.email,
+    actionType: "SELECT_OPENROUTER_MODEL",
+    targetEntity: `openrouter:${modelId}`,
+    details: { activeModel: modelId },
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  return res.json({ success: true, activeModel: modelId });
 });
 
 /**
