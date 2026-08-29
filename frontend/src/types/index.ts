@@ -26,6 +26,15 @@ export interface ReasoningStep {
   status: 'pending' | 'running' | 'completed';
 }
 
+export interface MessageVariant {
+  content: string;
+  timestamp: number;
+  model?: string;
+  responseType?: string;
+  sources?: SourceItem[];
+  relatedQuestions?: string[];
+}
+
 export interface Message {
   id: string;
   role: Role;
@@ -41,6 +50,8 @@ export interface Message {
   relatedQuestions?: string[];
   durationMs?: number;
   attachments?: FileAttachment[];
+  variants?: MessageVariant[];
+  activeVariantIndex?: number;
 }
 
 export interface ChatSession {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Link2, Download, FileText, Check, Copy, Printer } from 'lucide-react';
+import { X, Link2, Download, FileText, Check, Copy, Printer, FileCode } from 'lucide-react';
 import { ChatSession, Message } from '../types';
 
 interface ShareModalProps {
@@ -50,7 +50,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     setTimeout(() => setCopiedText(false), 2200);
   };
 
-  // Download Markdown file
+  // Download Markdown file (.md)
   const handleDownloadMarkdown = () => {
     const md = generateMarkdown();
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
@@ -62,7 +62,101 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // Download JSON file
+  // Download Standalone Styled HTML Report (.html)
+  const handleDownloadHTMLReport = () => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${session.title} — Zorvik AI Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #050510;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.65;
+      padding: 40px 20px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #fff;
+      font-size: 26px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(147, 51, 234, 0.15);
+      border: 1px solid rgba(147, 51, 234, 0.3);
+      color: #c084fc;
+      font-size: 11px;
+      font-family: monospace;
+      margin-bottom: 24px;
+    }
+    .turn {
+      margin-bottom: 28px;
+      padding: 20px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .turn-user {
+      border-left: 3px solid #22d3ee;
+    }
+    .turn-assistant {
+      border-left: 3px solid #9333ea;
+    }
+    .role {
+      font-size: 12px;
+      font-family: monospace;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .role-user { color: #22d3ee; }
+    .role-assistant { color: #c084fc; }
+    .timestamp { color: #64748b; font-size: 11px; font-weight: normal; }
+    .content { white-space: pre-wrap; font-size: 14px; word-break: break-word; }
+    .footer { margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; font-size: 11px; color: #64748b; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="badge">Zorvik AI Executive Export</div>
+  <h1>${session.title || 'Conversation Archive'}</h1>
+  ${messagesToExport
+    .map(
+      (m) => `
+    <div class="turn ${m.role === 'user' ? 'turn-user' : 'turn-assistant'}">
+      <div class="role ${m.role === 'user' ? 'role-user' : 'role-assistant'}">
+        <span>${m.role === 'user' ? 'User' : 'Zorvik AI'}</span>
+        <span class="timestamp">${new Date(m.timestamp).toLocaleString()}</span>
+      </div>
+      <div class="content">${m.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+    </div>
+  `
+    )
+    .join('')}
+  <div class="footer">Exported from Zorvik AI on ${new Date().toLocaleString()} • Confidential & Proprietary</div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${session.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'zorvik-ai-report'}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Download JSON file (.json)
   const handleDownloadJSON = () => {
     const jsonStr = JSON.stringify(
       {
@@ -109,7 +203,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               (m) => `
             <div class="turn">
               <div class="role">${m.role === 'user' ? 'You' : 'Zorvik AI'}</div>
-              <div class="content">${m.content}</div>
+              <div class="content">${m.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
             </div>
           `
             )
@@ -148,7 +242,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           {/* 1. Copy Public Link */}
           <button
             onClick={handleCopyLink}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-iris/10 text-iris group-hover:bg-iris group-hover:text-white transition-colors">
@@ -168,10 +262,27 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             )}
           </button>
 
-          {/* 2. Download Markdown (.md) */}
+          {/* 2. Download HTML Report (.html) */}
+          <button
+            onClick={handleDownloadHTMLReport}
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                <FileCode size={16} />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-medium text-white/90 group-hover:text-white">Download HTML Report</div>
+                <div className="text-xs text-silver/40 font-light">Self-contained styled executive report with dark theme</div>
+              </div>
+            </div>
+            <span className="text-xs font-mono text-silver/30 group-hover:text-iris">.html</span>
+          </button>
+
+          {/* 3. Download Markdown (.md) */}
           <button
             onClick={handleDownloadMarkdown}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
@@ -185,13 +296,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             <span className="text-xs font-mono text-silver/30 group-hover:text-iris">.md</span>
           </button>
 
-          {/* 3. Export JSON */}
+          {/* 4. Export JSON */}
           <button
             onClick={handleDownloadJSON}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                 <FileText size={16} />
               </div>
               <div className="text-left">
@@ -202,10 +313,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             <span className="text-xs font-mono text-silver/30 group-hover:text-iris">.json</span>
           </button>
 
-          {/* 4. Print / PDF */}
+          {/* 5. Print / PDF */}
           <button
             onClick={handlePrint}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
@@ -219,10 +330,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             <span className="text-xs font-mono text-silver/30 group-hover:text-iris">PDF</span>
           </button>
 
-          {/* 5. Copy Transcript to Clipboard */}
+          {/* 6. Copy Transcript to Clipboard */}
           <button
             onClick={handleCopyTranscript}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-white/[0.05] text-silver group-hover:bg-white/20 group-hover:text-white transition-colors">

@@ -7,17 +7,20 @@ const { getUserMemories, addUserMemory, getUserProfileConfig, saveUserProfileCon
 
 // Heuristic patterns for explicit user personal facts & preferences
 const FACT_PATTERNS = [
+  // Explicit memory instructions
+  /(?:remember (?:that|this)?|please remember|store in memory:?)\s+([^\n.!?]{4,100})/i,
   // Name & Identity
-  /(?:my name is|i am|call me)\s+([A-Z][a-z0-9_\s]{1,30})/i,
+  /(?:my name is|call me|myself)\s+([A-Za-z0-9_\s]{2,30})/i,
   // Role & Occupation
-  /(?:i work as|i am a|i'm a)\s+([a-z0-9_\-\s]{3,40}(?:developer|engineer|designer|founder|student|researcher|architect|manager|writer|creator))/i,
+  /(?:i work as|i am a|i'm a|my role is)\s+([a-z0-9_\-\s]{3,50}(?:developer|engineer|designer|founder|ceo|cto|student|researcher|architect|manager|writer|creator|consultant|analyst))/i,
   // Tech stack & Project details
-  /(?:i am (?:building|developing|working on)|my project is)\s+([^\n.!?]{5,80})/i,
-  /(?:i use|i'm using|we use|our stack is)\s+([^\n.!?]{4,80})/i,
+  /(?:i am (?:building|developing|working on|creating)|my project is|our project is)\s+([^\n.!?]{4,90})/i,
+  /(?:i use|i'm using|we use|our stack is|my stack is|tech stack is)\s+([^\n.!?]{3,90})/i,
   // Preferences
-  /(?:i prefer|always (?:give|use|write|format)|never (?:use|give)|keep answers)\s+([^\n.!?]{5,80})/i,
-  // Location / Context
-  /(?:i live in|i am based in|i'm from)\s+([A-Z][a-zA-Z\s,]{2,40})/i,
+  /(?:i prefer|always (?:give|use|write|format|reply with)|never (?:use|give|do)|keep answers)\s+([^\n.!?]{4,90})/i,
+  // Company / Organization / Location
+  /(?:my company is|i work at|working at|my startup is|my agency is|i run)\s+([^\n.!?]{3,60})/i,
+  /(?:i live in|i am based in|i'm from|located in)\s+([A-Za-z\s,]{2,40})/i,
 ];
 
 /**
@@ -64,14 +67,14 @@ function inferUserTone(prompt) {
  * @returns {string[]} List of extracted fact strings
  */
 function extractFactsFromTurn(prompt, _response) {
-  if (!prompt || typeof prompt !== "string" || prompt.length < 6) return [];
+  if (!prompt || typeof prompt !== "string" || prompt.length < 5) return [];
   const facts = [];
 
   for (const pattern of FACT_PATTERNS) {
     const match = prompt.match(pattern);
     if (match && match[0]) {
       const cleanFact = match[0].trim().replace(/\s+/g, " ");
-      if (cleanFact.length >= 8 && cleanFact.length <= 120) {
+      if (cleanFact.length >= 6 && cleanFact.length <= 120) {
         facts.push(cleanFact);
       }
     }

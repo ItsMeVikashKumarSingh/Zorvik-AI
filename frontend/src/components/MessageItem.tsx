@@ -8,12 +8,14 @@ import {
   ExternalLink,
   Plus,
   RotateCw,
-  Share2,
   Play,
   FileText,
   Volume2,
   VolumeX,
   Sparkles,
+  Download,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Message, SourceItem, ArtifactContent } from '../types';
 import { renderMarkdown } from '../lib/markdown';
@@ -22,16 +24,16 @@ interface MessageItemProps {
   message: Message;
   onSelectFollowup?: (prompt: string) => void;
   onRegenerate?: () => void;
-  onOpenShare?: (message: Message) => void;
   onOpenArtifact?: (artifact: ArtifactContent) => void;
+  onSwitchVariant?: (messageId: string, targetIndex: number) => void;
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({
   message,
   onSelectFollowup,
   onRegenerate,
-  onOpenShare,
   onOpenArtifact,
+  onSwitchVariant,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -52,9 +54,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Toggle Voice Audio Readout
+  // Text to Speech Readout
   const handleToggleSpeech = () => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      alert('Speech synthesis is not supported in this browser.');
+      return;
+    }
 
     if (isSpeaking) {
       window.speechSynthesis.cancel();
@@ -63,11 +68,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     }
 
     window.speechSynthesis.cancel();
-    // Clean markdown symbols for natural vocal speech
     const cleanText = message.content
       .replace(/```[\s\S]*?```/g, 'Code block omitted.')
-      .replace(/[*_#`$]/g, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+      .replace(/[#*`_~[\]()]/g, '')
+      .trim();
+
+    if (!cleanText) return;
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 1.0;
@@ -76,78 +82,85 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
 
-    window.speechSynthesis.speak(utterance);
     setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
   };
 
-  // Check if assistant message contains code artifact that can be rendered in Canvas
+  // Detect code artifacts
   const detectArtifact = (): ArtifactContent | null => {
     if (isUser || !message.content) return null;
-    const match = message.content.match(/```(html|htm|svg|javascript|js|tsx|jsx|python|css)\n([\s\S]*?)```/i);
-    if (match && match[2] && match[2].trim().length > 30) {
+
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/;
+    const match = message.content.match(codeBlockRegex);
+    if (!match) return null;
+
+    const lang = (match[1] || 'javascript').toLowerCase();
+    const code = match[2].trim();
+
+    if (['html', 'htm', 'svg', 'javascript', 'js', 'react', 'tsx', 'jsx', 'typescript', 'ts', 'css'].includes(lang)) {
       return {
-        id: `art_${message.id}`,
-        title: 'Generated Artifact',
-        language: match[1].toLowerCase(),
-        code: match[2].trim(),
+        id: 'art_' + message.id,
+        title: `${lang.toUpperCase()} Sandbox`,
+        language: lang,
+        code,
       };
     }
     return null;
   };
 
   const detectedArtifact = detectArtifact();
+  const htmlContent = isUser ? message.content : renderMarkdown(message.content);
 
-  // User Message -> Clean Monumental Query Header + Attached Images/Files
+  // Variant pagination calculations
+  const totalVariants = message.variants && message.variants.length > 0 ? message.variants.length : 1;
+  const currentVariantIndex = message.activeVariantIndex !== undefined ? message.activeVariantIndex : totalVariants - 1;
+  const hasMultipleVariants = totalVariants > 1;
+
   if (isUser) {
     return (
-      <div className="pt-8 pb-4 border-b border-white/[0.04] space-y-3">
-        {/* Attached Files / Images */}
-        {message.attachments && message.attachments.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap pb-1">
-            {message.attachments.map((att) => {
-              const isImage = att.type.startsWith('image/') || att.dataUrl.startsWith('data:image/');
-              return (
-                <div
-                  key={att.id}
-                  className="rounded-xl overflow-hidden border border-white/[0.1] bg-black/40 shadow-md max-w-[240px]"
-                >
-                  {isImage ? (
-                    <img src={att.dataUrl} alt={att.name} className="max-h-48 w-auto object-cover" />
-                  ) : (
-                    <div className="flex items-center gap-2 p-3 text-xs text-white">
-                      <FileText size={16} className="text-iris" />
-                      <span className="truncate">{att.name}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight text-white leading-snug">
-          {message.content}
-        </h2>
+      <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-white text-sm sm:text-base font-light shadow-lg">
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {message.attachments.map((att) => {
+                const isImage = att.type.startsWith('image/');
+                return (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-xs text-silver/80"
+                  >
+                    {isImage ? (
+                      <img src={att.dataUrl} alt={att.name} className="w-5 h-5 rounded object-cover" />
+                    ) : (
+                      <FileText size={12} className="text-iris" />
+                    )}
+                    <span className="truncate max-w-[120px]">{att.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="whitespace-pre-wrap select-text leading-relaxed">{message.content}</div>
+        </div>
       </div>
     );
   }
 
-  const htmlContent = renderMarkdown(message.content);
-  const sources: SourceItem[] = message.sources || [];
+  // Related follow-up questions
   const followups = message.relatedQuestions || [];
 
   return (
-    <div className="py-6 space-y-6">
-      {/* 1. Sources Header & Horizontal Pill Cards (Google Grounding Sources) */}
-      {!message.error && sources.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
-            <Layers size={12} className="text-iris" />
-            <span>Web Sources & Grounding</span>
+    <div className="mb-8 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      {/* 1. Grounded Search Sources */}
+      {message.sources && message.sources.length > 0 && (
+        <div className="space-y-2 pb-2">
+          <div className="flex items-center gap-1.5 text-xs font-mono text-silver/50">
+            <Layers size={13} className="text-iris" />
+            <span>SOURCES ({message.sources.length})</span>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {sources.map((src, idx) => (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+            {message.sources.map((src: SourceItem, idx: number) => (
               <a
                 key={src.id || idx}
                 href={src.url}
@@ -197,6 +210,31 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             {!message.isStreaming && message.content && (
               <div className="mt-5 pt-3 flex items-center justify-between border-t border-white/[0.04] flex-wrap gap-2">
                 <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Version Toggle (like ChatGPT) */}
+                  {hasMultipleVariants && (
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] font-mono text-silver/60 mr-1">
+                      <button
+                        onClick={() => onSwitchVariant && onSwitchVariant(message.id, currentVariantIndex - 1)}
+                        disabled={currentVariantIndex <= 0}
+                        className="p-0.5 hover:text-white disabled:opacity-25 disabled:hover:text-silver/60 transition-colors"
+                        title="Previous Version"
+                      >
+                        <ChevronLeft size={12} />
+                      </button>
+                      <span className="px-0.5 font-sans text-[10px] text-silver/80">
+                        {currentVariantIndex + 1} / {totalVariants}
+                      </span>
+                      <button
+                        onClick={() => onSwitchVariant && onSwitchVariant(message.id, currentVariantIndex + 1)}
+                        disabled={currentVariantIndex >= totalVariants - 1}
+                        className="p-0.5 hover:text-white disabled:opacity-25 disabled:hover:text-silver/60 transition-colors"
+                        title="Next Version"
+                      >
+                        <ChevronRight size={12} />
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
@@ -220,26 +258,30 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     <span className="text-[11px] font-mono uppercase">{isSpeaking ? 'Speaking' : 'Listen'}</span>
                   </button>
 
+                  {/* Single Message Download */}
                   <button
                     onClick={() => {
-                      if (onOpenShare) {
-                        onOpenShare(message);
-                      } else {
-                        handleCopy();
-                      }
+                      const md = `# Zorvik AI Response\n\n*Exported on ${new Date().toLocaleString()}*\n\n${message.content}`;
+                      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `zorvik-response-${message.id.slice(0, 8)}.md`;
+                      a.click();
+                      URL.revokeObjectURL(url);
                     }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
-                    title="Share & Export"
+                    title="Download Response as Markdown"
                   >
-                    <Share2 size={13} />
-                    <span className="text-[11px] font-mono uppercase">Share</span>
+                    <Download size={13} />
+                    <span className="text-[11px] font-mono uppercase">Save</span>
                   </button>
 
                   {onRegenerate && (
                     <button
                       onClick={onRegenerate}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-light text-silver/50 hover:text-white hover:bg-white/[0.04] transition-all"
-                      title="Rewrite / Regenerate"
+                      title="Rewrite / Regenerate this response"
                     >
                       <RotateCw size={13} />
                       <span className="text-[11px] font-mono uppercase">Rewrite</span>
@@ -276,24 +318,16 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       {/* 3. Related Follow-Up Questions */}
       {!message.isStreaming && !message.error && message.content && onSelectFollowup && followups.length > 0 && (
         <div className="pt-4 border-t border-white/[0.04] space-y-2">
-          <div className="flex items-center gap-2 text-[11px] font-mono text-silver/40 uppercase tracking-wider">
-            <Plus size={12} className="text-iris" />
-            <span>Related</span>
-          </div>
-
-          <div className="space-y-1">
-            {followups.map((q, idx) => (
+          <div className="text-[11px] font-mono text-silver/40 uppercase">Suggested Inquiries</div>
+          <div className="flex flex-col gap-1.5">
+            {followups.map((q: string, idx: number) => (
               <button
                 key={idx}
                 onClick={() => onSelectFollowup(q)}
-                className="w-full text-left px-3 py-2 rounded-lg bg-white/[0.015] border border-white/[0.04] hover:border-iris/30 hover:bg-white/[0.03] transition-all group flex items-center justify-between"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-iris/40 hover:bg-white/[0.04] text-left text-xs text-silver/80 hover:text-white transition-all group"
               >
-                <span className="text-xs sm:text-sm text-silver/70 group-hover:text-white font-light truncate pr-3">
-                  {q}
-                </span>
-                <span className="text-silver/30 group-hover:text-iris text-xs font-mono shrink-0">
-                  +
-                </span>
+                <span className="font-light">{q}</span>
+                <Plus size={12} className="text-silver/20 group-hover:text-iris shrink-0 ml-2" />
               </button>
             ))}
           </div>

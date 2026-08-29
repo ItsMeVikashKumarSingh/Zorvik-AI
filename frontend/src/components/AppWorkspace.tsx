@@ -7,8 +7,16 @@ import { InputDock } from './InputDock';
 import { AuthModal, AuthModalTab } from './AuthModal';
 import { AccountModal } from './AccountModal';
 import { ShareModal } from './ShareModal';
+import { PromptLibraryModal } from './PromptLibraryModal';
 import { ArtifactsCanvas } from './ArtifactsCanvas';
-import { ChatSession, Message, ModelMode, UserProfile, FileAttachment, ArtifactContent } from '../types';
+import {
+  ChatSession,
+  Message,
+  ModelMode,
+  UserProfile,
+  FileAttachment,
+  ArtifactContent,
+} from '../types';
 import { streamChat } from '../lib/api';
 import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
 
@@ -34,6 +42,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState<Message | null>(null);
+  const [promptLibraryOpen, setPromptLibraryOpen] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactContent | null>(null);
   const [artifactCanvasOpen, setArtifactCanvasOpen] = useState(false);
 
@@ -52,11 +61,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     }
   };
 
-  const handleOpenAuth = (tab: AuthModalTab = 'signin') => {
-    setAuthModalTab(tab);
-    setAuthModalOpen(true);
-  };
-
+  // Sign out handler
   const handleSignOut = async () => {
     await signOutUser();
     setUser({
@@ -100,7 +105,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           isGuest: false,
         });
 
-        // Clean up OAuth access_token hash from address bar
         if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
           window.history.replaceState(null, '', window.location.pathname);
         }
@@ -121,9 +125,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
   // Load sessions from localStorage on mount
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: ChatSession[] = JSON.parse(raw);
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed: ChatSession[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setSessions(parsed);
           setActiveSessionId(parsed[0].id);
@@ -134,32 +138,36 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     }
   }, []);
 
-  // Save sessions to localStorage
-  const saveSessions = useCallback((updated: ChatSession[]) => {
+  // Sync active chat param from URL if present (e.g. ?chat=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const chatParam = params.get('chat');
+    if (chatParam && sessions.some((s) => s.id === chatParam)) {
+      setActiveSessionId(chatParam);
+    }
+  }, [sessions]);
+
+  // Persist sessions helper
+  const saveSessions = (updated: ChatSession[]) => {
     setSessions(updated);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     } catch (err) {
       console.warn('[Storage Save Warning]:', err);
     }
-  }, []);
+  };
 
-  // Get active session
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
-  // Scroll to bottom when messages update
-  useEffect(() => {
+  // Auto scroll to bottom
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeSession?.messages, isStreaming]);
+  }, []);
 
-  // Attachment helpers
-  const handleAddAttachment = (file: FileAttachment) => {
-    setAttachments((prev) => [...prev, file]);
-  };
-
-  const handleRemoveAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
-  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [activeSession?.messages, isStreaming, scrollToBottom]);
 
   // Create new session
   const handleNewChat = () => {
@@ -168,12 +176,13 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     }
     const newSession: ChatSession = {
       id: 'sess_' + crypto.randomUUID(),
-      title: 'New Thread',
+      title: 'New Conversation',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: [],
     };
-    saveSessions([newSession, ...sessions]);
+    const updated = [newSession, ...sessions];
+    saveSessions(updated);
     setActiveSessionId(newSession.id);
     setInput('');
     setAttachments([]);
@@ -208,13 +217,19 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     }
   };
 
-  // Stop active stream
+  // Stop / Cancel active stream
   const handleStopStreaming = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
     setIsStreaming(false);
+  };
+
+  // Handle blueprint selection from modal
+  const handleSelectBlueprint = (template: string, blueprintMode: ModelMode) => {
+    setInput(template);
+    setMode(blueprintMode);
   };
 
   // Send message
@@ -312,20 +327,29 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
             if (s.id !== currentSession?.id) return s;
             return {
               ...s,
-              messages: s.messages.map((m) =>
-                m.id === assistantMessageId
-                  ? {
-                      ...m,
-                      content: finalContent,
-                      isStreaming: false,
-                      model: metadata?.model || 'Zorvik AI',
-                      responseType: metadata?.responseType,
-                      intent: metadata?.intent,
-                      sources: metadata?.sources,
-                      relatedQuestions: metadata?.relatedQuestions,
-                    }
-                  : m
-              ),
+              messages: s.messages.map((m) => {
+                if (m.id !== assistantMessageId) return m;
+                const initialVariant = {
+                  content: finalContent,
+                  timestamp: Date.now(),
+                  model: metadata?.model || 'Zorvik AI',
+                  responseType: metadata?.responseType,
+                  sources: metadata?.sources,
+                  relatedQuestions: metadata?.relatedQuestions,
+                };
+                return {
+                  ...m,
+                  content: finalContent,
+                  isStreaming: false,
+                  model: initialVariant.model,
+                  responseType: initialVariant.responseType,
+                  intent: metadata?.intent,
+                  sources: initialVariant.sources,
+                  relatedQuestions: initialVariant.relatedQuestions,
+                  variants: [initialVariant],
+                  activeVariantIndex: 0,
+                };
+              }),
             };
           });
           try {
@@ -361,31 +385,220 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     });
   };
 
-  // Regenerate last assistant response
-  const handleRegenerate = () => {
-    if (!activeSession || activeSession.messages.length < 2 || isStreaming) return;
-    const userMessages = activeSession.messages.filter((m) => m.role === 'user');
-    const lastUserMessage = userMessages[userMessages.length - 1];
-    if (lastUserMessage) {
-      handleSend(lastUserMessage.content, lastUserMessage.attachments);
+  // In-place rewrite of an assistant response with version history (like ChatGPT)
+  const handleRegenerateMessage = async (assistantMessageId: string) => {
+    if (!activeSession || isStreaming) return;
+
+    const messageIndex = activeSession.messages.findIndex((m) => m.id === assistantMessageId);
+    if (messageIndex === -1) return;
+
+    const targetMsg = activeSession.messages[messageIndex];
+    if (targetMsg.role !== 'assistant') return;
+
+    // Find the matching user prompt
+    let userPrompt = '';
+    let userAttachments: FileAttachment[] | undefined;
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (activeSession.messages[i].role === 'user') {
+        userPrompt = activeSession.messages[i].content;
+        userAttachments = activeSession.messages[i].attachments;
+        break;
+      }
     }
+
+    if (!userPrompt && (!userAttachments || userAttachments.length === 0)) return;
+
+    // Build current variant list
+    const currentVariants =
+      targetMsg.variants && targetMsg.variants.length > 0
+        ? [...targetMsg.variants]
+        : [
+            {
+              content: targetMsg.content,
+              timestamp: targetMsg.timestamp,
+              model: targetMsg.model,
+              responseType: targetMsg.responseType,
+              sources: targetMsg.sources,
+              relatedQuestions: targetMsg.relatedQuestions,
+            },
+          ];
+
+    // Set target message to streaming
+    const updatedMessages = activeSession.messages.map((m) =>
+      m.id === assistantMessageId
+        ? {
+            ...m,
+            content: '',
+            isStreaming: true,
+            error: false,
+            variants: currentVariants,
+          }
+        : m
+    );
+
+    const updatedSession = { ...activeSession, messages: updatedMessages };
+    const nextSessions = sessions.map((s) => (s.id === activeSession.id ? updatedSession : s));
+    saveSessions(nextSessions);
+    setIsStreaming(true);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    let accumulatedContent = '';
+
+    // Prior history up to the user message
+    const priorHistory = activeSession.messages
+      .slice(0, messageIndex)
+      .filter((m) => m.content && !m.isStreaming)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    await streamChat({
+      message: userPrompt,
+      sessionId: activeSession.id,
+      history: priorHistory,
+      mode,
+      files: userAttachments,
+      signal: controller.signal,
+      onChunk: (chunk) => {
+        accumulatedContent += chunk;
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id !== activeSession.id) return s;
+            return {
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === assistantMessageId ? { ...m, content: accumulatedContent } : m
+              ),
+            };
+          })
+        );
+      },
+      onDone: (finalContent, metadata) => {
+        setIsStreaming(false);
+        abortControllerRef.current = null;
+        setSessions((prev) => {
+          const finalSessions = prev.map((s) => {
+            if (s.id !== activeSession.id) return s;
+            return {
+              ...s,
+              messages: s.messages.map((m) => {
+                if (m.id !== assistantMessageId) return m;
+                const newVariant = {
+                  content: finalContent,
+                  timestamp: Date.now(),
+                  model: metadata?.model || 'Zorvik AI',
+                  responseType: metadata?.responseType,
+                  sources: metadata?.sources,
+                  relatedQuestions: metadata?.relatedQuestions,
+                };
+                const newVariants = [...(m.variants || []), newVariant];
+                return {
+                  ...m,
+                  content: finalContent,
+                  isStreaming: false,
+                  model: newVariant.model,
+                  responseType: newVariant.responseType,
+                  sources: newVariant.sources,
+                  relatedQuestions: newVariant.relatedQuestions,
+                  variants: newVariants,
+                  activeVariantIndex: newVariants.length - 1,
+                };
+              }),
+            };
+          });
+          saveSessions(finalSessions);
+          return finalSessions;
+        });
+      },
+      onError: (error) => {
+        setIsStreaming(false);
+        abortControllerRef.current = null;
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id !== activeSession.id) return s;
+            return {
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === assistantMessageId
+                  ? {
+                      ...m,
+                      content: error.message || 'Failed to rewrite response.',
+                      isStreaming: false,
+                      error: true,
+                    }
+                  : m
+              ),
+            };
+          })
+        );
+      },
+    });
   };
 
-  // Open Share Dialog
-  const handleOpenShareModal = (msg?: Message) => {
-    setShareMessage(msg || null);
+  // Switch version variant
+  const handleSwitchVariant = (messageId: string, targetIndex: number) => {
+    setSessions((prev) => {
+      const updated = prev.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        return {
+          ...s,
+          messages: s.messages.map((m) => {
+            if (m.id !== messageId || !m.variants || targetIndex < 0 || targetIndex >= m.variants.length) {
+              return m;
+            }
+            const variant = m.variants[targetIndex];
+            return {
+              ...m,
+              content: variant.content,
+              timestamp: variant.timestamp,
+              model: variant.model,
+              responseType: variant.responseType,
+              sources: variant.sources,
+              relatedQuestions: variant.relatedQuestions,
+              activeVariantIndex: targetIndex,
+            };
+          }),
+        };
+      });
+      saveSessions(updated);
+      return updated;
+    });
+  };
+
+  // Open share modal
+  const handleOpenShareModal = (message?: Message) => {
+    setShareMessage(message || null);
     setShareModalOpen(true);
   };
 
-  // Open Artifacts Canvas
-  const handleOpenArtifact = (art: ArtifactContent) => {
-    setActiveArtifact(art);
+  // Open Artifact Canvas
+  const handleOpenArtifact = (artifact: ArtifactContent) => {
+    setActiveArtifact(artifact);
     setArtifactCanvasOpen(true);
   };
 
+  // Attachment Management
+  const handleAddAttachment = (file: FileAttachment) => {
+    setAttachments((prev) => [...prev, file]);
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleOpenAuth = (tab: AuthModalTab = 'signin') => {
+    setAuthModalTab(tab);
+    setAuthModalOpen(true);
+  };
+
   return (
-    <div className="flex h-screen w-screen bg-[#050510] text-silver overflow-hidden">
-      {/* Sidebar */}
+    <div className="flex h-screen w-screen overflow-hidden bg-[#050510] text-slate-100 font-sans select-none antialiased">
+      {/* Dynamic Glassmorphism Background Gradients */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute -top-40 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/3 -right-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-[100px]" />
+      </div>
+
+      {/* Navigation Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -404,15 +617,17 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
       />
 
       {/* Main Workspace Canvas */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-[#050510] relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-[#050510] relative z-10">
         <Header
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           sidebarOpen={sidebarOpen}
           user={user}
           onOpenAuth={handleOpenAuth}
           onOpenAccount={() => setAccountModalOpen(true)}
+          onOpenShare={() => handleOpenShareModal()}
           onSignOut={handleSignOut}
           activeTitle={activeSession?.messages.length ? activeSession.title : undefined}
+          hasMessages={Boolean(activeSession && activeSession.messages.length > 0)}
         />
 
         {/* Viewport: Centered Search Hero OR Active Knowledge Synthesis Thread */}
@@ -427,6 +642,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
               attachments={attachments}
               onAddAttachment={handleAddAttachment}
               onRemoveAttachment={handleRemoveAttachment}
+              onOpenPromptLibrary={() => setPromptLibraryOpen(true)}
             />
           ) : (
             <div className="max-w-3xl mx-auto w-full flex-1 pb-4">
@@ -435,9 +651,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
                   key={msg.id}
                   message={msg}
                   onSelectFollowup={(prompt) => handleSend(prompt)}
-                  onRegenerate={msg.role === 'assistant' ? handleRegenerate : undefined}
-                  onOpenShare={() => handleOpenShareModal(msg)}
+                  onRegenerate={msg.role === 'assistant' ? () => handleRegenerateMessage(msg.id) : undefined}
                   onOpenArtifact={handleOpenArtifact}
+                  onSwitchVariant={handleSwitchVariant}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -458,6 +674,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
             attachments={attachments}
             onAddAttachment={handleAddAttachment}
             onRemoveAttachment={handleRemoveAttachment}
+            onOpenPromptLibrary={() => setPromptLibraryOpen(true)}
           />
         )}
       </div>
@@ -469,7 +686,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         onClose={() => setArtifactCanvasOpen(false)}
       />
 
-      {/* Share & Export Dialog */}
+      {/* Engineering Blueprint & Prompt Library Modal */}
+      <PromptLibraryModal
+        isOpen={promptLibraryOpen}
+        onClose={() => setPromptLibraryOpen(false)}
+        onSelectBlueprint={handleSelectBlueprint}
+      />
+
+      {/* Share & Multi-Format Export Dialog */}
       <ShareModal
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}

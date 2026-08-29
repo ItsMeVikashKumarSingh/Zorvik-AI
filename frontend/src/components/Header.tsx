@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PanelLeft, LogOut, KeyRound, User, ChevronDown } from 'lucide-react';
+import { PanelLeft, LogOut, KeyRound, User, ChevronDown, Share2, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
 import { AuthModalTab } from './AuthModal';
 
@@ -9,8 +9,10 @@ interface HeaderProps {
   user: UserProfile;
   onOpenAuth: (tab?: AuthModalTab) => void;
   onOpenAccount?: () => void;
+  onOpenShare?: () => void;
   onSignOut?: () => void;
   activeTitle?: string;
+  hasMessages?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,8 +21,10 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   onOpenAuth,
   onOpenAccount,
+  onOpenShare,
   onSignOut,
   activeTitle,
+  hasMessages,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -67,6 +71,18 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 text-xs relative" ref={dropdownRef}>
+        {/* Whole-Thread Share & Export Button (Top Bar) */}
+        {hasMessages && onOpenShare && (
+          <button
+            onClick={onOpenShare}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 hover:bg-white/[0.05] text-xs text-silver/80 hover:text-white transition-all font-light"
+            title="Export Thread (Markdown, HTML Report, JSON, Link)"
+          >
+            <Share2 size={13} className="text-iris" />
+            <span className="hidden sm:inline">Export Thread</span>
+          </button>
+        )}
+
         {user.isGuest ? (
           <button
             onClick={() => onOpenAuth('signin')}
@@ -77,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
         ) : (
           <div>
             <button
-              onClick={() => setDropdownOpen(prev => !prev)}
+              onClick={() => setDropdownOpen((prev) => !prev)}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:border-iris/40 text-xs text-white transition-all font-light"
             >
               <div className="w-4 h-4 rounded-full bg-iris/20 text-iris flex items-center justify-center text-[10px]">
@@ -103,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className="w-full text-left px-3 py-2 rounded-lg text-xs text-silver/80 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center gap-2"
                   >
-                    <User size={13} className="text-iris" />
+                    <Sparkles size={13} className="text-iris" />
                     <span>Account & Memories</span>
                   </button>
                 )}
@@ -139,5 +155,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
-

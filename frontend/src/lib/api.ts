@@ -1,5 +1,5 @@
 import { ModelMode, SourceItem, FileAttachment } from '../types';
-import { getSupabase } from './supabase';
+import { getSupabase, getOrCreateGuestId } from './supabase';
 
 const API_BASE = '/api/v1';
 
@@ -33,8 +33,11 @@ export async function streamChat({
   signal,
 }: StreamChatOptions): Promise<void> {
   try {
+    const guestId = getOrCreateGuestId();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'x-guest-uuid': guestId,
+      'x-user-id': guestId,
     };
 
     // Attach active Supabase Auth JWT token if present
@@ -57,6 +60,24 @@ export async function streamChat({
       base64: f.base64 || (f.dataUrl.includes(',') ? f.dataUrl.split(',')[1] : f.dataUrl),
     }));
 
+    // Read stored user preferences & memories from localStorage for instant client injection
+    let customInstructions = '';
+    let userMemories: UserMemoryItem[] = [];
+    try {
+      const savedPrefs = localStorage.getItem('zorvik_user_prefs');
+      if (savedPrefs) {
+        const parsed = JSON.parse(savedPrefs);
+        if (parsed.customInstructions) customInstructions = parsed.customInstructions;
+      }
+      const savedMems = localStorage.getItem('zorvik_user_memories');
+      if (savedMems) {
+        const parsedMems = JSON.parse(savedMems);
+        if (Array.isArray(parsedMems)) userMemories = parsedMems;
+      }
+    } catch {
+      // Non-blocking
+    }
+
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers,
@@ -64,9 +85,12 @@ export async function streamChat({
         message,
         prompt: message,
         session_id: sessionId,
+        user_id: guestId,
         history,
         mode,
         files: formattedFiles,
+        custom_instructions: customInstructions,
+        memories: userMemories,
         stream: true,
       }),
       signal,
@@ -171,8 +195,13 @@ export interface UserPreferences {
  * Fetch user personalization preferences and long-term memories
  */
 export async function fetchUserMemories(): Promise<{ preferences: UserPreferences; memories: UserMemoryItem[] }> {
+  const guestId = getOrCreateGuestId();
   const supabase = getSupabase();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'x-guest-uuid': guestId,
+    'x-user-id': guestId,
+  };
+
   if (supabase) {
     const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) {
@@ -180,9 +209,27 @@ export async function fetchUserMemories(): Promise<{ preferences: UserPreference
     }
   }
 
-  const res = await fetch(`${API_BASE}/user/memories`, { headers });
-  if (!res.ok) throw new Error('Failed to fetch user memories');
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/user/memories`, { headers });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback to local storage
+  }
+
+  let preferences: UserPreferences = { customInstructions: '', tone: 'auto', persona: 'general' };
+  let memories: UserMemoryItem[] = [];
+  try {
+    const p = localStorage.getItem('zorvik_user_prefs');
+    if (p) preferences = JSON.parse(p);
+    const m = localStorage.getItem('zorvik_user_memories');
+    if (m) memories = JSON.parse(m);
+  } catch {
+    // Ignore
+  }
+
+  return { preferences, memories };
 }
 
 /**
@@ -192,8 +239,14 @@ export async function saveUserMemory(payload: {
   text?: string;
   preferences?: Partial<UserPreferences>;
 }): Promise<{ preferences: UserPreferences; memories: UserMemoryItem[] }> {
+  const guestId = getOrCreateGuestId();
   const supabase = getSupabase();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-guest-uuid': guestId,
+    'x-user-id': guestId,
+  };
+
   if (supabase) {
     const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) {
@@ -201,21 +254,33 @@ export async function saveUserMemory(payload: {
     }
   }
 
-  const res = await fetch(`${API_BASE}/user/memories`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error('Failed to save memory or preferences');
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/user/memories`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback
+  }
+
+  return fetchUserMemories();
 }
 
 /**
  * Delete a specific memory fact or all memories (id === 'all')
  */
 export async function deleteUserMemory(id: string): Promise<{ memories: UserMemoryItem[] }> {
+  const guestId = getOrCreateGuestId();
   const supabase = getSupabase();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'x-guest-uuid': guestId,
+    'x-user-id': guestId,
+  };
+
   if (supabase) {
     const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) {
@@ -223,10 +288,17 @@ export async function deleteUserMemory(id: string): Promise<{ memories: UserMemo
     }
   }
 
-  const res = await fetch(`${API_BASE}/user/memories/${id}`, {
-    method: 'DELETE',
-    headers,
-  });
-  if (!res.ok) throw new Error('Failed to delete memory');
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/user/memories/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback
+  }
+
+  return fetchUserMemories();
 }

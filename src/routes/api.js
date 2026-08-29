@@ -48,25 +48,47 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
 
   const tenant = req.tenant;
   const sessionId = session_id || req.headers["x-session-id"] || "default-session";
+  const effectiveUserId =
+    req.user?.id ||
+    req.guestUUID ||
+    req.headers["x-user-id"] ||
+    req.headers["x-guest-uuid"] ||
+    req.body?.user_id ||
+    req.body?.guest_uuid ||
+    "guest_default";
 
   // 1. Fetch multi-turn history from request body or hot sliding memory
   const clientHistory = Array.isArray(req.body.history) && req.body.history.length > 0 ? req.body.history : null;
   const serverHistory = await getSessionHistory(sessionId);
   const history = clientHistory || serverHistory || [];
 
-  // 2. Fetch logged-in user personalization & long-term memories
+  // 2. Fetch user personalization & long-term memories
   let userMemories = [];
   let customInstructions = "";
-  if (req.user && req.user.id) {
+  if (effectiveUserId) {
     try {
       const [prefs, memories] = await Promise.all([
-        getUserProfileConfig(req.user.id),
-        getUserMemories(req.user.id),
+        getUserProfileConfig(effectiveUserId),
+        getUserMemories(effectiveUserId),
       ]);
       customInstructions = prefs?.customInstructions || "";
       userMemories = memories || [];
     } catch (_memErr) {
       // Non-blocking memory retrieval error
+    }
+  }
+
+  // Merge client-sent explicit preferences & memories if present
+  if (req.body.custom_instructions && typeof req.body.custom_instructions === "string") {
+    customInstructions = (customInstructions ? customInstructions + "\n" : "") + req.body.custom_instructions.trim();
+  }
+  if (Array.isArray(req.body.memories) && req.body.memories.length > 0) {
+    const memoryTexts = userMemories.map((m) => (typeof m === "string" ? m : m.text || "").toLowerCase());
+    for (const cm of req.body.memories) {
+      const text = typeof cm === "string" ? cm : cm.text || "";
+      if (text && !memoryTexts.includes(text.toLowerCase())) {
+        userMemories.push(cm);
+      }
     }
   }
 
@@ -102,9 +124,9 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
       await appendSessionTurn(sessionId, prompt, result.text);
 
       // Trigger Autonomous Neural Memory Ingestion & Tone Learning in the background
-      if (req.user && req.user.id) {
+      if (effectiveUserId) {
         processTurnMemoryAndTone({
-          userId: req.user.id,
+          userId: effectiveUserId,
           prompt,
           response: result.text,
         }).catch((err) => console.warn("[Memory Auto-Extraction Non-Blocking]", err.message));
@@ -188,9 +210,9 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     await appendSessionTurn(sessionId, prompt, result.text);
 
     // Trigger Autonomous Neural Memory Ingestion & Tone Learning in the background
-    if (req.user && req.user.id) {
+    if (effectiveUserId) {
       processTurnMemoryAndTone({
-        userId: req.user.id,
+        userId: effectiveUserId,
         prompt,
         response: result.text,
       }).catch((err) => console.warn("[Memory Auto-Extraction Non-Blocking]", err.message));
@@ -322,20 +344,20 @@ router.post("/tenants/verify", (req, res) => {
 
 /**
  * GET /api/v1/user/memories
- * Retrieve long-term memories and response preferences for the logged-in user
+ * Retrieve long-term memories and response preferences for the user
  */
 router.get("/user/memories", async (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({
-      error: "Unauthorized",
-      message: "Authentication required to access personalized memories.",
-    });
-  }
+  const effectiveUserId =
+    req.user?.id ||
+    req.guestUUID ||
+    req.headers["x-user-id"] ||
+    req.headers["x-guest-uuid"] ||
+    "guest_default";
 
   try {
     const [preferences, memories] = await Promise.all([
-      getUserProfileConfig(req.user.id),
-      getUserMemories(req.user.id),
+      getUserProfileConfig(effectiveUserId),
+      getUserMemories(effectiveUserId),
     ]);
 
     return res.json({
@@ -353,28 +375,30 @@ router.get("/user/memories", async (req, res) => {
  * Add a memory item or update personalization preferences
  */
 router.post("/user/memories", async (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({
-      error: "Unauthorized",
-      message: "Authentication required to update memories.",
-    });
-  }
+  const effectiveUserId =
+    req.user?.id ||
+    req.guestUUID ||
+    req.headers["x-user-id"] ||
+    req.headers["x-guest-uuid"] ||
+    req.body?.user_id ||
+    req.body?.guest_uuid ||
+    "guest_default";
 
   const { text, preferences } = req.body;
 
   try {
     if (preferences) {
-      await saveUserProfileConfig(req.user.id, preferences);
+      await saveUserProfileConfig(effectiveUserId, preferences);
     }
 
     let newMemory = null;
     if (text && typeof text === "string" && text.trim()) {
-      newMemory = await addUserMemory(req.user.id, text.trim());
+      newMemory = await addUserMemory(effectiveUserId, text.trim());
     }
 
     const [updatedPrefs, memories] = await Promise.all([
-      getUserProfileConfig(req.user.id),
-      getUserMemories(req.user.id),
+      getUserProfileConfig(effectiveUserId),
+      getUserMemories(effectiveUserId),
     ]);
 
     return res.json({
@@ -393,23 +417,23 @@ router.post("/user/memories", async (req, res) => {
  * Delete a specific memory item or all memories (if id === 'all')
  */
 router.delete("/user/memories/:id", async (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({
-      error: "Unauthorized",
-      message: "Authentication required to delete memories.",
-    });
-  }
+  const effectiveUserId =
+    req.user?.id ||
+    req.guestUUID ||
+    req.headers["x-user-id"] ||
+    req.headers["x-guest-uuid"] ||
+    "guest_default";
 
   const { id } = req.params;
 
   try {
     if (id === "all") {
-      await clearUserMemories(req.user.id);
+      await clearUserMemories(effectiveUserId);
     } else {
-      await deleteUserMemory(req.user.id, id);
+      await deleteUserMemory(effectiveUserId, id);
     }
 
-    const memories = await getUserMemories(req.user.id);
+    const memories = await getUserMemories(effectiveUserId);
     return res.json({
       success: true,
       memories,

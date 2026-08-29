@@ -1,11 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { X, Play, Code2, Eye, Copy, Check, Download, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  X,
+  Play,
+  Code2,
+  Eye,
+  Copy,
+  Check,
+  Download,
+  RotateCw,
+  Maximize2,
+  Minimize2,
+  FileCode,
+} from 'lucide-react';
 import { ArtifactContent } from '../types';
 
 interface ArtifactsCanvasProps {
   artifact: ArtifactContent | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface ParsedFile {
+  name: string;
+  language: string;
+  content: string;
 }
 
 export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
@@ -17,21 +35,50 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+
+  // Parse multi-file code blocks (e.g. // file: index.html or <!-- file: index.html -->)
+  const parsedFiles = useMemo<ParsedFile[]>(() => {
+    if (!artifact || !artifact.code) return [];
+
+    const fileSplitRegex = /(?:\/\/\s*file:\s*([\w.-]+)|<!--\s*file:\s*([\w.-]+)\s*-->|\/\*\s*file:\s*([\w.-]+)\s*\*\/)/gi;
+    const parts = artifact.code.split(fileSplitRegex).filter(Boolean);
+
+    if (parts.length > 1) {
+      const files: ParsedFile[] = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        const fileName = parts[i] || `file_${files.length + 1}`;
+        const content = (parts[i + 1] || '').trim();
+        const ext = fileName.split('.').pop()?.toLowerCase() || 'txt';
+        files.push({
+          name: fileName,
+          language: ext,
+          content,
+        });
+      }
+      return files.length > 0 ? files : [{ name: 'main.' + artifact.language, language: artifact.language, content: artifact.code }];
+    }
+
+    return [{ name: `${artifact.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${artifact.language}`, language: artifact.language, content: artifact.code }];
+  }, [artifact]);
 
   useEffect(() => {
     if (artifact) {
-      // Default to preview for html/svg/javascript
       const isRenderable = ['html', 'javascript', 'js', 'svg', 'react', 'tsx', 'jsx'].includes(
         artifact.language.toLowerCase()
       );
       setActiveTab(isRenderable ? 'preview' : 'code');
+      setSelectedFileIndex(0);
     }
   }, [artifact]);
 
   if (!isOpen || !artifact) return null;
 
+  const currentFile = parsedFiles[selectedFileIndex] || parsedFiles[0];
+
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(artifact.code);
+    const codeToCopy = currentFile ? currentFile.content : artifact.code;
+    navigator.clipboard.writeText(codeToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -46,12 +93,14 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
       svg: 'svg',
       json: 'json',
     };
-    const ext = extMap[artifact.language.toLowerCase()] || 'txt';
-    const blob = new Blob([artifact.code], { type: 'text/plain;charset=utf-8' });
+
+    const targetFile = currentFile || { name: 'artifact.' + artifact.language, content: artifact.code, language: artifact.language };
+    const ext = extMap[targetFile.language.toLowerCase()] || targetFile.language || 'txt';
+    const blob = new Blob([targetFile.content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${artifact.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'artifact'}.${ext}`;
+    a.download = targetFile.name.includes('.') ? targetFile.name : `${targetFile.name}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -213,6 +262,26 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
         </div>
       </div>
 
+      {/* Multi-File Tab Selector (if multiple files detected) */}
+      {activeTab === 'code' && parsedFiles.length > 1 && (
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-white/[0.06] bg-[#090912] overflow-x-auto">
+          {parsedFiles.map((file, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSelectedFileIndex(idx)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono transition-all ${
+                selectedFileIndex === idx
+                  ? 'bg-iris/20 text-iris border border-iris/40 font-medium'
+                  : 'bg-white/[0.02] border border-white/[0.05] text-silver/50 hover:text-white'
+              }`}
+            >
+              <FileCode size={12} />
+              <span>{file.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Main Canvas Body */}
       <div className="flex-1 relative overflow-hidden bg-[#06060c]">
         {activeTab === 'preview' ? (
@@ -225,7 +294,7 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
           />
         ) : (
           <pre className="w-full h-full p-4 overflow-auto font-mono text-xs text-silver/90 leading-relaxed select-text">
-            <code>{artifact.code}</code>
+            <code>{currentFile ? currentFile.content : artifact.code}</code>
           </pre>
         )}
       </div>

@@ -60,23 +60,50 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [newMemoryText, setNewMemoryText] = useState('');
   const [addingMemory, setAddingMemory] = useState(false);
 
-  // Load Memories on open
+  // Load Preferences & Memories on open
   useEffect(() => {
-    if (!isOpen || user.isGuest) return;
+    if (!isOpen) return;
 
+    // 1. Hydrate from localStorage
+    try {
+      const savedPrefs = localStorage.getItem('zorvik_user_prefs');
+      if (savedPrefs) {
+        const parsed: UserPreferences = JSON.parse(savedPrefs);
+        if (parsed.tone) setSelectedTone(parsed.tone);
+        if (parsed.persona) setSelectedPersona(parsed.persona);
+        if (parsed.customInstructions) setCustomInstructions(parsed.customInstructions);
+      }
+
+      const savedMems = localStorage.getItem('zorvik_user_memories');
+      if (savedMems) {
+        const parsedMems = JSON.parse(savedMems);
+        if (Array.isArray(parsedMems)) setMemories(parsedMems);
+      }
+    } catch (_err) {
+      // Non-blocking
+    }
+
+    // 2. Fetch from backend API
     const loadData = async () => {
       try {
         const memRes = await fetchUserMemories();
-        if (memRes.memories) {
+        if (memRes.preferences) {
+          if (memRes.preferences.tone) setSelectedTone(memRes.preferences.tone);
+          if (memRes.preferences.persona) setSelectedPersona(memRes.preferences.persona);
+          if (memRes.preferences.customInstructions) setCustomInstructions(memRes.preferences.customInstructions);
+          localStorage.setItem('zorvik_user_prefs', JSON.stringify(memRes.preferences));
+        }
+        if (memRes.memories && Array.isArray(memRes.memories)) {
           setMemories(memRes.memories);
+          localStorage.setItem('zorvik_user_memories', JSON.stringify(memRes.memories));
         }
       } catch (err) {
-        console.warn('Could not load user data:', err);
+        console.warn('Could not load backend user data:', err);
       }
     };
 
     loadData();
-  }, [isOpen, user.isGuest]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -94,10 +121,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         customInstructions: customInstructions.trim(),
       };
       localStorage.setItem('zorvik_user_prefs', JSON.stringify(prefs));
-      setSuccessMsg('Persona & tone calibrated successfully!');
+      await saveUserMemory({ preferences: prefs });
+      setSuccessMsg('Persona, tone, and custom instructions saved successfully.');
       setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to save preferences');
+    } catch (_err: unknown) {
+      setSuccessMsg('Preferences calibrated and saved locally.');
+      setTimeout(() => setSuccessMsg(null), 3000);
     } finally {
       setSavingPreferences(false);
     }
@@ -110,16 +139,29 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
     setAddingMemory(true);
     setErrorMsg(null);
+
+    const localNewMemory: UserMemoryItem = {
+      id: 'mem_' + crypto.randomUUID(),
+      text: newMemoryText.trim(),
+      createdAt: Date.now(),
+    };
+
+    const nextMemories = [localNewMemory, ...memories];
+    setMemories(nextMemories);
+    localStorage.setItem('zorvik_user_memories', JSON.stringify(nextMemories));
+    setNewMemoryText('');
+
     try {
-      const res = await saveUserMemory({ text: newMemoryText.trim() });
-      if (res.memories) {
+      const res = await saveUserMemory({ text: localNewMemory.text });
+      if (res.memories && Array.isArray(res.memories)) {
         setMemories(res.memories);
+        localStorage.setItem('zorvik_user_memories', JSON.stringify(res.memories));
       }
-      setNewMemoryText('');
-      setSuccessMsg('Memory saved to persistent store.');
+      setSuccessMsg('Memory saved to persistent neural store.');
       setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to save memory');
+    } catch (_err: unknown) {
+      setSuccessMsg('Memory stored locally.');
+      setTimeout(() => setSuccessMsg(null), 3000);
     } finally {
       setAddingMemory(false);
     }
@@ -128,13 +170,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   // Handle Delete Memory
   const handleDeleteMemory = async (id: string) => {
     setErrorMsg(null);
+    const nextMemories = memories.filter((m) => m.id !== id);
+    setMemories(nextMemories);
+    localStorage.setItem('zorvik_user_memories', JSON.stringify(nextMemories));
+
     try {
       const res = await deleteUserMemory(id);
-      if (res.memories) {
+      if (res.memories && Array.isArray(res.memories)) {
         setMemories(res.memories);
+        localStorage.setItem('zorvik_user_memories', JSON.stringify(res.memories));
       }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to delete memory');
+    } catch (_err: unknown) {
+      // Local deletion was already applied
     }
   };
 
@@ -142,12 +189,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const handleClearAllMemories = async () => {
     if (!window.confirm('Are you sure you want to clear all stored memories?')) return;
     setErrorMsg(null);
+    setMemories([]);
+    localStorage.removeItem('zorvik_user_memories');
+
     try {
       const res = await deleteUserMemory('all');
       setMemories(res.memories || []);
       setSuccessMsg('All memories have been cleared.');
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to clear memories');
+    } catch (_err: unknown) {
+      setSuccessMsg('Memories cleared locally.');
     }
   };
 
@@ -260,7 +310,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             <div>
               <h3 className="text-base sm:text-lg font-medium text-white tracking-tight">Account & Calibration Hub</h3>
               <p className="text-[11px] text-silver/50 font-light">
-                Manage quotas, neural memory, tone profiles, and security.
+                Manage quotas, neural memory, tone profiles, and personalization.
               </p>
             </div>
           </div>
@@ -376,88 +426,92 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     {userInitial}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-white">{user.email || 'Authenticated Member'}</div>
+                    <div className="text-sm font-medium text-white">{user.email || 'Zorvik Workspace User'}</div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                        <Shield size={10} /> Active Member
+                        <Shield size={10} /> Active Plan
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-crimson/10 border border-crimson/20 text-crimson hover:bg-crimson/20 text-xs transition-colors"
-                >
-                  <LogOut size={13} />
-                  <span>Sign Out</span>
-                </button>
+                {!user.isGuest && (
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-crimson/10 border border-crimson/20 text-crimson hover:bg-crimson/20 text-xs transition-colors"
+                  >
+                    <LogOut size={13} />
+                    <span>Sign Out</span>
+                  </button>
+                )}
               </div>
 
               {/* Password Section */}
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-white">Security & Password</div>
-                    <div className="text-[11px] text-silver/40 font-light mt-0.5">
-                      Update your account master password
-                    </div>
-                  </div>
-                  {!showPasswordForm && (
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswordForm(true)}
-                      className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-silver/80 hover:text-white transition-colors"
-                    >
-                      Change Password
-                    </button>
-                  )}
-                </div>
-
-                {showPasswordForm && (
-                  <form onSubmit={handleUpdatePassword} className="space-y-3 pt-2">
+              {!user.isGuest && (
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-silver/50 mb-1">New Password</label>
-                      <input
-                        type="password"
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="At least 8 characters..."
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-iris"
-                      />
+                      <div className="font-medium text-white">Security & Password</div>
+                      <div className="text-[11px] text-silver/40 font-light mt-0.5">
+                        Update your account master password
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-silver/50 mb-1">Confirm New Password</label>
-                      <input
-                        type="password"
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Re-enter password..."
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-iris"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-1">
+                    {!showPasswordForm && (
                       <button
                         type="button"
-                        onClick={() => setShowPasswordForm(false)}
-                        className="px-3 py-1.5 rounded-lg bg-white/[0.04] text-silver/70 hover:text-white"
+                        onClick={() => setShowPasswordForm(true)}
+                        className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-silver/80 hover:text-white transition-colors"
                       >
-                        Cancel
+                        Change Password
                       </button>
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-4 py-1.5 rounded-lg bg-iris hover:bg-iris-hover text-white font-medium shadow-md"
-                      >
-                        {loading ? 'Updating...' : 'Save Password'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
+                    )}
+                  </div>
+
+                  {showPasswordForm && (
+                    <form onSubmit={handleUpdatePassword} className="space-y-3 pt-2">
+                      <div>
+                        <label className="block text-[10px] font-mono uppercase text-silver/50 mb-1">New Password</label>
+                        <input
+                          type="password"
+                          required
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="At least 8 characters..."
+                          className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-iris"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono uppercase text-silver/50 mb-1">Confirm New Password</label>
+                        <input
+                          type="password"
+                          required
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter password..."
+                          className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-iris"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswordForm(false)}
+                          className="px-3 py-1.5 rounded-lg bg-white/[0.04] text-silver/70 hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="px-4 py-1.5 rounded-lg bg-iris hover:bg-iris-hover text-white font-medium shadow-md"
+                        >
+                          {loading ? 'Updating...' : 'Save Password'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -497,12 +551,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <div className="text-[10px] font-mono uppercase text-silver/40">Inference Engines</div>
-                    <div className="text-xs text-white font-medium mt-0.5">Gemini 2.5, Groq, Cerebras</div>
+                    <div className="text-[10px] font-mono uppercase text-silver/40">Inference Core</div>
+                    <div className="text-xs text-white font-medium mt-0.5">Zorvik Multi-Engine Neural Matrix</div>
                   </div>
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                     <div className="text-[10px] font-mono uppercase text-silver/40">Grounding</div>
-                    <div className="text-xs text-white font-medium mt-0.5">Unlimited Google Search</div>
+                    <div className="text-xs text-white font-medium mt-0.5">Unlimited Real-Time Web Scraping</div>
                   </div>
                 </div>
               </div>
@@ -557,7 +611,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <textarea
                   value={customInstructions}
                   onChange={(e) => setCustomInstructions(e.target.value)}
-                  placeholder="e.g. Always respond in TypeScript, omit unnecessary commentary, prioritize functional clean code..."
+                  placeholder="e.g. Always respond in TypeScript, omit unnecessary commentary, remember my project is Zorvik Tech..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-iris resize-none"
                 />
@@ -583,7 +637,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   type="text"
                   value={newMemoryText}
                   onChange={(e) => setNewMemoryText(e.target.value)}
-                  placeholder="Remember fact (e.g., 'Primary stack is Next.js 15 and Supabase')..."
+                  placeholder="Remember fact (e.g., 'My name is Vikas and I am working on Zorvik Tech with Next.js')..."
                   className="flex-1 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs focus:outline-none focus:border-iris"
                 />
                 <button
@@ -611,7 +665,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               <div className="space-y-2 max-h-56 overflow-y-auto">
                 {memories.length === 0 ? (
                   <div className="p-6 text-center text-silver/40 font-light">
-                    No memories stored yet. Zorvik AI automatically learns facts during conversation or you can add them above.
+                    No memories stored yet. Zorvik AI automatically learns facts during conversation (e.g. who you are, what you work on) or you can add them above.
                   </div>
                 ) : (
                   memories.map((m) => (

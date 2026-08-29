@@ -2,6 +2,36 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.5] - 2026-08-29
+### Universal Long-Term Neural Memory Sync, Model Anonymity, & Right-Dock Voice Visualizer
+- **Complete Internal Model Anonymity ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx))**:
+  - Removed all third-party provider strings (Gemini 2.5, Groq, Cerebras) from account & quota views, branding all inference as *Zorvik Multi-Engine Neural Matrix*.
+- **Universal Multi-Turn & Cross-Session Long-Term Memory ([`AccountModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AccountModal.tsx), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js), [`api.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/lib/api.ts), [`autoMemoryExtractor.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/autoMemoryExtractor.js))**:
+  - Unified memory storage across both authenticated Supabase accounts and persistent local guest sessions.
+  - Automatically loads and saves custom instructions, personas, and conversational tones directly into local storage and backend Redis/pgvector stores.
+  - Injects stored user facts (identity, project stack, role, preferred style) into every conversation turn's system prompt so the AI remembers details across separate threads.
+  - Expanded heuristic fact extraction to capture user identity, project tech stacks, companies, and explicit memory directives.
+- **Right-Aligned Microphone & Animated Waveform Equalizer ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx))**:
+  - Placed microphone icon on the right side of the dock next to Send/Cancel.
+  - Animated audio visualizer waveform when speech recognition is active.
+- **In-Place Message Rewrite & Version History Pagination ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx), [`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx))**:
+  - Rewriting responses regenerates in-place with `< 1 / 2 >` version pagination controls.
+
+## [1.0.4] - 2026-08-29
+### Multi-Format Thread Exporter, Header Share Controls, Blueprint Hub Dropdown & Multi-File Canvas
+- **Top-Bar Thread Exporter & Share Controls ([`Header.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Header.tsx), [`ShareModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ShareModal.tsx))**:
+  - Relocated whole-conversation share and export actions to the top header bar.
+  - Multi-format thread export suite: Formatted Markdown (`.md`), Standalone Styled HTML Executive Report (`.html`), Structured JSON Archive (`.json`), Copy Full Transcript, Browser Print to PDF, and Instant Shareable Snapshot Link.
+- **Single-Response Granular Download ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - Replaced message-level sharing with a clean 1-click single-response download action (`Save` button) alongside copy and audio readback.
+- **Unified Intelligence & Mode Selector Dropdown ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx))**:
+  - Replaced wide button rows with a cyber-glass dropdown selector (ChatGPT / Claude style) supporting all modes (*All*, *Web Search*, *Deep Thinker*, *Code Wizard*, *Casual*) and direct access to prompt blueprints.
+- **Engineering Blueprint & Prompt Hub ([`PromptLibraryModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/PromptLibraryModal.tsx))**:
+  - Curated, production-tested blueprints across Architecture (high-concurrency microservices, sharding), Security (OWASP Top 10 threat audit), Database (PostgreSQL execution plan optimizer), and API Contracts (OpenAPI 3.1 specs).
+  - 1-click to pre-fill prompt into dock with optimal intelligence mode pre-selected.
+- **Multi-File Live Artifact Canvas & Sandbox Downloader ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:
+  - Multi-file tab support (e.g. `index.html`, `styles.css`, `app.js`), 1-click code copying per active tab, and single-file/bundle downloading with sandboxed live preview.
+
 ## [1.0.3] - 2026-08-29
 ### Neural Nuance & Multidimensional Intent Classification Engine (Gen Z & Gen Alpha Intelligence)
 - **Comprehensive Subculture Lexicons ([`intentEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/intentEngine.js))**:
