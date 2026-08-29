@@ -319,6 +319,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
                       content: finalContent,
                       isStreaming: false,
                       model: metadata?.model || 'Zorvik AI',
+                      responseType: metadata?.responseType,
                       intent: metadata?.intent,
                       sources: metadata?.sources,
                       relatedQuestions: metadata?.relatedQuestions,

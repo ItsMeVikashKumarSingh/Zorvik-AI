@@ -118,6 +118,26 @@ describe("Zorvik AI API Microservice Tests", () => {
     assert.strictEqual(data.tenant.tier, "enterprise");
   });
 
+  test("POST /api/v1/chat with domain query should ground live web content without AI disclaimer", async () => {
+    const res = await fetch(`${BASE_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-tenant-id": "zorviktech-main",
+      },
+      body: JSON.stringify({
+        prompt: "check zorviktech.com and review audit",
+        mode: "search",
+      }),
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.response && data.response.length > 0);
+    // Ensure no AI disclaimer
+    assert.ok(!data.response.includes("I don't have live web-access"));
+    assert.ok(!data.response.includes("As an AI language model"));
+  });
+
   test("POST /api/v1/chat should reject empty prompt with 400", async () => {
     const res = await fetch(`${BASE_URL}/chat`, {
       method: "POST",

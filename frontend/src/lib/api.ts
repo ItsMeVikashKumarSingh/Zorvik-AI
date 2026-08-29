@@ -12,7 +12,7 @@ export interface StreamChatOptions {
   onChunk: (chunk: string) => void;
   onDone: (
     fullText: string,
-    metadata?: { model?: string; intent?: string; sources?: SourceItem[]; relatedQuestions?: string[] }
+    metadata?: { model?: string; responseType?: string; intent?: string; sources?: SourceItem[]; relatedQuestions?: string[] }
   ) => void;
   onError: (error: Error) => void;
   signal?: AbortSignal;
@@ -86,6 +86,7 @@ export async function streamChat({
     let buffer = '';
     let accumulatedText = '';
     let modelMetadata: string | undefined;
+    let responseTypeMetadata: string | undefined;
     let intentMetadata: string | undefined;
     let sourcesMetadata: SourceItem[] = [];
 
@@ -116,6 +117,9 @@ export async function streamChat({
           if (parsed.model) {
             modelMetadata = parsed.model;
           }
+          if (parsed.responseType || parsed.response_type) {
+            responseTypeMetadata = parsed.responseType || parsed.response_type;
+          }
           if (parsed.intent) {
             intentMetadata = parsed.intent;
           }
@@ -138,6 +142,7 @@ export async function streamChat({
 
     onDone(accumulatedText, {
       model: modelMetadata,
+      responseType: responseTypeMetadata,
       intent: intentMetadata,
       sources: sourcesMetadata,
     });

@@ -13,6 +13,7 @@ import {
   FileText,
   Volume2,
   VolumeX,
+  Sparkles,
 } from 'lucide-react';
 import { Message, SourceItem, ArtifactContent } from '../types';
 import { renderMarkdown } from '../lib/markdown';
@@ -246,16 +247,26 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   )}
                 </div>
 
-                {/* Canvas Live Preview Button */}
-                {detectedArtifact && onOpenArtifact && (
-                  <button
-                    onClick={() => onOpenArtifact(detectedArtifact)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-iris/10 border border-iris/30 text-iris hover:bg-iris hover:text-white text-xs font-medium transition-all shadow-sm"
-                  >
-                    <Play size={12} />
-                    <span>Open Live Artifact Canvas</span>
-                  </button>
-                )}
+                {/* Right Side: Response Type Badge & Artifact Canvas */}
+                <div className="flex items-center gap-2">
+                  {message.responseType && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-[10px] font-mono text-silver/60">
+                      <Sparkles size={10} className="text-iris" />
+                      <span>{message.responseType}</span>
+                    </span>
+                  )}
+
+                  {/* Canvas Live Preview Button */}
+                  {detectedArtifact && onOpenArtifact && (
+                    <button
+                      onClick={() => onOpenArtifact(detectedArtifact)}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-iris/10 border border-iris/30 text-iris hover:bg-iris hover:text-white text-xs font-medium transition-all shadow-sm"
+                    >
+                      <Play size={12} />
+                      <span>Open Live Artifact Canvas</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -32,6 +32,7 @@ export interface Message {
   content: string;
   timestamp: number;
   model?: string;
+  responseType?: string;
   intent?: string;
   isStreaming?: boolean;
   error?: boolean;

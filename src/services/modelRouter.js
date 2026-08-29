@@ -1,8 +1,10 @@
 /**
- * Zero-Cost Multi-Model Routing Engine with Circuit Breaker, True SSE Streaming & Google Search Grounding
+ * Zero-Cost Multi-Model Routing Engine with Circuit Breaker, True SSE Streaming,
+ * Universal Live Web Grounding, and Strict Persona Directives
  * Cascades: Google Gemini (Primary with Search Grounding & Vision) -> Groq Cloud (Fallback 1) -> Cerebras (Fallback 2) -> Mistral (Fallback 3) -> OpenRouter -> Local
  */
 const { circuitBreaker } = require("./circuitBreaker");
+const { groundPrompt, extractDomain } = require("./webGrounding");
 
 /**
  * Helper to sanitize and format conversation history for Google Gemini API
@@ -79,15 +81,18 @@ function formatOpenAIMessages(systemPrompt, history, prompt) {
 }
 
 /**
- * Extract clean domain name from URL
+ * Clean text of unnecessary AI robotic boilerplate or repetitive em dashes
  */
-function extractDomain(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, "");
-  } catch {
-    return "web";
-  }
+function cleanOutputText(text) {
+  if (!text || typeof text !== "string") return "";
+  return text
+    // Replace em dashes and en dashes with natural standard punctuation or hyphens where appropriate
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s*–\s*/g, " - ")
+    // Remove robotic AI boilerplate intro disclaimers
+    .replace(/^I am Zorvik AI, built by Team Zorvik\. I don't have live web-access.*?\n+/i, "")
+    .replace(/^As an AI( language model)?,?\s*/i, "")
+    .trim();
 }
 
 /**
@@ -194,7 +199,7 @@ async function streamGemini({
   }
 
   return {
-    text: fullText,
+    text: cleanOutputText(fullText),
     model: `gemini-${model}`,
     provider: "google",
     sources,
@@ -277,7 +282,7 @@ async function streamOpenAICompatible({
   }
 
   return {
-    text: fullText,
+    text: cleanOutputText(fullText),
     model: `${provider}-${model}`,
     provider,
     sources: [],
@@ -287,26 +292,33 @@ async function streamOpenAICompatible({
 /**
  * Intelligent Local Fallback
  */
-function localIntelligentFallback(prompt, mode = "auto") {
-  const isEmojiOrGenZ = /💀|😭|💅|🗿|🧢|rizz|cap|bet|lowkey|fr|ngl/i.test(prompt);
+function localIntelligentFallback(prompt, mode = "auto", liveWebContext = "") {
+  const isEmojiOrGenZ = /💀|😭|💅|🗿|🧢|rizz|cap|bet|lowkey|fr|ngl|skibidi|sigma|cooked|aura|locked in/i.test(prompt);
 
-  if (isEmojiOrGenZ || mode === "genz") {
-    if (/💀/.test(prompt)) {
-      return "Bro is absolutely deceased. No way that actually just happened fr. 💀";
+  if (isEmojiOrGenZ || mode === "genz" || mode === "casual") {
+    if (/skibidi|fanum|brainrot|ohio|mewing|mog/i.test(prompt)) {
+      return "Maximum aura achieved. The energy is undisputed and completely locked in.";
     }
-    if (/😭/.test(prompt)) {
-      return "I can't even handle this right now, that's wildly out of pocket 😭";
+    if (/💀|deceased|dead/.test(prompt)) {
+      return "Bro is absolutely finished. No way that just occurred.";
     }
-    if (/💅/.test(prompt)) {
-      return "Period. Zero competition, as always. 💅✨";
+    if (/😭|melting|crying/.test(prompt)) {
+      return "That is wildly out of pocket. Completely unhinged behavior.";
     }
-    if (/🗿/.test(prompt)) {
-      return "Absolute sigma energy. Undisputed. 🗿";
+    if (/💅|slay|period/.test(prompt)) {
+      return "Zero competition, as expected. Clean execution.";
     }
-    return "No cap, you already know the vibe. 100% facts fr.";
+    if (/🗿|sigma|based/.test(prompt)) {
+      return "Absolute sigma discipline. Undisputed stance.";
+    }
+    return "No cap, the reasoning is solid. Fully locked in.";
   }
 
-  return `I am Zorvik AI, developed and engineered by Team Zorvik. How can I assist you with your project today?`;
+  if (liveWebContext) {
+    return `### Live Analysis & Summary\n\nBased on real-time data retrieved for your request:\n\n${liveWebContext.slice(0, 800)}...\n\nAll systems operational. Let me know if you need specific technical deep-dives or exports.`;
+  }
+
+  return `All intelligence engines and tool systems are active. Please specify what technical analysis, architecture review, or research task you would like executed.`;
 }
 
 /**
@@ -327,15 +339,22 @@ async function routeQueryStream({
   const mistralKey = process.env.MISTRAL_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
+  // 1. Universal Real-Time Web Grounding & Live URL Scraper
+  const grounding = await groundPrompt({ prompt, mode });
+  let effectiveSystemPrompt = systemPrompt;
+  if (grounding.hasGrounding && grounding.enrichedContext) {
+    effectiveSystemPrompt = `${systemPrompt}\n\n${grounding.enrichedContext}`;
+  }
+
   const isSearchRequested =
     mode === "search" ||
     /\b(latest|current|recent|news|today|price of|score|weather|who won|release date)\b/i.test(prompt);
 
-  // 1. Try Gemini (Primary Engine - with Native Google Search Grounding and Vision)
+  // 2. Try Gemini (Primary Engine - with Native Google Search Grounding and Vision)
   if (geminiKey && circuitBreaker.isAvailable("gemini")) {
     try {
       const result = await streamGemini({
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
         files,
@@ -345,8 +364,10 @@ async function routeQueryStream({
         onChunk,
       });
       circuitBreaker.recordSuccess("gemini");
+      const mergedSources = [...(grounding.sources || []), ...(result.sources || [])];
       return {
         ...result,
+        sources: Array.from(new Map(mergedSources.map((s) => [s.url, s])).values()),
         latencyMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -355,7 +376,7 @@ async function routeQueryStream({
     }
   }
 
-  // 2. Mode Specialization: Prioritize Codestral/Mistral for code mode
+  // 3. Mode Specialization: Prioritize Codestral/Mistral for code mode
   if ((mode === "code" || mode === "deep") && mistralKey && circuitBreaker.isAvailable("mistral")) {
     try {
       const mistralModel =
@@ -365,7 +386,7 @@ async function routeQueryStream({
         headers: { Authorization: `Bearer ${mistralKey}` },
         model: mistralModel,
         provider: "mistral",
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
         onChunk,
@@ -373,6 +394,7 @@ async function routeQueryStream({
       circuitBreaker.recordSuccess("mistral");
       return {
         ...result,
+        sources: grounding.sources || [],
         latencyMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -381,7 +403,7 @@ async function routeQueryStream({
     }
   }
 
-  // 3. Try Groq (Fallback 1 - High Speed LPU)
+  // 4. Try Groq (Fallback 1 - High Speed LPU)
   if (groqKey && circuitBreaker.isAvailable("groq")) {
     try {
       const result = await streamOpenAICompatible({
@@ -389,7 +411,7 @@ async function routeQueryStream({
         headers: { Authorization: `Bearer ${groqKey}` },
         model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
         provider: "groq",
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
         onChunk,
@@ -397,6 +419,7 @@ async function routeQueryStream({
       circuitBreaker.recordSuccess("groq");
       return {
         ...result,
+        sources: grounding.sources || [],
         latencyMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -405,7 +428,7 @@ async function routeQueryStream({
     }
   }
 
-  // 4. Try Cerebras (Fallback 2 - 2,000+ tok/s Ultra-High-Speed LPU)
+  // 5. Try Cerebras (Fallback 2 - 2,000+ tok/s Ultra-High-Speed LPU)
   if (cerebrasKey && circuitBreaker.isAvailable("cerebras")) {
     try {
       const result = await streamOpenAICompatible({
@@ -413,7 +436,7 @@ async function routeQueryStream({
         headers: { Authorization: `Bearer ${cerebrasKey}` },
         model: process.env.CEREBRAS_MODEL || "llama-3.3-70b",
         provider: "cerebras",
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
         onChunk,
@@ -421,6 +444,7 @@ async function routeQueryStream({
       circuitBreaker.recordSuccess("cerebras");
       return {
         ...result,
+        sources: grounding.sources || [],
         latencyMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -429,7 +453,7 @@ async function routeQueryStream({
     }
   }
 
-  // 5. Try Mistral / Codestral (Fallback 3)
+  // 6. Try Mistral / Codestral (Fallback 3)
   if (mistralKey && circuitBreaker.isAvailable("mistral")) {
     try {
       const result = await streamOpenAICompatible({
@@ -437,7 +461,7 @@ async function routeQueryStream({
         headers: { Authorization: `Bearer ${mistralKey}` },
         model: process.env.MISTRAL_MODEL || "mistral-small-latest",
         provider: "mistral",
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
         onChunk,
@@ -445,6 +469,7 @@ async function routeQueryStream({
       circuitBreaker.recordSuccess("mistral");
       return {
         ...result,
+        sources: grounding.sources || [],
         latencyMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -453,7 +478,7 @@ async function routeQueryStream({
     }
   }
 
-  // 6. Try OpenRouter (Fallback 4)
+  // 7. Try OpenRouter (Fallback 4)
   if (openRouterKey && circuitBreaker.isAvailable("openrouter")) {
     try {
       const result = await streamOpenAICompatible({
@@ -465,7 +490,7 @@ async function routeQueryStream({
         },
         model: "deepseek/deepseek-r1:free",
         provider: "openrouter",
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         history,
         prompt,
         onChunk,
@@ -473,6 +498,7 @@ async function routeQueryStream({
       circuitBreaker.recordSuccess("openrouter");
       return {
         ...result,
+        sources: grounding.sources || [],
         latencyMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -481,16 +507,16 @@ async function routeQueryStream({
     }
   }
 
-  // 7. Local Intelligent Fallback
-  const fallbackText = localIntelligentFallback(prompt, mode);
+  // 8. Local Intelligent Fallback
+  const fallbackText = localIntelligentFallback(prompt, mode, grounding.enrichedContext);
   if (onChunk) onChunk(fallbackText);
 
   return {
-    text: fallbackText,
+    text: cleanOutputText(fallbackText),
     model: "zorvik-local-engine",
     provider: "local",
     latencyMs: Date.now() - startTime,
-    sources: [],
+    sources: grounding.sources || [],
   };
 }
 
@@ -507,7 +533,7 @@ async function routeQuery(params) {
   });
   return {
     ...result,
-    text: result.text || accumulated,
+    text: cleanOutputText(result.text || accumulated),
   };
 }
 

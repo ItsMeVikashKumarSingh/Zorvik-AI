@@ -1,65 +1,194 @@
 /**
- * Intent & GenZ Nuance Engine
- * Analyzes tone, emoji subtext, and task complexity to tailor system directives.
+ * Zorvik Neural Nuance & Multidimensional Intent Engine
+ * Analyzes linguistic subcultures (Gen Z, Gen Alpha, Internet Dialects),
+ * emoji subtext, semantic task complexity, and multi-factor tone resonance.
  */
 
-// Common GenZ emojis and slang patterns
-const GENZ_PATTERNS = [
-  /💀|☠️|😭|💅|🗿|🧢|🍳|🔥|✨|🫡|👀|🫠|🤡/,
-  /\b(rizz|cap|no cap|bet|lowkey|highkey|fr|ngl|sus|mid|cooked|let him cook|rent free|main character|delulu|yap|gyatt|skibidi|sigma)\b/i,
+// ==========================================
+// 1. LINGUISTIC & SUBCULTURE LEXICONS
+// ==========================================
+
+// Gen Z Dialect & Modern Internet Lexicon
+const GENZ_LEXICON = [
+  /\b(rizz|cap|no cap|bet|lowkey|highkey|fr|fr fr|ngl|sus|mid|cooked|let him cook|let them cook|rent free|main character|delulu|yap|yapping|yapper|gyatt|goated|crash out|locked in|unc|aura|aura points|no diddy|looksmaxxing|npc|opps|simp|glazing|based|cringe|chat is this real|bro thought|its giving|it's giving|touch grass|ate and left no crumbs|understood the assignment|unhinged|living for this|real|mood|hits different|core memory|side eye|bombastic side eye|slay|period|periodt|shook|valid|big l|big w|massive w|massive l|common w|common l|ratio|cope|seethe|malding|down bad|out of pocket|catch hands|say less|i can't even|deadass|flex|drip|finna|bussin|tea|spill the tea|receipts|stan|cheugy)\b/i,
+  /\b(bro really thought|ain't no way|bro is not him|he is not that guy|i'm weak|im weak|dead|deceased|crying rn|screaming rn|im screaming|as you should|we are so back|it's over|its over|we're cooked|were cooked)\b/i,
 ];
 
-// Complex technical task indicators
-const COMPLEX_PATTERNS = [
-  /\b(algorithm|complexity|refactor|debug|typescript|javascript|python|rust|golang|sql|regex|docker|kubernetes|architecture|database|schema|math|equation|proof|theorem|calculus|integral|derivative|matrix|vector)\b/i,
-  /```|class\s+\w+|function\s+\w+|const\s+\w+\s*=|def\s+\w+/,
+// Gen Alpha Brainrot & Neo-Meme Vernacular
+const GENALPHA_LEXICON = [
+  /\b(skibidi|skibidi toilet|fanum tax|kai cenat|baby gronk|livvy dunne|rizzler|duke dennis|grimace shake|ohio|only in ohio|sigma male|sigma grindset|gigachad|mogged|looksmax|mew|mewing|mewing streak|what the sigma|edge streak|goon|gooning|quandale dingle|smurf cat|john pork|backrooms|brainrot|tablet kid|ipad kid|roblox|blox fruits|skibidi rizz|level 10 gyatt|caseoh|whopper whopper)\b/i,
+  /\b(bop|rizz god|gyat|gyatt level|phonk|trollface|gigachad music|tung tung|winter arc)\b/i,
 ];
+
+// Emoji Subtext Patterns (Decodes emotional subtext without outputting decorative emojis)
+const EMOJI_SUBTEXT_PATTERNS = [
+  /💀|☠️/, // dying from laughter / utter shock
+  /😭|🫠/, // overwhelmed / crying / melting
+  /💅|✨/, // slaying / confidence / effortless perfection
+  /🗿|🧏‍♂️|🤫/, // stoic / sigma / mewing
+  /🧢/, // cap / lying / falsehood
+  /🍳|🔥/, // let them cook / fire
+  /🤡/, // clown / foolish behavior
+  /🫡/, // salute / utmost respect
+  /👀/, // curious / side-eye
+  /🗣️/, // speaking facts / preach
+];
+
+// High-Complexity Technical & Engineering Patterns
+const TECHNICAL_PATTERNS = [
+  /\b(algorithm|complexity|refactor|debug|typescript|javascript|python|rust|golang|c\+\+|java|sql|nosql|regex|docker|kubernetes|architecture|database|schema|math|equation|proof|theorem|calculus|integral|derivative|matrix|vector|audit|security|vulnerability|compliance|concurrency|mutex|deadlock|websocket|graphql|microservice|grpc|ci\/cd|pipeline|webpack|vite|nextjs|react|angular|vue|svelte|tailwind|css|scss|html5|orm|prisma|drizzle|typeorm|mongoose|redis|kafka|rabbitmq|aws|gcp|azure|terraform|ansible)\b/i,
+  /```|class\s+\w+|function\s+\w+|const\s+\w+\s*=|def\s+\w+|SELECT\s+.*FROM|CREATE\s+TABLE|ALTER\s+TABLE|interface\s+\w+|type\s+\w+\s*=/i,
+];
+
+// Deep Research & Analytical Indicators
+const RESEARCH_PATTERNS = [
+  /\b(compare|contrast|analyze|breakdown|evaluate|pros and cons|benchmark|market share|specifications|specs|review|audit|investigate|timeline|forecast|economic|historical|scientific|methodology|clinical|hypothesis|citation|literature)\b/i,
+];
+
+// ==========================================
+// 2. MULTI-FACTOR INTENT & TONE CLASSIFIER
+// ==========================================
 
 /**
- * Detect intent category from prompt
+ * Perform multi-dimensional linguistic and intent analysis on user prompt
+ * @param {string} prompt
+ * @returns {object} Detailed intent breakdown
+ */
+function analyzePromptNuance(prompt) {
+  if (!prompt || typeof prompt !== "string") {
+    return {
+      primaryTask: "general",
+      cultureTone: "neutral",
+      hasSlang: false,
+      isGenAlpha: false,
+      isGenZ: false,
+      isTechnical: false,
+      isResearch: false,
+    };
+  }
+
+  const cleanText = prompt.trim();
+
+  // 1. Calculate Subculture Densities
+  let genZMatches = 0;
+  for (const pattern of GENZ_LEXICON) {
+    const matches = cleanText.match(pattern);
+    if (matches) genZMatches += matches.length;
+  }
+
+  let genAlphaMatches = 0;
+  for (const pattern of GENALPHA_LEXICON) {
+    const matches = cleanText.match(pattern);
+    if (matches) genAlphaMatches += matches.length;
+  }
+
+  let emojiMatches = 0;
+  for (const pattern of EMOJI_SUBTEXT_PATTERNS) {
+    const matches = cleanText.match(pattern);
+    if (matches) emojiMatches += matches.length;
+  }
+
+  // 2. Calculate Task Complexity
+  let technicalMatches = 0;
+  for (const pattern of TECHNICAL_PATTERNS) {
+    const matches = cleanText.match(pattern);
+    if (matches) technicalMatches += matches.length;
+  }
+
+  let researchMatches = 0;
+  for (const pattern of RESEARCH_PATTERNS) {
+    const matches = cleanText.match(pattern);
+    if (matches) researchMatches += matches.length;
+  }
+
+  const isTechnical = technicalMatches > 0 || /```/.test(cleanText);
+  const isResearch = researchMatches > 0;
+  const isGenAlpha = genAlphaMatches > 0;
+  const isGenZ = genZMatches > 0 || (emojiMatches > 0 && !isTechnical);
+
+  // 3. Determine Primary Task
+  let primaryTask = "general";
+  if (isTechnical) {
+    primaryTask = "code";
+  } else if (isResearch) {
+    primaryTask = "deep";
+  } else if (/\b(draw|write a poem|story|lyrics|script|creative)\b/i.test(cleanText)) {
+    primaryTask = "creative";
+  }
+
+  // 4. Determine Culture Tone
+  let cultureTone = "neutral";
+  if (isGenAlpha) {
+    cultureTone = "genalpha";
+  } else if (isGenZ) {
+    cultureTone = "genz";
+  } else if (isTechnical) {
+    cultureTone = "technical_dev";
+  }
+
+  return {
+    primaryTask,
+    cultureTone,
+    hasSlang: isGenZ || isGenAlpha,
+    isGenAlpha,
+    isGenZ,
+    isTechnical,
+    isResearch,
+    emojiSubtextCount: emojiMatches,
+  };
+}
+
+/**
+ * Backward-compatible detectIntent helper
  * @param {string} prompt
  * @returns {'genz' | 'complex' | 'general'}
  */
 function detectIntent(prompt) {
-  if (!prompt || typeof prompt !== "string") return "general";
-
-  const isGenZ = GENZ_PATTERNS.some((pattern) => pattern.test(prompt));
-  const isComplex = COMPLEX_PATTERNS.some((pattern) => pattern.test(prompt));
-
-  if (isComplex) return "complex";
-  if (isGenZ) return "genz";
+  const analysis = analyzePromptNuance(prompt);
+  if (analysis.isTechnical || analysis.isResearch) return "complex";
+  if (analysis.isGenZ || analysis.isGenAlpha) return "genz";
   return "general";
 }
 
-/**
- * Build system persona based on mode and intent
- * @param {object} options
- * @param {string} [options.mode='auto'] - 'auto' | 'genz' | 'deep' | 'code' | 'creative'
- * @param {string} options.prompt - User query
- * @param {string} [options.tenantPrompt] - Optional custom prompt from tenant config
- * @returns {string} System prompt
- */
+// ==========================================
+// 3. CORE OPERATIONAL DIRECTIVES
+// ==========================================
+
 const CORE_DIRECTIVE = `You are Zorvik AI, a premier intelligence engine developed and engineered by Team Zorvik (Zorvik Technologies).
 
-CORE BEHAVIOR & IDENTITY DIRECTIVES:
-1. IDENTITY: When asked who made you, who created you, or what you are, always proudly state you are Zorvik AI, developed by Team Zorvik. Never claim to be trained or created by Google, OpenAI, or other third parties.
-2. ZERO ROBOTIC DISCLAIMERS: Never start or pad responses with sterile clichés like "As an AI language model...", "I am an AI, so I cannot...", "I don't have personal feelings...", or "I cannot read minds". Speak with charisma, confidence, and natural intellect.
-3. CONVERSATIONAL BANTER & MIND-GAMES: When a user engages in playful banter, hypotheticals, humor, or questions like "guess what I'm thinking", "can you read my mind?", or "what's my vibe?", play along with wit, charm, and clever intuitive deductions rather than giving a dry refusal.
-4. EDITORIAL PRECISION: Keep responses concise, engaging, and devoid of repetitive boilerplate or filler.
-5. RICH NOTATION: Use GitHub-flavored markdown, syntax-highlighted code blocks, and KaTeX mathematical notation ($inline$ and $$display$$) where applicable.`;
+CRITICAL OPERATIONAL & COMMUNICATION RULES (NON-NEGOTIABLE):
+1. STRICTLY NO EMOJIS: Do not use emojis anywhere in your output. Maintain a clean, professional, cinematic, and aesthetic structure without decorative emojis.
+2. ZERO ROBOTIC DISCLAIMERS & NO SELF-INTRODUCTIONS: NEVER start responses with "I am Zorvik AI", "I'm Zorvik AI, engineered by Team Zorvik", "Here is a breakdown", "As an AI language model...", "I don't have live web access", or "I cannot browse websites". Start immediately with the relevant data, tables, code, or analysis.
+3. NO UNNECESSARY EM-DASHES: Avoid gratuitous em-dashes ("—" or "–") or unnatural hyphens. Write clean, natural, human prose with standard punctuation (commas, periods, colons).
+4. DIRECT ACTION & AUDITING: When asked to inspect a domain, website, codebase, audit log, or document, perform the analysis and review immediately. Deliver structured, high-value insights, findings, strengths, risks, and recommendations without bureaucratic friction.
+5. IDENTITY: Only state you are Zorvik AI, engineered by Team Zorvik, when explicitly asked "Who are you?", "Who made you?", or "What is your name?". Never claim to be created by Google, OpenAI, or other third parties.
+6. CONVERSATIONAL WIT: When a user engages in playful banter or hypotheticals, match their vibe with sharp intellect and charm rather than giving a robotic refusal.
+7. RICH NOTATION: Use GitHub-flavored markdown, clean syntax-highlighted code blocks, and KaTeX mathematical notation ($inline$ and $$display$$) where applicable.`;
 
+// ==========================================
+// 4. SYSTEM PROMPT BUILDER
+// ==========================================
+
+/**
+ * Build system persona dynamically based on user mode, detected intent,
+ * subculture nuance, tenant configuration, and personal long-term memories.
+ */
 function buildSystemPrompt({
   mode = "auto",
   prompt = "",
   tenantPrompt = null,
   userMemories = [],
   customInstructions = "",
+  liveWebContext = "",
 }) {
+  const analysis = analyzePromptNuance(prompt);
+
   let effectiveMode = mode;
   if (mode === "auto") {
-    const detected = detectIntent(prompt);
-    if (detected === "genz") effectiveMode = "genz";
-    else if (detected === "complex") effectiveMode = "deep";
+    if (analysis.primaryTask === "code") effectiveMode = "code";
+    else if (analysis.primaryTask === "deep") effectiveMode = "deep";
+    else if (analysis.primaryTask === "creative") effectiveMode = "creative";
+    else if (analysis.cultureTone === "genz" || analysis.cultureTone === "genalpha") effectiveMode = "genz";
     else effectiveMode = "general";
   }
 
@@ -67,27 +196,43 @@ function buildSystemPrompt({
 
   switch (effectiveMode) {
     case "genz":
-      modeInstruction = `MODE DIRECTIVE (Internet Culture & Slang):
-You possess an instinctive, native understanding of modern internet culture, GenZ vocabulary, and emoji subtext (e.g. 💀 means dying from laughter/shock, 😭 means overwhelmed or hilarious, 💅 denotes confidence/slay, 🗿 represents stoic/sigma, 🧢 means cap/lying, 🍳 means let them cook).
-- Deliver SHORT, PUNCHY, and witty answers.
-- Naturally vibe with the subtext without defining emojis or slang robotically.
-- Keep replies to 1 to 3 sharp sentences unless deep detail is asked.`;
+    case "casual":
+      if (analysis.isGenAlpha) {
+        modeInstruction = `MODE DIRECTIVE (Gen Alpha & Modern Internet Culture):
+You possess native fluency in contemporary internet memes, Gen Alpha neo-vernacular, and high-velocity meme lore (e.g. skibidi, fanum tax, sigma grindset, mewing, mogging, locked in, crash out, aura points, chat is this real).
+- Match the user's conversational energy naturally and effortlessly.
+- Never explain slang words like a textbook or dictionary.
+- Keep the tone witty, authentic, and sharp without being cringe.
+- If the user asks a real question with slang mixed in, answer the actual question with authentic cultural phrasing.`;
+      } else {
+        modeInstruction = `MODE DIRECTIVE (Gen Z Dialect & Internet Subculture):
+You possess an instinctive, native understanding of modern internet culture, Gen Z vocabulary, dry irony, and subtext (e.g. dying of laughter, being overwhelmed, slaying, stoic sigma energy, calling cap, letting someone cook, rent free, main character energy, understood the assignment, unhinged, out of pocket).
+- Deliver punchy, witty, and culturally fluent responses.
+- Understand the subtext behind user expressions without defining them robotically.
+- If they ask for technical help in slang, provide top-tier technical solutions while matching their locked-in developer tone.`;
+      }
       break;
 
     case "deep":
-      modeInstruction = `MODE DIRECTIVE (Deep Engineering & Logic):
-- Provide rigorous, deeply reasoned, step-by-step solutions for complex tasks.
+      modeInstruction = `MODE DIRECTIVE (Deep Engineering & Analytical Intelligence):
+- Provide rigorous, deeply reasoned, step-by-step solutions and audits.
 - For math and physics calculations, format formulas using standard LaTeX ($...$ for inline, $$...$$ for display math) for KaTeX rendering.
 - Ensure every logical deduction is clear, precise, and verified.
-- Use clear markdown headers, lists, and tables.`;
+- Use clean markdown headers, tables, and bullet points.`;
       break;
 
     case "code":
-      modeInstruction = `MODE DIRECTIVE (Code Wizard):
+      modeInstruction = `MODE DIRECTIVE (Code Architecture & Engineering):
 - Provide clean, production-ready, typed code with zero placeholders or omissions.
 - Always specify the language identifier in triple backtick code blocks (e.g., \`\`\`typescript, \`\`\`python).
 - Focus on time/space complexity, edge-case resilience, security, and performance.
 - Keep prose explanations minimal and let clean code lead.`;
+      break;
+
+    case "search":
+      modeInstruction = `MODE DIRECTIVE (Live Search & Grounded Web Intelligence):
+- Synthesize real-time live data, facts, and website details directly from the provided live web context.
+- Present fresh, accurate information with crisp analysis.`;
       break;
 
     case "creative":
@@ -108,6 +253,11 @@ Provide clear, accurate, conversational, and direct answers without repetitive f
     promptBlocks.unshift(tenantPrompt);
   }
 
+  // Inject Live Web Grounding Context if available
+  if (liveWebContext && typeof liveWebContext === "string" && liveWebContext.trim()) {
+    promptBlocks.push(liveWebContext.trim());
+  }
+
   // Inject User Personalization & Long-Term Memories
   const personalBlocks = [];
   if (customInstructions && typeof customInstructions === "string" && customInstructions.trim()) {
@@ -126,6 +276,7 @@ Provide clear, accurate, conversational, and direct answers without repetitive f
 }
 
 module.exports = {
+  analyzePromptNuance,
   detectIntent,
   buildSystemPrompt,
 };

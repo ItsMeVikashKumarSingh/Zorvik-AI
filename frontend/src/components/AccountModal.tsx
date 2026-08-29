@@ -230,17 +230,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     },
     {
       id: 'architect',
-      title: '🏗️ System Architect',
+      title: 'System Architect',
       desc: 'Specialized in microservice topologies, database schemas, and scalability',
     },
     {
       id: 'security',
-      title: '🛡️ Security Auditor',
+      title: 'Security Auditor',
       desc: 'Rigorous inspection for OWASP flaws, injection risks, and secret leakage',
     },
     {
       id: 'designer',
-      title: '🎨 UI/UX Designer',
+      title: 'UI/UX Designer',
       desc: 'Expert in Glassmorphism 2.0, Tailwind CSS, and cinematic aesthetics',
     },
   ];

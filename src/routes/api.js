@@ -133,10 +133,23 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
         }
       }
 
+      let responseType = "Neural Synthesis";
+      if (result.sources && result.sources.length > 0) {
+        responseType = "Live Web Research";
+      } else if (mode === "deep") {
+        responseType = "Deep Reasoning";
+      } else if (mode === "code") {
+        responseType = "Code Intelligence";
+      } else if (mode === "genz" || mode === "casual") {
+        responseType = "Instant Culture Synthesis";
+      }
+
       res.write(
         `data: ${JSON.stringify({
           done: true,
           model: result.model,
+          responseType,
+          response_type: responseType,
           provider: result.provider,
           latencyMs: result.latencyMs,
           sources: result.sources || [],
@@ -159,6 +172,17 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
       mode,
       files,
     });
+
+    let responseType = "Neural Synthesis";
+    if (result.sources && result.sources.length > 0) {
+      responseType = "Live Web Research";
+    } else if (mode === "deep") {
+      responseType = "Deep Reasoning";
+    } else if (mode === "code") {
+      responseType = "Code Intelligence";
+    } else if (mode === "genz" || mode === "casual") {
+      responseType = "Instant Culture Synthesis";
+    }
 
     // Save turn to hot sliding memory
     await appendSessionTurn(sessionId, prompt, result.text);
@@ -199,6 +223,8 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
 
     return res.json({
       response: result.text,
+      response_type: responseType,
+      responseType,
       model: result.model,
       provider: result.provider,
       mode,

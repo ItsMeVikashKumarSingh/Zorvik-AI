@@ -2,6 +2,27 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.3] - 2026-08-29
+### Neural Nuance & Multidimensional Intent Classification Engine (Gen Z & Gen Alpha Intelligence)
+- **Comprehensive Subculture Lexicons ([`intentEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/intentEngine.js))**:
+  - Expanded beyond basic keywords to full multi-layer subculture dictionaries spanning modern **Gen Z dialects** (*rizz, cap, bet, lowkey, fr, ngl, cooked, rent free, main character, delulu, crash out, locked in, unc, aura points, no diddy, looksmaxxing, npc, opps, glazing, based, cringe, chat is this real, understood the assignment, unhinged*) and **Gen Alpha brainrot neo-vernacular** (*skibidi, fanum tax, kai cenat, baby gronk, livvy dunne, rizzler, duke dennis, grimace shake, ohio, sigma male, mogged, looksmax, mewing, what the sigma, edge streak, gooning, quandale dingle, smurf cat, john pork*).
+- **Multi-Factor Intent & Tone Density Separation**:
+  - Distinguishes between conversational intent and task complexity. If a user asks a complex coding or architecture question using youth slang, the system executes the complete, production-grade technical solution while seamlessly matching their locked-in developer tone.
+  - Automatically understands emoji subtext (💀 shock/laughter, 😭 overwhelming, 💅 slaying/confidence, 🗿 stoic sigma, 🧢 cap/falsehood, 🍳 let them cook, 🤡 foolishness) without regurgitating dictionary explanations.
+- **Strict Clean Aesthetic & Emoji-Free Responses**:
+  - Enforces Rule 8.4 across all responses and modals, ensuring clean, cinematic markdown with vector Lucide icons and zero emoji clutter.
+
+## [1.0.2] - 2026-08-29
+### Universal Real-Time Web Crawler, Live URL Content Scraper, & Natural Prose Polish
+- **Universal Live Web Grounding & URL Scraper ([`webGrounding.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/webGrounding.js), [`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js))**:
+  - Automatically extracts domains and URLs (e.g. `zorviktech.com`, `https://...`) directly from user prompts.
+  - Crawls and scrapes live website contents and search snippets in real time, injecting the fresh HTML/Markdown text into the context of **ALL** cascade engines (Gemini, Groq, Cerebras, Mistral, OpenRouter).
+  - Guarantees that even if primary Gemini hits a 429 quota exhaustion, fallback LPU models have the full live webpage context.
+- **Strict Anti-Disclaimer & Natural Prose Directive ([`intentEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/intentEngine.js))**:
+  - Strictly prohibits sterile robotic disclaimers ("I am an AI", "I don't have live web access", "I cannot browse").
+  - Enforces clean, natural, human punctuation and strips unnecessary em dashes (`—` / `–`) across model output.
+  - Direct decisive action: immediately performs audits, reviews, and inspections when presented with a website or codebase.
+
 ## [1.0.1] - 2026-08-29
 ### Voice Conversation Mode, Personal Token Quota Meter, & Specialized AI Personas
 - **Voice Conversation Mode ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`WelcomeHero.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/WelcomeHero.tsx), [`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
