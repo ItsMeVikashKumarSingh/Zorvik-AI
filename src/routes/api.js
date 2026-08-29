@@ -7,7 +7,7 @@ const router = express.Router();
 const { tenantAuthMiddleware, deductTenantTokens } = require("../middleware/tenantAuth");
 const { userAuthMiddleware } = require("../middleware/userAuth");
 const { securityShield } = require("../middleware/securityShield");
-const { routeQueryStream, routeQuery } = require("../services/modelRouter");
+const { routeQueryStream, routeQuery, fetchOpenRouterCatalog } = require("../services/modelRouter");
 const { buildSystemPrompt } = require("../services/intentEngine");
 const {
   getSessionHistory,
@@ -24,7 +24,6 @@ const {
 } = require("../services/memoryEngine");
 const { processTurnMemoryAndTone } = require("../services/autoMemoryExtractor");
 const { retrieveRelevantChunks, formatRAGContext } = require("../services/ragEngine");
-const { circuitBreaker } = require("../services/circuitBreaker");
 const { estimateTokens } = require("../lib/utils");
 const { supabase, isConfigured: isSupabaseConfigured } = require("../lib/supabase");
 
@@ -38,7 +37,7 @@ router.use(securityShield);
  * Primary chat endpoint supporting true upstream SSE streaming or standard JSON response
  */
 router.post(["/chat", "/chat/stream"], async (req, res) => {
-  const { mode = "auto", session_id = null, files = [] } = req.body;
+  const { mode = "auto", model = null, session_id = null, files = [] } = req.body;
   const prompt = req.body.prompt || req.body.message;
   const stream = req.path.endsWith("/stream") || req.body.stream === true;
 
@@ -158,6 +157,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
         history,
         prompt,
         mode,
+        model,
         files,
         signal: abortController.signal,
         onChunk: (chunk) => {
@@ -249,6 +249,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
       history,
       prompt,
       mode,
+      model,
       files,
     });
 
@@ -337,46 +338,24 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
 
 /**
  * GET /api/v1/models
- * List available zero-cost models and circuit breaker status
+ * List available OpenRouter dynamic models and gateway status
  */
-router.get("/models", (_req, res) => {
-  const status = circuitBreaker.getStatus();
-  return res.json({
-    models: [
-      {
-        id: "zorvik-omni-core",
-        name: "Zorvik Omni-Neural Core (Vision & Real-Time Grounding)",
-        provider: "Zorvik AI",
-        tier: "free",
-        status: status.gemini?.status || "online",
+router.get("/models", async (_req, res) => {
+  try {
+    const catalog = await fetchOpenRouterCatalog();
+    return res.json({
+      success: true,
+      active_model: catalog.activeModel,
+      models: catalog.models,
+      gateway: {
+        provider: "openrouter",
+        status: "operational",
+        total_models: catalog.models?.length || 0,
       },
-      {
-        id: "zorvik-fast-stream",
-        name: "Zorvik Ultra-Fast Stream Matrix (Sub-50ms)",
-        provider: "Zorvik AI",
-        tier: "free",
-        status: status.groq?.status || status.cerebras?.status || "online",
-      },
-      {
-        id: "zorvik-code-synthesis",
-        name: "Zorvik Code & Architecture Synthesis",
-        provider: "Zorvik AI",
-        tier: "free",
-        status: status.mistral?.status || "online",
-      },
-      {
-        id: "zorvik-deep-reasoning",
-        name: "Zorvik Deep Mathematical Reasoning Engine",
-        provider: "Zorvik AI",
-        tier: "free",
-        status: status.openrouter?.status || "online",
-      },
-    ],
-    circuit_breaker: {
-      status: "operational",
-      active_engines: 4,
-    },
-  });
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch models: " + err.message });
+  }
 });
 
 /**

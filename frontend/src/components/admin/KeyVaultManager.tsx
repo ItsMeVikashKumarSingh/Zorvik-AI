@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Key,
-  Zap,
   Activity,
   Save,
   RotateCw,
@@ -11,7 +9,8 @@ import {
   AlertCircle,
   ToggleLeft,
   ToggleRight,
-  Shield,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface KeyVaultManagerProps {
@@ -21,76 +20,105 @@ interface KeyVaultManagerProps {
 interface ProviderKeyInfo {
   isConfigured: boolean;
   maskedKey: string | null;
+  fullKey: string | null;
   isActive: boolean;
-  isRuntimeOverride: boolean;
 }
 
 const PROVIDER_METADATA: Record<
   string,
-  { name: string; tag: string; description: string; placeholder: string; docUrl: string }
+  {
+    name: string;
+    description: string;
+    docsUrl: string;
+    placeholder: string;
+    envVar: string;
+    freeTierInfo: string;
+  }
 > = {
   gemini: {
     name: 'Google Gemini AI',
-    tag: 'Vision & Grounding Engine',
-    description: 'Powers Google Search grounding, multi-modal image understanding, and high-context reasoning.',
+    description: 'Grounding & multi-modal intelligence core (Gemini 2.5 Flash / 2.0 Flash).',
+    docsUrl: 'https://aistudio.google.com/app/apikey',
     placeholder: 'AIzaSy...',
-    docUrl: 'https://aistudio.google.com/apikey',
+    envVar: 'GEMINI_API_KEY',
+    freeTierInfo: '15 req/min · 1,500 req/day ($0.00)',
   },
   groq: {
     name: 'Groq Cloud LPU',
-    tag: 'Sub-50ms Fast Stream',
-    description: 'High-speed LPU acceleration for sub-50ms first-token latency and 500+ tok/s streaming.',
+    description: 'Sub-50ms ultra-fast hardware stream matrix (Llama 3.3 70B Versatile).',
+    docsUrl: 'https://console.groq.com/keys',
     placeholder: 'gsk_...',
-    docUrl: 'https://console.groq.com/keys',
+    envVar: 'GROQ_API_KEY',
+    freeTierInfo: '30 req/min · 14,400 req/day ($0.00)',
   },
   cerebras: {
-    name: 'Cerebras LPU Matrix',
-    tag: 'Ultra-Fast Stream Matrix',
-    description: 'Wafer-scale LPU engine delivering 2,000+ tok/s throughput for complex code generation.',
+    name: 'Cerebras Wafer LPU',
+    description: '2,000+ tokens/sec wafer-scale high-throughput inference matrix.',
+    docsUrl: 'https://cloud.cerebras.ai/',
     placeholder: 'csk-...',
-    docUrl: 'https://cloud.cerebras.ai',
+    envVar: 'CEREBRAS_API_KEY',
+    freeTierInfo: '30 req/min · 14,400 req/day ($0.00)',
   },
   mistral: {
-    name: 'Mistral AI / Codestral',
-    tag: 'Code & Architecture Synthesis',
-    description: 'Specialized deep coding models with comprehensive repository-level code comprehension.',
+    name: 'Mistral AI Engine',
+    description: 'European high-efficiency reasoning & Codestral coding synthesis.',
+    docsUrl: 'https://console.mistral.ai/api-keys/',
     placeholder: 'mis_...',
-    docUrl: 'https://console.mistral.ai/api-keys',
+    envVar: 'MISTRAL_API_KEY',
+    freeTierInfo: '1,000,000 free tokens/month ($0.00)',
   },
   openrouter: {
-    name: 'OpenRouter Deep Reasoning',
-    tag: 'Multi-Step Mathematical Logic',
-    description: 'Access to DeepSeek R1 and open reasoning models for step-by-step chain-of-thought proofs.',
+    name: 'OpenRouter Universal Gateway',
+    description: 'Dynamic gateway to 100+ top reasoning & open models (DeepSeek R1, Claude 3.7).',
+    docsUrl: 'https://openrouter.ai/keys',
     placeholder: 'sk-or-v1-...',
-    docUrl: 'https://openrouter.ai/keys',
+    envVar: 'OPENROUTER_API_KEY',
+    freeTierInfo: '20 req/min · 200 req/day per free model ($0.00)',
   },
-  sambanova: {
-    name: 'SambaNova Systems',
-    tag: 'Reconfigurable Dataflow Matrix',
-    description: 'Enterprise open-weight model acceleration with true sub-100ms precision.',
-    placeholder: 'sn_...',
-    docUrl: 'https://cloud.sambanova.ai',
+  kilo: {
+    name: 'Kilo Gateway Free Core',
+    description: 'Free frontier inference: Kimi K2.5, Arcee Trinity Large, GLM 4.7, MiniMax M2.1.',
+    docsUrl: 'https://kilocode.ai/',
+    placeholder: 'kilo-... or free-tier',
+    envVar: 'KILO_API_KEY',
+    freeTierInfo: '5 Free Frontier Models ($0.00)',
   },
-  together: {
-    name: 'Together AI',
-    tag: 'Distributed Inference Mesh',
-    description: 'Global distributed inference network for scalable open LLM acceleration.',
-    placeholder: 'tog_...',
-    docUrl: 'https://api.together.ai/settings/api-keys',
+  opencode: {
+    name: 'OpenCode Zen Gateway',
+    description: 'Free coding & reasoning: MiniMax M2.5 Free and Big Pickle stealth model.',
+    docsUrl: 'https://opencode.ai/',
+    placeholder: 'opencode-... or free-tier',
+    envVar: 'OPENCODE_API_KEY',
+    freeTierInfo: '2 Free Models ($0.00)',
+  },
+  cline: {
+    name: 'Cline Free Engine',
+    description: 'Free CLI intelligence: Kimi K2.5 and MiniMax M2.5 for development tasks.',
+    docsUrl: 'https://cline.bot/',
+    placeholder: 'cline-... or free-tier',
+    envVar: 'CLINE_API_KEY',
+    freeTierInfo: '2 Free Models ($0.00)',
   },
 };
 
 export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) => {
-  const [keys, setKeys] = useState<Record<string, ProviderKeyInfo>>({});
+  const [keysInfo, setKeysInfo] = useState<Record<string, ProviderKeyInfo>>({});
   const [inputKeys, setInputKeys] = useState<Record<string, string>>({});
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [latencies, setLatencies] = useState<Record<string, { latencyMs: number; error?: string }>>({});
-  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [visibleInputs, setVisibleInputs] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState<boolean>(true);
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<
+    Record<string, { success: boolean; latencyMs?: number; message?: string }>
+  >({});
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const fetchKeys = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/v1/manage/keys', {
         headers: {
@@ -100,7 +128,7 @@ export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) 
       });
       const data = await res.json();
       if (data.success && data.keys) {
-        setKeys(data.keys);
+        setKeysInfo(data.keys);
       }
     } catch {
       // Non-blocking
@@ -114,8 +142,8 @@ export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) 
   }, [adminToken]);
 
   const handleSaveKey = async (provider: string) => {
-    const key = inputKeys[provider];
-    if (!key || !key.trim()) return;
+    const keyVal = inputKeys[provider];
+    if (!keyVal || !keyVal.trim()) return;
 
     setSavingProvider(provider);
     try {
@@ -126,58 +154,30 @@ export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) 
           Authorization: `Bearer ${adminToken}`,
           'x-admin-key': adminToken,
         },
-        body: JSON.stringify({ provider, apiKey: key.trim() }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSuccessMessage(`API Key for ${PROVIDER_METADATA[provider]?.name || provider} updated in runtime vault.`);
-        setInputKeys((prev) => ({ ...prev, [provider]: '' }));
-        await fetchKeys();
-        setTimeout(() => setSuccessMessage(null), 4000);
-      }
-    } catch (err: any) {
-      alert('Failed to save key: ' + err.message);
-    } finally {
-      setSavingProvider(null);
-    }
-  };
-
-  const handleTestKey = async (provider: string) => {
-    setTestingProvider(provider);
-    setLatencies((prev) => ({ ...prev, [provider]: undefined as any }));
-
-    try {
-      const res = await fetch('/api/v1/manage/keys/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-          'x-admin-key': adminToken,
-        },
         body: JSON.stringify({
           provider,
-          testKey: inputKeys[provider] ? inputKeys[provider].trim() : undefined,
+          apiKey: keyVal.trim(),
         }),
       });
       const data = await res.json();
-      if (data.success && data.result) {
-        setLatencies((prev) => ({
-          ...prev,
-          [provider]: { latencyMs: data.result.latencyMs },
-        }));
+      if (data.success) {
+        setNotification({
+          type: 'success',
+          text: `Successfully updated ${PROVIDER_METADATA[provider]?.name || provider} API key.`,
+        });
+        setInputKeys((prev) => ({ ...prev, [provider]: '' }));
+        fetchKeys();
       } else {
-        setLatencies((prev) => ({
-          ...prev,
-          [provider]: { latencyMs: 0, error: data.error || 'Connection check failed' },
-        }));
+        throw new Error(data.error || 'Failed to save key');
       }
     } catch (err: any) {
-      setLatencies((prev) => ({
-        ...prev,
-        [provider]: { latencyMs: 0, error: err.message },
-      }));
+      setNotification({
+        type: 'error',
+        text: err.message || 'Error updating key.',
+      });
     } finally {
-      setTestingProvider(null);
+      setSavingProvider(null);
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
@@ -190,13 +190,19 @@ export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) 
           Authorization: `Bearer ${adminToken}`,
           'x-admin-key': adminToken,
         },
-        body: JSON.stringify({ provider, enabled: !currentActive }),
+        body: JSON.stringify({
+          provider,
+          enabled: !currentActive,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        setKeys((prev) => ({
+        setKeysInfo((prev) => ({
           ...prev,
-          [provider]: { ...prev[provider], isActive: data.enabled },
+          [provider]: {
+            ...prev[provider],
+            isActive: data.enabled,
+          },
         }));
       }
     } catch {
@@ -204,167 +210,249 @@ export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) 
     }
   };
 
+  const handleTestPing = async (provider: string) => {
+    setTestingProvider(provider);
+    try {
+      const res = await fetch('/api/v1/manage/keys/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+          'x-admin-key': adminToken,
+        },
+        body: JSON.stringify({ provider }),
+      });
+      const data = await res.json();
+      if (data.success && data.result) {
+        setTestResults((prev) => ({
+          ...prev,
+          [provider]: {
+            success: true,
+            latencyMs: data.result.latencyMs,
+            message: 'Operational',
+          },
+        }));
+      } else {
+        setTestResults((prev) => ({
+          ...prev,
+          [provider]: {
+            success: false,
+            message: data.error || 'Ping failed or key missing',
+          },
+        }));
+      }
+    } catch (err: any) {
+      setTestResults((prev) => ({
+        ...prev,
+        [provider]: {
+          success: false,
+          message: err.message || 'Connection timeout',
+        },
+      }));
+    } finally {
+      setTestingProvider(null);
+    }
+  };
+
+  const handleCopyKey = (keyVal: string, id: string) => {
+    navigator.clipboard.writeText(keyVal);
+    setCopiedKey(id);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="flex items-center justify-between p-6 rounded-3xl bg-[#090912] border border-white/[0.08]">
+    <div className="space-y-6 font-['IBM_Plex_Sans',sans-serif] text-[#141310]">
+      {/* Header Banner */}
+      <div className="p-6 rounded-lg bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-1.5 rounded-xl bg-purple-600/20 text-purple-400">
-              <Key size={16} />
-            </span>
-            <h2 className="text-lg font-bold text-white tracking-tight">Neural Engines & Key Vault</h2>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+            ZERO-COST MULTI-ENGINE VAULT (30,000+ FREE REQS/DAY)
           </div>
-          <p className="text-xs text-slate-400">
-            Rotate API keys in real time, benchmark millisecond latency, and manage the zero-cost cascade matrix without redeploying.
+          <h2 className="text-base font-semibold text-[#141310] tracking-tight">
+            Neural Key Vault & Provider Free Tiers
+          </h2>
+          <p className="text-xs text-[rgba(20,19,16,0.62)] mt-1">
+            Rotate keys, test live roundtrip latencies, inspect complete keys, and hot-swap AI providers in runtime memory.
           </p>
         </div>
 
         <button
           onClick={fetchKeys}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.20] hover:bg-white/[0.08] text-xs text-slate-300 hover:text-white transition-all font-mono"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] hover:bg-[#faf8f3] text-xs font-medium text-[#141310] transition-colors self-start md:self-auto"
         >
           <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh Matrix</span>
+          <span>Sync Vault</span>
         </button>
       </div>
 
-      {successMessage && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 size={16} className="shrink-0" />
-          <span>{successMessage}</span>
+      {notification && (
+        <div
+          className={`p-3 rounded border text-xs font-['IBM_Plex_Mono',monospace] flex items-center gap-2 ${
+            notification.type === 'success'
+              ? 'bg-[#faf8f3] border-[rgba(20,19,16,0.25)] text-[#141310]'
+              : 'bg-[#c8321e]/10 border-[#c8321e]/30 text-[#c8321e]'
+          }`}
+        >
+          {notification.type === 'success' ? (
+            <CheckCircle2 size={14} className="text-[#141310]" />
+          ) : (
+            <AlertCircle size={14} className="text-[#c8321e]" />
+          )}
+          <span>{notification.text}</span>
         </div>
       )}
 
-      {/* Provider Matrix Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.entries(PROVIDER_METADATA).map(([providerId, meta]) => {
-          const keyInfo = keys[providerId] || { isConfigured: false, maskedKey: null, isActive: true, isRuntimeOverride: false };
-          const latency = latencies[providerId];
-          const isTesting = testingProvider === providerId;
-          const isSaving = savingProvider === providerId;
-          const isKeyVisible = showKeys[providerId];
+      {/* Providers Grid */}
+      <div className="grid grid-cols-1 gap-4">
+        {Object.entries(PROVIDER_METADATA).map(([key, meta]) => {
+          const info = keysInfo[key] || {
+            isConfigured: false,
+            maskedKey: null,
+            fullKey: null,
+            isActive: true,
+          };
+          const isSaving = savingProvider === key;
+          const isTesting = testingProvider === key;
+          const pingResult = testResults[key];
+          const isVisible = visibleInputs[key] || false;
 
           return (
             <div
-              key={providerId}
-              className={`p-5 rounded-3xl bg-[#0a0a14] border transition-all flex flex-col justify-between ${
-                keyInfo.isActive
-                  ? 'border-white/[0.08] hover:border-purple-500/30'
-                  : 'border-white/[0.03] opacity-60'
+              key={key}
+              className={`p-5 rounded-lg bg-[#faf8f3] border transition-all ${
+                info.isConfigured && info.isActive
+                  ? 'border-[rgba(20,19,16,0.20)]'
+                  : 'border-[rgba(20,19,16,0.10)] opacity-90'
               }`}
             >
-              <div>
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-white">{meta.name}</h3>
-                      {keyInfo.isConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Configured</span>
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono">
-                          Missing Key
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] font-mono text-purple-400/90">{meta.tag}</span>
+              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                {/* Left Info */}
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-xs font-semibold text-[#141310]">{meta.name}</h3>
+
+                    {info.isConfigured ? (
+                      <span className="px-1.5 py-0.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] text-[10px] font-['IBM_Plex_Mono',monospace] font-semibold text-[#141310]">
+                        CONFIGURED
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded border border-[#c8321e]/30 bg-[#c8321e]/10 text-[10px] font-['IBM_Plex_Mono',monospace] text-[#c8321e]">
+                        NOT SET
+                      </span>
+                    )}
+
+                    <span className="text-[10.5px] font-['IBM_Plex_Mono',monospace] text-[rgba(20,19,16,0.42)]">
+                      {meta.envVar}
+                    </span>
+
+                    <span className="text-[10.5px] font-['IBM_Plex_Mono',monospace] text-[#141310] px-1.5 py-0.5 rounded bg-[rgba(20,19,16,0.04)]">
+                      {meta.freeTierInfo}
+                    </span>
                   </div>
 
-                  <button
-                    onClick={() => handleToggleProvider(providerId, keyInfo.isActive)}
-                    className="p-1 text-slate-400 hover:text-white transition-colors"
-                    title={keyInfo.isActive ? 'Disable Provider' : 'Enable Provider'}
-                  >
-                    {keyInfo.isActive ? (
-                      <ToggleRight size={26} className="text-purple-500" />
-                    ) : (
-                      <ToggleLeft size={26} className="text-slate-600" />
-                    )}
-                  </button>
+                  <p className="text-xs text-[rgba(20,19,16,0.62)]">{meta.description}</p>
+
+                  {/* Complete Key Viewer & Copy */}
+                  {info.fullKey && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace]">
+                        Current Key:
+                      </span>
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] font-['IBM_Plex_Mono',monospace] text-xs text-[#141310]">
+                        <span>{isVisible ? info.fullKey : info.maskedKey}</span>
+                        <button
+                          type="button"
+                          onClick={() => setVisibleInputs((prev) => ({ ...prev, [key]: !isVisible }))}
+                          className="text-[rgba(20,19,16,0.42)] hover:text-[#141310] p-0.5"
+                          title={isVisible ? 'Hide key' : 'Show full unmasked key'}
+                        >
+                          {isVisible ? <EyeOff size={11} /> : <Eye size={11} />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyKey(info.fullKey!, key)}
+                          className="text-[rgba(20,19,16,0.42)] hover:text-[#141310] p-0.5"
+                          title="Copy complete key"
+                        >
+                          {copiedKey === key ? <Check size={11} className="text-[#141310]" /> : <Copy size={11} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">{meta.description}</p>
-
-                {/* Masked Key Display (if configured) */}
-                {keyInfo.maskedKey && (
-                  <div className="mb-3 p-2 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs font-mono text-slate-300">
-                    <div className="flex items-center gap-1.5">
-                      <Shield size={12} className="text-slate-500" />
-                      <span>Key: {keyInfo.maskedKey}</span>
-                    </div>
-                    {keyInfo.isRuntimeOverride && (
-                      <span className="text-[10px] text-purple-400 uppercase font-mono">Hot Vault Active</span>
+                {/* Right Actions & Status */}
+                <div className="flex items-center gap-2 shrink-0 self-start lg:self-center">
+                  <button
+                    onClick={() => handleToggleProvider(key, info.isActive)}
+                    className="flex items-center gap-1 text-xs text-[rgba(20,19,16,0.62)] hover:text-[#141310] transition-colors"
+                    title={info.isActive ? 'Disable Provider' : 'Enable Provider'}
+                  >
+                    {info.isActive ? (
+                      <ToggleRight size={22} className="text-[#141310]" />
+                    ) : (
+                      <ToggleLeft size={22} className="text-[rgba(20,19,16,0.42)]" />
                     )}
-                  </div>
-                )}
+                    <span className="text-[11px] font-['IBM_Plex_Mono',monospace]">
+                      {info.isActive ? 'Active' : 'Disabled'}
+                    </span>
+                  </button>
 
-                {/* Input New Key */}
-                <div className="space-y-1.5">
-                  <div className="relative flex items-center">
-                    <input
-                      type={isKeyVisible ? 'text' : 'password'}
-                      value={inputKeys[providerId] || ''}
-                      onChange={(e) =>
-                        setInputKeys((prev) => ({ ...prev, [providerId]: e.target.value }))
-                      }
-                      placeholder={keyInfo.isConfigured ? 'Replace existing key...' : meta.placeholder}
-                      className="w-full pl-3 pr-16 py-2 rounded-xl bg-[#0e0e1a] border border-white/[0.08] focus:border-purple-500/50 text-white text-xs font-mono placeholder-slate-600 outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowKeys((prev) => ({ ...prev, [providerId]: !prev[providerId] }))
-                      }
-                      className="absolute right-2.5 text-slate-500 hover:text-white transition-colors p-1"
+                  <button
+                    onClick={() => handleTestPing(key)}
+                    disabled={isTesting}
+                    className="px-2.5 py-1 rounded border border-[rgba(20,19,16,0.14)] text-xs text-[rgba(20,19,16,0.62)] hover:text-[#141310] hover:bg-[#f4f1ea] transition-colors font-['IBM_Plex_Mono',monospace] flex items-center gap-1"
+                  >
+                    <Activity size={11} className={isTesting ? 'animate-pulse' : ''} />
+                    <span>{isTesting ? 'Pinging...' : 'Ping Test'}</span>
+                  </button>
+
+                  {pingResult && (
+                    <span
+                      className={`text-[11px] font-['IBM_Plex_Mono',monospace] px-2 py-0.5 rounded border ${
+                        pingResult.success
+                          ? 'border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] text-[#141310] font-semibold'
+                          : 'border-[#c8321e]/30 bg-[#c8321e]/10 text-[#c8321e]'
+                      }`}
                     >
-                      {isKeyVisible ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
+                      {pingResult.success ? `${pingResult.latencyMs}ms` : 'Offline'}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Action Bar */}
-              <div className="mt-4 pt-3 border-t border-white/[0.04] flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleSaveKey(providerId)}
-                    disabled={isSaving || !inputKeys[providerId]?.trim()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600/20 border border-purple-500/40 hover:bg-purple-600/30 text-purple-300 text-xs font-medium transition-all disabled:opacity-30 disabled:pointer-events-none"
-                  >
-                    <Save size={12} />
-                    <span>{isSaving ? 'Saving...' : 'Save & Hot-Reload'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleTestKey(providerId)}
-                    disabled={isTesting || (!keyInfo.isConfigured && !inputKeys[providerId]?.trim())}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.20] hover:bg-white/[0.08] text-xs text-slate-300 hover:text-white transition-all font-mono disabled:opacity-30 disabled:pointer-events-none"
-                  >
-                    <Activity size={12} className={isTesting ? 'animate-spin text-purple-400' : ''} />
-                    <span>{isTesting ? 'Pinging...' : 'Ping Test'}</span>
-                  </button>
+              {/* Key Update Form Input */}
+              <div className="mt-4 pt-3 border-t border-[rgba(20,19,16,0.10)] flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="password"
+                    placeholder={`Paste new key to rotate (${meta.placeholder})`}
+                    value={inputKeys[key] || ''}
+                    onChange={(e) =>
+                      setInputKeys((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                    className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs font-['IBM_Plex_Mono',monospace] text-[#141310] placeholder-[rgba(20,19,16,0.42)] outline-none focus:border-[#141310] transition-colors"
+                  />
                 </div>
 
-                {/* Latency Output */}
-                {latency && (
-                  <div className="text-[11px] font-mono flex items-center gap-1.5">
-                    {latency.error ? (
-                      <span className="text-rose-400 flex items-center gap-1">
-                        <AlertCircle size={12} />
-                        <span>Error</span>
-                      </span>
-                    ) : (
-                      <span className="text-cyan-400 flex items-center gap-1 font-semibold">
-                        <Zap size={11} className="text-cyan-300" />
-                        <span>{latency.latencyMs}ms</span>
-                      </span>
-                    )}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleSaveKey(key)}
+                  disabled={isSaving || !inputKeys[key]?.trim()}
+                  className="px-3 py-1.5 rounded bg-[#141310] text-[#faf8f3] text-xs font-medium hover:bg-[rgba(20,19,16,0.85)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <Save size={12} />
+                  <span>{isSaving ? 'Saving...' : 'Hot-Update'}</span>
+                </button>
+
+                <a
+                  href={meta.docsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] font-['IBM_Plex_Mono',monospace] text-[rgba(20,19,16,0.42)] hover:text-[#141310] hover:underline px-1 flex items-center justify-center sm:justify-start"
+                >
+                  Get Free Key ↗
+                </a>
               </div>
             </div>
           );

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Key,
   Plus,
   Search,
   Check,
   X,
-  AlertTriangle,
-  RefreshCw,
+  RotateCw,
   Copy,
 } from 'lucide-react';
 
@@ -106,275 +104,302 @@ export const TenantManager: React.FC<TenantManagerProps> = ({ token }) => {
       setNewEmail('');
       setNewPrompt('');
       fetchTenants();
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : String(err));
+    } catch (err: any) {
+      setFormError(err.message);
     }
   };
 
-  const handleToggleActive = async (tenant: TenantItem) => {
+  const handleToggleTenant = async (id: string, currentActive: boolean) => {
     try {
-      const res = await fetch(`/api/v1/admin/tenants/${tenant.id}`, {
+      await fetch(`/api/v1/admin/tenants/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          is_active: !tenant.is_active,
-        }),
+        body: JSON.stringify({ is_active: !currentActive }),
       });
-
-      if (res.ok) {
-        fetchTenants();
-      }
+      fetchTenants();
     } catch (err) {
       console.warn('Failed to toggle tenant:', err);
     }
   };
 
-  const filteredTenants = tenants.filter(
-    (t) =>
-      t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.tier.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTenants = tenants.filter((t) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      t.id.toLowerCase().includes(q) ||
+      t.name.toLowerCase().includes(q) ||
+      (t.owner_email && t.owner_email.toLowerCase().includes(q))
+    );
+  });
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 font-['IBM_Plex_Sans',sans-serif] text-[#141310]">
+      {/* Header Banner */}
+      <div className="p-6 rounded-lg bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-medium text-white tracking-tight">Tenants & API Key Gateways</h1>
-          <p className="text-xs sm:text-sm text-silver/50 font-light mt-1">
-            Provision, manage, and monitor dedicated <code className="text-iris font-mono">x-tenant-id</code> authenticated API keys.
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+            MULTI-TENANT AUTHORIZATION
+          </div>
+          <h2 className="text-base font-semibold text-[#141310] tracking-tight">
+            Tenant Provisioning & API Keys
+          </h2>
+          <p className="text-xs text-[rgba(20,19,16,0.62)] mt-1">
+            Manage enterprise API keys, token deduction quotas, rate limits, and custom persona prompts.
           </p>
         </div>
 
         <button
           onClick={() => setCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-iris hover:bg-iris-hover text-white text-xs font-medium transition-all shadow-lg shadow-iris/20 shrink-0"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-[#141310] hover:bg-[rgba(20,19,16,0.85)] text-[#faf8f3] text-xs font-medium transition-colors shrink-0"
         >
-          <Plus size={15} />
-          <span>Provision New Key</span>
+          <Plus size={14} />
+          <span>Provision Tenant</span>
         </button>
       </div>
 
-      {/* Search & Stats Bar */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-silver/40" />
+      {/* Filter Row */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[rgba(20,19,16,0.42)]" />
           <input
             type="text"
+            placeholder="Search by ID, Name, or Email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Tenant ID, name, or plan tier..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#090916] border border-white/[0.08] text-xs text-white placeholder-silver/30 focus:outline-none focus:border-iris"
+            className="w-full bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] rounded pl-8 pr-3 py-1.5 text-xs text-[#141310] placeholder-[rgba(20,19,16,0.42)] outline-none focus:border-[#141310] transition-colors"
           />
         </div>
+
         <button
           onClick={fetchTenants}
-          className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-silver/50 hover:text-white transition-colors"
-          title="Refresh List"
+          className="flex items-center gap-1 px-3 py-1.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#faf8f3] hover:bg-[#f4f1ea] text-xs text-[rgba(20,19,16,0.62)] hover:text-[#141310] transition-colors font-medium"
         >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
+          <span>Refresh</span>
         </button>
       </div>
 
       {/* Tenants Table */}
-      <div className="rounded-2xl bg-[#090916] border border-white/[0.08] shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[10px] font-mono uppercase text-silver/40 tracking-wider">
-              <tr>
-                <th className="px-5 py-3.5">Tenant ID & API Key</th>
-                <th className="px-5 py-3.5">Name / Owner</th>
-                <th className="px-5 py-3.5">Plan Tier</th>
-                <th className="px-5 py-3.5">Rate Limit</th>
-                <th className="px-5 py-3.5">Token Quota (Mo)</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+      <div className="rounded-lg bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] overflow-hidden">
+        <div className="overflow-x-auto min-w-[700px]">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[rgba(20,19,16,0.14)] bg-[#f4f1ea]/60">
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  TENANT ID / KEY
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  NAME & OWNER
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  TIER
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace] text-right">
+                  MONTHLY QUOTA
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] text-right">
+                  STATUS
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] text-right">
+                  ACTIONS
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-[rgba(20,19,16,0.14)]">
               {filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-silver/40">
-                    No matching tenants found.
+                  <td colSpan={6} className="py-8 text-center text-[rgba(20,19,16,0.42)] text-xs">
+                    No tenants found. Click "Provision Tenant" to generate a key.
                   </td>
                 </tr>
               ) : (
-                filteredTenants.map((t) => (
-                  <tr key={t.id} className="hover:bg-white/[0.015] transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <code className="font-mono text-white text-xs bg-white/[0.04] px-2 py-1 rounded-md border border-white/[0.06]">
-                          {t.id}
-                        </code>
-                        <button
-                          onClick={() => handleCopyKey(t.id)}
-                          className="text-silver/40 hover:text-white transition-colors"
-                          title="Copy Key"
+                filteredTenants.map((t) => {
+                  const used = t.tokens_used_this_month || 0;
+                  const quota = t.monthly_token_quota || 1000000;
+                  const pct = Math.min(100, Math.round((used / quota) * 100));
+
+                  return (
+                    <tr key={t.id} className="hover:bg-[rgba(20,19,16,0.02)] transition-colors h-[48px]">
+                      {/* Key */}
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 font-['IBM_Plex_Mono',monospace]">
+                          <span className="text-xs font-medium text-[#141310]">{t.id}</span>
+                          <button
+                            onClick={() => handleCopyKey(t.id)}
+                            className="text-[rgba(20,19,16,0.42)] hover:text-[#141310] p-1 rounded"
+                            title="Copy API Key"
+                          >
+                            {copiedKey === t.id ? (
+                              <Check size={11} className="text-[#141310]" />
+                            ) : (
+                              <Copy size={11} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Name & Owner */}
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <div className="font-medium text-[#141310]">{t.name}</div>
+                        <div className="text-[10.5px] text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace]">
+                          {t.owner_email || 'No owner assigned'}
+                        </div>
+                      </td>
+
+                      {/* Tier */}
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <span className="px-1.5 py-0.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] text-[10.5px] font-['IBM_Plex_Mono',monospace] font-semibold text-[#141310] uppercase">
+                          {t.tier || t.plan_id || 'free'}
+                        </span>
+                      </td>
+
+                      {/* Quota */}
+                      <td className="py-2.5 px-4 whitespace-nowrap text-right font-['IBM_Plex_Mono',monospace] text-[11px]">
+                        <div>
+                          <span className="text-[#141310] font-medium">{(used / 1000).toFixed(0)}k</span>
+                          <span className="text-[rgba(20,19,16,0.42)]"> / {(quota / 1000).toFixed(0)}k</span>
+                        </div>
+                        <div className="w-20 h-1 rounded-full bg-[rgba(20,19,16,0.10)] ml-auto mt-1 overflow-hidden">
+                          <div className="h-full bg-[#141310]" style={{ width: `${pct}%` }} />
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-2.5 px-4 whitespace-nowrap text-right">
+                        <span
+                          className={`text-[10.5px] font-['IBM_Plex_Mono',monospace] px-2 py-0.5 rounded border ${
+                            t.is_active
+                              ? 'border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] text-[#141310]'
+                              : 'border-[#c8321e]/30 bg-[#c8321e]/10 text-[#c8321e]'
+                          }`}
                         >
-                          {copiedKey === t.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                          {t.is_active ? 'ACTIVE' : 'SUSPENDED'}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-2.5 px-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={() => handleToggleTenant(t.id, t.is_active)}
+                          className={`text-xs font-medium hover:underline ${
+                            t.is_active ? 'text-[rgba(20,19,16,0.62)] hover:text-[#c8321e]' : 'text-[#141310]'
+                          }`}
+                        >
+                          {t.is_active ? 'Suspend' : 'Reactivate'}
                         </button>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="font-medium text-white">{t.name}</div>
-                      {t.owner_email && <div className="text-[11px] text-silver/40 font-light">{t.owner_email}</div>}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-block text-[10px] font-mono uppercase px-2 py-0.5 rounded-md border ${
-                        t.tier === 'enterprise'
-                          ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                          : t.tier === 'pro'
-                          ? 'bg-iris/10 text-iris border-iris/20'
-                          : 'bg-white/[0.04] text-silver/70 border-white/[0.08]'
-                      }`}>
-                        {t.tier}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-silver/70 font-mono">
-                      {t.rate_limit_per_minute} req/min
-                    </td>
-                    <td className="px-5 py-4 text-silver/70 font-mono">
-                      {(t.monthly_token_quota / 1000000).toFixed(1)}M tokens
-                    </td>
-                    <td className="px-5 py-4">
-                      {t.is_active ? (
-                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-mono text-crimson bg-crimson/10 px-2 py-0.5 rounded-md border border-crimson/20">
-                          Suspended
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => handleToggleActive(t)}
-                        className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors ${
-                          t.is_active
-                            ? 'bg-crimson/10 text-crimson hover:bg-crimson/20'
-                            : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                        }`}
-                      >
-                        {t.is_active ? 'Suspend' : 'Activate'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Provision New Key Modal */}
+      {/* Provision Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-lg rounded-2xl bg-[#0a0a16] border border-white/[0.12] shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-iris/10 text-iris">
-                  <Key size={16} />
-                </div>
-                <h3 className="text-base font-medium text-white">Provision Paid API Key</h3>
-              </div>
+        <div className="fixed inset-0 bg-[#141310]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+          <div className="w-full max-w-md bg-[#faf8f3] border border-[rgba(20,19,16,0.20)] rounded-lg p-6 space-y-4 shadow-none">
+            <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,19,16,0.14)]">
+              <h3 className="text-sm font-semibold text-[#141310]">Provision Tenant Key</h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className="p-1 rounded-lg text-silver/40 hover:text-white"
+                className="text-[rgba(20,19,16,0.42)] hover:text-[#141310]"
               >
                 <X size={16} />
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 rounded-xl bg-crimson/10 border border-crimson/30 text-crimson text-xs flex items-center gap-2">
-                <AlertTriangle size={14} />
-                <span>{formError}</span>
+              <div className="p-2.5 rounded border border-[#c8321e]/30 bg-[#c8321e]/10 text-xs text-[#c8321e] font-['IBM_Plex_Mono',monospace]">
+                {formError}
               </div>
             )}
 
-            <form onSubmit={handleCreateTenant} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateTenant} className="space-y-3">
               <div>
-                <label className="block font-mono uppercase text-silver/50 mb-1">
-                  Tenant ID / Authenticated Key
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Tenant Unique Key / Slug
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. zorvik-prod-app or client_company_ai"
+                  placeholder="e.g. acme_corp_prod"
                   value={newId}
                   onChange={(e) => setNewId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white focus:outline-none focus:border-iris font-mono"
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs font-['IBM_Plex_Mono',monospace] text-[#141310] outline-none focus:border-[#141310]"
                 />
               </div>
 
               <div>
-                <label className="block font-mono uppercase text-silver/50 mb-1">Tenant Display Name</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Tenant Organization Name
+                </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Production Mobile App"
+                  placeholder="e.g. Acme Corporation"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white focus:outline-none focus:border-iris"
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs text-[#141310] outline-none focus:border-[#141310]"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-mono uppercase text-silver/50 mb-1">Paid Pricing Plan</label>
-                  <select
-                    value={newPlan}
-                    onChange={(e) => setNewPlan(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#0c0c1e] border border-white/[0.1] text-white focus:outline-none focus:border-iris"
-                  >
-                    <option value="starter">Starter Plan ($19/mo - 5M tokens)</option>
-                    <option value="pro">Pro Scale Plan ($49/mo - 20M tokens)</option>
-                    <option value="enterprise">Enterprise Plan ($199/mo - 100M tokens)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-mono uppercase text-silver/50 mb-1">Owner Email</label>
-                  <input
-                    type="email"
-                    placeholder="client@zorvik.tech"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white focus:outline-none focus:border-iris"
-                  />
-                </div>
               </div>
 
               <div>
-                <label className="block font-mono uppercase text-silver/50 mb-1">
-                  Custom System Prompt Override (Optional)
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Plan Tier
                 </label>
-                <textarea
-                  placeholder="Custom instruction for this tenant's calls..."
-                  rows={2}
-                  value={newPrompt}
-                  onChange={(e) => setNewPrompt(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white focus:outline-none focus:border-iris resize-none"
+                <select
+                  value={newPlan}
+                  onChange={(e) => setNewPlan(e.target.value)}
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs text-[#141310] outline-none focus:border-[#141310]"
+                >
+                  <option value="free">Free (10k tokens / 10 req/min)</option>
+                  <option value="pro">Pro ($29/mo · 5M tokens / 60 req/min)</option>
+                  <option value="enterprise">Enterprise ($299/mo · 50M tokens / 300 req/min)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Owner Contact Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="admin@acmecorp.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs text-[#141310] outline-none focus:border-[#141310]"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Custom System Persona / Directives (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Inject tenant-specific rules or context..."
+                  value={newPrompt}
+                  onChange={(e) => setNewPrompt(e.target.value)}
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs text-[#141310] outline-none focus:border-[#141310]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[rgba(20,19,16,0.14)]">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-white/[0.04] text-silver hover:text-white"
+                  className="px-3 py-1.5 rounded border border-[rgba(20,19,16,0.14)] text-xs text-[rgba(20,19,16,0.62)] hover:text-[#141310]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-iris hover:bg-iris-hover text-white font-medium shadow-md shadow-iris/20"
+                  className="px-4 py-1.5 rounded bg-[#141310] hover:bg-[rgba(20,19,16,0.85)] text-[#faf8f3] text-xs font-medium"
                 >
-                  Create & Activate Key
+                  Create Key
                 </button>
               </div>
             </form>

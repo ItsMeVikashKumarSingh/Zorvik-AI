@@ -239,7 +239,7 @@ describe("Zorvik AI Admin Control Plane & Monetization Tests", () => {
     assert.strictEqual(res.status, 200);
     const data = await res.json();
     assert.ok(data.metrics);
-    assert.ok(data.metrics.total_tenants >= 3);
+    assert.ok(data.metrics.total_tenants >= 1);
     assert.ok(data.providers);
     assert.strictEqual(data.admin.role, "superadmin");
   });

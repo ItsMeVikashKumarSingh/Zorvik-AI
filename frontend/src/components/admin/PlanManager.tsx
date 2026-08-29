@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Sparkles, Zap, ShieldAlert } from 'lucide-react';
+import {
+  Check,
+  RotateCw,
+  Edit2,
+  X,
+  Save,
+  CheckCircle2,
+} from 'lucide-react';
 
 interface PricingPlan {
   id: string;
   name: string;
-  monthly_price_usd: number;
+  monthly_price_usd?: number;
+  price_usd?: number;
   monthly_token_quota: number;
   rate_limit_per_minute: number;
-  overage_rate_per_million: number;
-  max_api_keys: number;
   features: string[];
+  stripe_price_id?: string;
   is_active: boolean;
 }
 
@@ -19,13 +26,26 @@ interface PlanManagerProps {
 
 export const PlanManager: React.FC<PlanManagerProps> = ({ token }) => {
   const [plans, setPlans] = useState<PricingPlan[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [editingPlan, setEditingPlan] = useState<PricingPlan | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  // Edit form state
+  const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState<number>(0);
+  const [editQuota, setEditQuota] = useState<number>(0);
+  const [editRate, setEditRate] = useState<number>(0);
+  const [editFeatures, setEditFeatures] = useState('');
 
   const fetchPlans = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/v1/admin/plans', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-admin-key': token,
+        },
       });
       if (res.ok) {
         const json = await res.json();
@@ -33,6 +53,8 @@ export const PlanManager: React.FC<PlanManagerProps> = ({ token }) => {
       }
     } catch (err) {
       console.warn('Failed to fetch plans:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,124 +62,157 @@ export const PlanManager: React.FC<PlanManagerProps> = ({ token }) => {
     fetchPlans();
   }, [token]);
 
-  const handleUpdatePlan = async (e: React.FormEvent) => {
+  const handleOpenEdit = (plan: PricingPlan) => {
+    setEditingPlan(plan);
+    setEditName(plan.name);
+    setEditPrice(plan.monthly_price_usd ?? plan.price_usd ?? 0);
+    setEditQuota(plan.monthly_token_quota);
+    setEditRate(plan.rate_limit_per_minute);
+    setEditFeatures(Array.isArray(plan.features) ? plan.features.join('\n') : '');
+  };
+
+  const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlan) return;
+    setSaving(true);
 
     try {
+      const featuresArray = editFeatures
+        .split('\n')
+        .map((f) => f.trim())
+        .filter(Boolean);
+
       const res = await fetch(`/api/v1/admin/plans/${editingPlan.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          'x-admin-key': token,
         },
-        body: JSON.stringify(editingPlan),
+        body: JSON.stringify({
+          name: editName.trim(),
+          monthly_price_usd: Number(editPrice),
+          monthly_token_quota: Number(editQuota),
+          rate_limit_per_minute: Number(editRate),
+          features: featuresArray,
+        }),
       });
 
       if (res.ok) {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 2000);
+        setMessage(`Plan "${editName}" updated successfully in database.`);
         setEditingPlan(null);
         fetchPlans();
+        setTimeout(() => setMessage(null), 4000);
       }
-    } catch (err) {
-      console.warn('Failed to save plan:', err);
+    } catch (err: any) {
+      alert('Error updating plan: ' + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-8 max-w-6xl">
-      <div>
-        <h1 className="text-2xl font-medium text-white tracking-tight">Monetization & Pricing Plans</h1>
-        <p className="text-xs sm:text-sm text-silver/50 font-light mt-1">
-          Configure paid API subscription tiers, token quotas, overage charges, and rate limits.
-        </p>
+    <div className="space-y-6 font-['IBM_Plex_Sans',sans-serif] text-[#141310]">
+      {/* Header Banner */}
+      <div className="p-6 rounded-lg bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+            MONETIZATION & QUOTA TIERS
+          </div>
+          <h2 className="text-base font-semibold text-[#141310] tracking-tight">
+            Subscription Pricing & Token Quota Tiers
+          </h2>
+          <p className="text-xs text-[rgba(20,19,16,0.62)] mt-1">
+            Configure monthly token budgets, concurrency rate limits, and plan capabilities stored in database.
+          </p>
+        </div>
+
+        <button
+          onClick={fetchPlans}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] hover:bg-[#faf8f3] text-xs font-medium text-[#141310] transition-colors"
+        >
+          <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
+          <span>Refresh Plans</span>
+        </button>
       </div>
 
-      {saveSuccess && (
-        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
-          <Check size={14} />
-          <span>Plan configuration updated successfully & logged in audit trail.</span>
+      {message && (
+        <div className="p-3 rounded border border-[rgba(20,19,16,0.14)] bg-[#faf8f3] text-xs text-[#141310] font-['IBM_Plex_Mono',monospace] flex items-center gap-2">
+          <CheckCircle2 size={14} className="text-[#141310]" />
+          <span>{message}</span>
         </div>
       )}
 
-      {/* Plan Cards Grid */}
+      {/* Pricing Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan) => {
-          const isEnterprise = plan.id === 'enterprise';
-          const isPro = plan.id === 'pro';
+        {plans.map((p) => {
+          const isFeatured = p.id === 'pro';
+          const price = p.monthly_price_usd ?? p.price_usd ?? 0;
+
           return (
             <div
-              key={plan.id}
-              className={`p-6 rounded-2xl bg-[#090916] border transition-all flex flex-col justify-between shadow-xl relative ${
-                isEnterprise
-                  ? 'border-purple-500/40 shadow-purple-950/20'
-                  : isPro
-                  ? 'border-iris/40 shadow-iris/10'
-                  : 'border-white/[0.08]'
+              key={p.id}
+              className={`p-6 rounded-lg bg-[#faf8f3] border transition-all flex flex-col justify-between ${
+                isFeatured
+                  ? 'border-[#141310] ring-1 ring-[#141310]'
+                  : 'border-[rgba(20,19,16,0.14)]'
               }`}
             >
-              {isPro && (
-                <div className="absolute -top-3 left-6 px-2.5 py-0.5 rounded-full bg-iris text-[10px] font-mono uppercase text-white font-semibold">
-                  Most Popular
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-white">{plan.name}</h3>
-                    <span className="text-[10px] font-mono uppercase text-silver/40">{plan.id}</span>
-                  </div>
-                  <div className={`p-2 rounded-xl ${isEnterprise ? 'bg-purple-500/10 text-purple-400' : 'bg-iris/10 text-iris'}`}>
-                    {isEnterprise ? <ShieldAlert size={18} /> : isPro ? <Sparkles size={18} /> : <Zap size={18} />}
-                  </div>
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-semibold text-[#141310]">{p.name}</span>
+                  {isFeatured && (
+                    <span className="px-1.5 py-0.5 rounded bg-[#141310] text-[#faf8f3] text-[10px] font-semibold font-['IBM_Plex_Mono',monospace]">
+                      POPULAR
+                    </span>
+                  )}
                 </div>
 
-                <div className="pt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-white tracking-tight">${plan.monthly_price_usd}</span>
-                    <span className="text-xs text-silver/40 font-light">/ month</span>
-                  </div>
-                  <div className="text-xs text-silver/50 font-light mt-1">
-                    Includes {(plan.monthly_token_quota / 1000000).toFixed(0)}M tokens / month
-                  </div>
+                <div className="flex items-baseline gap-1 my-3">
+                  <span className="text-2xl font-bold font-['IBM_Plex_Mono',monospace] text-[#141310]">
+                    ${price}
+                  </span>
+                  <span className="text-xs text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace]">/ month</span>
                 </div>
 
-                {/* Quota & Limits Info */}
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-silver/40">Rate Limit:</span>
-                    <span className="text-white font-mono">{plan.rate_limit_per_minute} req/min</span>
+                <div className="space-y-1.5 pt-3 border-t border-[rgba(20,19,16,0.10)] mb-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[rgba(20,19,16,0.62)]">Monthly Tokens</span>
+                    <span className="font-['IBM_Plex_Mono',monospace] font-medium text-[#141310]">
+                      {(p.monthly_token_quota / 1000000).toFixed(1)}M
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-silver/40">Overage Rate:</span>
-                    <span className="text-white font-mono">${plan.overage_rate_per_million}/1M tok</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-silver/40">Max API Keys:</span>
-                    <span className="text-white font-mono">{plan.max_api_keys} keys</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[rgba(20,19,16,0.62)]">Rate Limit</span>
+                    <span className="font-['IBM_Plex_Mono',monospace] font-medium text-[#141310]">
+                      {p.rate_limit_per_minute} req/min
+                    </span>
                   </div>
                 </div>
 
-                {/* Features Checklist */}
-                <div className="space-y-2 pt-2">
-                  <div className="text-[10px] font-mono uppercase text-silver/40">Tier Features</div>
-                  {plan.features?.map((feat, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-silver/80 font-light">
-                      <Check size={13} className="text-iris shrink-0" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
+                <div className="space-y-2 pt-3 border-t border-[rgba(20,19,16,0.10)]">
+                  <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                    INCLUDED CAPABILITIES
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-[rgba(20,19,16,0.75)]">
+                    {p.features?.map((f, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <Check size={12} className="text-[#141310] shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 
-              <div className="pt-6">
+              <div className="pt-5 mt-5 border-t border-[rgba(20,19,16,0.10)]">
                 <button
-                  onClick={() => setEditingPlan(plan)}
-                  className="w-full py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-white transition-colors"
+                  type="button"
+                  onClick={() => handleOpenEdit(p)}
+                  className="w-full py-1.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] hover:bg-[#faf8f3] text-xs font-medium text-[#141310] transition-colors flex items-center justify-center gap-1.5"
                 >
-                  Edit Tier Parameters
+                  <Edit2 size={12} />
+                  <span>Edit Plan Terms</span>
                 </button>
               </div>
             </div>
@@ -167,67 +222,109 @@ export const PlanManager: React.FC<PlanManagerProps> = ({ token }) => {
 
       {/* Edit Plan Modal */}
       {editingPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-md rounded-2xl bg-[#0a0a16] border border-white/[0.12] shadow-2xl p-6 space-y-4 text-xs">
-            <h3 className="text-base font-medium text-white">Edit Plan: {editingPlan.name}</h3>
-
-            <form onSubmit={handleUpdatePlan} className="space-y-3">
+        <div className="fixed inset-0 bg-[#141310]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+          <div className="w-full max-w-md bg-[#faf8f3] border border-[rgba(20,19,16,0.20)] rounded-lg p-6 space-y-4 shadow-none">
+            <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,19,16,0.14)]">
               <div>
-                <label className="block text-silver/50 font-mono uppercase mb-1">Monthly Price ($ USD)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editingPlan.monthly_price_usd}
-                  onChange={(e) => setEditingPlan({ ...editingPlan, monthly_price_usd: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white"
-                />
+                <h3 className="text-sm font-semibold text-[#141310]">Edit Pricing Plan: {editingPlan.id}</h3>
+                <p className="text-[11px] text-[rgba(20,19,16,0.42)]">Changes save directly to database.</p>
               </div>
+              <button
+                onClick={() => setEditingPlan(null)}
+                className="text-[rgba(20,19,16,0.42)] hover:text-[#141310]"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
+            <form onSubmit={handleSavePlan} className="space-y-3">
               <div>
-                <label className="block text-silver/50 font-mono uppercase mb-1">Monthly Token Quota</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Plan Display Name
+                </label>
                 <input
-                  type="number"
-                  value={editingPlan.monthly_token_quota}
-                  onChange={(e) => setEditingPlan({ ...editingPlan, monthly_token_quota: parseInt(e.target.value, 10) || 0 })}
-                  className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white"
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs text-[#141310] outline-none focus:border-[#141310]"
+                  required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-silver/50 font-mono uppercase mb-1">Rate Limit (Req/Min)</label>
+                  <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                    Monthly Price ($ USD)
+                  </label>
                   <input
                     type="number"
-                    value={editingPlan.rate_limit_per_minute}
-                    onChange={(e) => setEditingPlan({ ...editingPlan, rate_limit_per_minute: parseInt(e.target.value, 10) || 0 })}
-                    className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white"
+                    min="0"
+                    step="1"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(Number(e.target.value))}
+                    className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs font-['IBM_Plex_Mono',monospace] text-[#141310] outline-none focus:border-[#141310]"
+                    required
                   />
                 </div>
+
                 <div>
-                  <label className="block text-silver/50 font-mono uppercase mb-1">Overage ($/1M Tokens)</label>
+                  <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                    Rate Limit (Req / min)
+                  </label>
                   <input
                     type="number"
-                    step="0.01"
-                    value={editingPlan.overage_rate_per_million}
-                    onChange={(e) => setEditingPlan({ ...editingPlan, overage_rate_per_million: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.1] text-white"
+                    min="10"
+                    step="10"
+                    value={editRate}
+                    onChange={(e) => setEditRate(Number(e.target.value))}
+                    className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs font-['IBM_Plex_Mono',monospace] text-[#141310] outline-none focus:border-[#141310]"
+                    required
                   />
                 </div>
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Monthly Token Quota
+                </label>
+                <input
+                  type="number"
+                  min="100000"
+                  step="1000000"
+                  value={editQuota}
+                  onChange={(e) => setEditQuota(Number(e.target.value))}
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs font-['IBM_Plex_Mono',monospace] text-[#141310] outline-none focus:border-[#141310]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                  Features List (One per line)
+                </label>
+                <textarea
+                  rows={4}
+                  value={editFeatures}
+                  onChange={(e) => setEditFeatures(e.target.value)}
+                  className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-1.5 text-xs text-[#141310] outline-none focus:border-[#141310]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[rgba(20,19,16,0.14)]">
                 <button
                   type="button"
                   onClick={() => setEditingPlan(null)}
-                  className="px-4 py-2 rounded-xl bg-white/[0.04] text-silver hover:text-white"
+                  className="px-3 py-1.5 rounded border border-[rgba(20,19,16,0.14)] text-xs text-[rgba(20,19,16,0.62)] hover:text-[#141310]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-iris hover:bg-iris-hover text-white font-medium shadow-md"
+                  disabled={saving}
+                  className="px-4 py-1.5 rounded bg-[#141310] hover:bg-[rgba(20,19,16,0.85)] text-[#faf8f3] text-xs font-medium flex items-center gap-1.5"
                 >
-                  Save Changes
+                  <Save size={12} />
+                  <span>{saving ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>

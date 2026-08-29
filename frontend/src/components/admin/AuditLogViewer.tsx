@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Clock, Terminal } from 'lucide-react';
+import {
+  RotateCw,
+  Search,
+} from 'lucide-react';
 
 interface AuditLog {
-  id?: string;
-  admin_id: string;
+  id: string;
+  admin_id?: string;
   admin_email: string;
   action_type: string;
   target_entity: string;
-  details: Record<string, unknown>;
+  details?: any;
   ip_address?: string;
-  user_agent?: string;
   created_at: string;
 }
 
@@ -20,13 +22,12 @@ interface AuditLogViewerProps {
 export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ token }) => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [search, setSearch] = useState<string>('');
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/admin/audit-logs?limit=100', {
+      const res = await fetch('/api/v1/admin/audit-logs?limit=50', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -44,155 +45,127 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ token }) => {
     fetchLogs();
   }, [token]);
 
-  const filteredLogs = logs.filter(
-    (l) =>
-      l.action_type.toLowerCase().includes(search.toLowerCase()) ||
-      l.admin_email.toLowerCase().includes(search.toLowerCase()) ||
-      l.target_entity.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredLogs = logs.filter((l) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      l.action_type.toLowerCase().includes(q) ||
+      l.admin_email.toLowerCase().includes(q) ||
+      l.target_entity.toLowerCase().includes(q)
+    );
+  });
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 font-['IBM_Plex_Sans',sans-serif] text-[#141310]">
+      {/* Header Banner */}
+      <div className="p-6 rounded-lg bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-medium text-white tracking-tight">Immutable Audit Log Ledger</h1>
-            <span className="text-[10px] font-mono uppercase bg-iris/20 text-iris border border-iris/30 px-2 py-0.5 rounded-md">
-              Rule 3.1 Enforced
-            </span>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+            IMMUTABLE SECURITY AUDIT TRAIL
           </div>
-          <p className="text-xs sm:text-sm text-silver/50 font-light mt-1">
-            Tamper-proof chronological trail of all administrative mutations, key generations, and plan updates.
+          <h2 className="text-base font-semibold text-[#141310] tracking-tight">
+            Security & Administration Audit Records
+          </h2>
+          <p className="text-xs text-[rgba(20,19,16,0.62)] mt-1">
+            Every administrative operation, provider rotation, circuit state change, and tenant provisioning event.
           </p>
         </div>
 
         <button
           onClick={fetchLogs}
-          className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-silver/50 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] hover:bg-[#faf8f3] text-xs font-medium text-[#141310] transition-colors"
         >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
+          <span>Refresh Logs</span>
         </button>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-silver/40" />
+      {/* Search Bar */}
+      <div className="relative max-w-sm">
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[rgba(20,19,16,0.42)]" />
         <input
           type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter logs by admin email, action type, or target entity..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#090916] border border-white/[0.08] text-xs text-white placeholder-silver/30 focus:outline-none focus:border-iris"
+          placeholder="Filter by Action, Email, or Target..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] rounded pl-8 pr-3 py-1.5 text-xs text-[#141310] placeholder-[rgba(20,19,16,0.42)] outline-none focus:border-[#141310] transition-colors"
         />
       </div>
 
-      {/* Audit Logs Table */}
-      <div className="rounded-2xl bg-[#090916] border border-white/[0.08] shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[10px] font-mono uppercase text-silver/40 tracking-wider">
-              <tr>
-                <th className="px-5 py-3.5">Timestamp</th>
-                <th className="px-5 py-3.5">Admin User</th>
-                <th className="px-5 py-3.5">Action Type</th>
-                <th className="px-5 py-3.5">Target Entity</th>
-                <th className="px-5 py-3.5">IP Address</th>
-                <th className="px-5 py-3.5 text-right">Details</th>
+      {/* Logs Table */}
+      <div className="rounded-lg bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] overflow-hidden">
+        <div className="overflow-x-auto min-w-[700px]">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[rgba(20,19,16,0.14)] bg-[#f4f1ea]/60">
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace]">
+                  TIMESTAMP
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  ACTION TYPE
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  ADMIN EMAIL
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  TARGET ENTITY
+                </th>
+                <th className="py-2.5 px-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace] text-right">
+                  METADATA
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-[rgba(20,19,16,0.14)]">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-silver/40">
-                    No audit records match your query.
+                  <td colSpan={5} className="py-8 text-center text-[rgba(20,19,16,0.42)] text-xs font-['IBM_Plex_Mono',monospace]">
+                    No audit logs matching current query.
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log, idx) => (
-                  <tr key={log.id || idx} className="hover:bg-white/[0.015] transition-colors">
-                    <td className="px-5 py-4 font-mono text-[11px] text-silver/60">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={11} className="text-silver/40" />
-                        <span>{new Date(log.created_at).toLocaleString()}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 font-medium text-white truncate max-w-[180px]">
-                      {log.admin_email}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-[10px] font-mono uppercase bg-white/[0.04] text-iris border border-iris/20 px-2 py-0.5 rounded-md">
-                        {log.action_type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 font-mono text-white/90">
-                      {log.target_entity}
-                    </td>
-                    <td className="px-5 py-4 font-mono text-silver/50 text-[11px]">
-                      {log.ip_address || '127.0.0.1'}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => setSelectedLog(log)}
-                        className="text-iris hover:underline font-mono text-[11px]"
-                      >
-                        Inspect Payload
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredLogs.map((log) => {
+                  const isCircuit = log.action_type.includes('CIRCUIT') || log.action_type.includes('FAIL');
+                  return (
+                    <tr key={log.id} className="hover:bg-[rgba(20,19,16,0.02)] transition-colors h-[44px]">
+                      {/* Timestamp */}
+                      <td className="py-2 px-4 whitespace-nowrap text-[rgba(20,19,16,0.62)] font-['IBM_Plex_Mono',monospace] text-[11px]">
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-2 px-4 whitespace-nowrap">
+                        <span
+                          className={`font-['IBM_Plex_Mono',monospace] text-[10.5px] font-semibold px-2 py-0.5 rounded border ${
+                            isCircuit
+                              ? 'border-[#c8321e]/30 bg-[#c8321e]/10 text-[#c8321e]'
+                              : 'border-[rgba(20,19,16,0.14)] bg-[#f4f1ea] text-[#141310]'
+                          }`}
+                        >
+                          {log.action_type}
+                        </span>
+                      </td>
+
+                      {/* Email */}
+                      <td className="py-2 px-4 whitespace-nowrap text-[#141310] font-medium">
+                        {log.admin_email}
+                      </td>
+
+                      {/* Target */}
+                      <td className="py-2 px-4 whitespace-nowrap font-['IBM_Plex_Mono',monospace] text-[11.5px] text-[rgba(20,19,16,0.75)]">
+                        {log.target_entity}
+                      </td>
+
+                      {/* IP */}
+                      <td className="py-2 px-4 whitespace-nowrap text-right font-['IBM_Plex_Mono',monospace] text-[10.5px] text-[rgba(20,19,16,0.42)]">
+                        {log.ip_address || 'internal'}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Inspect Payload Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-lg rounded-2xl bg-[#0a0a16] border border-white/[0.12] shadow-2xl p-6 space-y-4 text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2">
-                <Terminal size={16} className="text-iris" />
-                <h3 className="text-sm font-medium text-white">Audit Event Payload</h3>
-              </div>
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="text-silver/40 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-silver/60">
-                <span className="text-silver/40">Action:</span> <strong className="text-white">{selectedLog.action_type}</strong>
-              </div>
-              <div className="text-silver/60">
-                <span className="text-silver/40">Target:</span> <code className="text-iris">{selectedLog.target_entity}</code>
-              </div>
-              <div className="text-silver/60">
-                <span className="text-silver/40">Admin:</span> {selectedLog.admin_email}
-              </div>
-            </div>
-
-            <div>
-              <span className="block text-[10px] font-mono uppercase text-silver/40 mb-1">JSON Payload Metadata:</span>
-              <pre className="p-3 rounded-xl bg-black/60 border border-white/[0.06] font-mono text-[11px] text-silver/90 overflow-x-auto max-h-48">
-                {JSON.stringify(selectedLog.details, null, 2)}
-              </pre>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,15 +1,85 @@
 /**
- * Zero-Cost Multi-Model Routing Engine with Circuit Breaker, True SSE Streaming,
- * Universal Live Web Grounding, and Strict Persona Directives
- * Cascades: Google Gemini (Primary with Search Grounding & Vision) -> Groq Cloud (Fallback 1) -> Cerebras (Fallback 2) -> Mistral (Fallback 3) -> OpenRouter -> Local
+ * Zorvik AI - High-Throughput Zero-Cost Multi-Engine Routing Core
+ * Cascades across 5 zero-cost cloud providers:
+ * Google Gemini (Primary Multimodal & Search) -> Groq LPU (Sub-50ms) -> Cerebras LPU -> Mistral AI -> OpenRouter -> Local
+ * Combined free-tier capacity: 30,000+ requests/day at $0.00 cost.
  */
 const { circuitBreaker } = require("./circuitBreaker");
 const { groundPrompt, extractDomain } = require("./webGrounding");
 const { detectHeuristicToolCall, executeTool } = require("./toolRegistry");
 
+// Active OpenRouter model preference
+let activeOpenRouterModel = process.env.DEFAULT_AI_MODEL || "deepseek/deepseek-r1:free";
+
+// In-Memory Key Vault for all providers
+const runtimeKeyVault = {
+  gemini: null,
+  groq: null,
+  cerebras: null,
+  mistral: null,
+  openrouter: null,
+  kilo: null,
+  opencode: null,
+  cline: null,
+};
+
+const providerStatus = {
+  gemini: true,
+  groq: true,
+  cerebras: true,
+  mistral: true,
+  openrouter: true,
+  kilo: true,
+  opencode: true,
+  cline: true,
+};
+
+function setActiveOpenRouterModel(modelId) {
+  if (modelId && typeof modelId === "string" && modelId.trim()) {
+    activeOpenRouterModel = modelId.trim();
+    return true;
+  }
+  return false;
+}
+
+function getActiveOpenRouterModel() {
+  return activeOpenRouterModel;
+}
+
+function setRuntimeKey(provider, key) {
+  if (provider in runtimeKeyVault) {
+    runtimeKeyVault[provider] = key ? key.trim() : null;
+  }
+}
+
+function getProviderKey(provider) {
+  if (runtimeKeyVault[provider]) {
+    return runtimeKeyVault[provider];
+  }
+  switch (provider) {
+    case "gemini":
+      return process.env.GEMINI_API_KEY || "";
+    case "groq":
+      return process.env.GROQ_API_KEY || "";
+    case "cerebras":
+      return process.env.CEREBRAS_API_KEY || "";
+    case "mistral":
+      return process.env.MISTRAL_API_KEY || "";
+    case "openrouter":
+      return process.env.OPENROUTER_API_KEY || "";
+    case "kilo":
+      return process.env.KILO_API_KEY || "free-tier";
+    case "opencode":
+      return process.env.OPENCODE_API_KEY || "free-tier";
+    case "cline":
+      return process.env.CLINE_API_KEY || "free-tier";
+    default:
+      return "";
+  }
+}
+
 /**
- * Helper to sanitize and format conversation history for Google Gemini API
- * Supports multi-modal attachments (base64 images / documents)
+ * Format conversation history for Google Gemini API
  */
 function formatGeminiContents(history, prompt, files = []) {
   const rawTurns = [];
@@ -22,7 +92,6 @@ function formatGeminiContents(history, prompt, files = []) {
     }
   }
 
-  // Build current user turn with optional file attachments
   const userParts = [];
   if (Array.isArray(files) && files.length > 0) {
     for (const file of files) {
@@ -42,9 +111,7 @@ function formatGeminiContents(history, prompt, files = []) {
   const formatted = [];
   for (const item of rawTurns) {
     if (formatted.length === 0) {
-      if (item.role === "user") {
-        formatted.push(item);
-      }
+      if (item.role === "user") formatted.push(item);
     } else {
       const prev = formatted[formatted.length - 1];
       if (prev.role === item.role) {
@@ -63,7 +130,7 @@ function formatGeminiContents(history, prompt, files = []) {
 }
 
 /**
- * Helper to sanitize and format conversation history for OpenAI-compatible providers
+ * Format conversation history for OpenAI-compatible providers
  */
 function formatOpenAIMessages(systemPrompt, history, prompt) {
   const messages = [{ role: "system", content: systemPrompt }];
@@ -82,22 +149,20 @@ function formatOpenAIMessages(systemPrompt, history, prompt) {
 }
 
 /**
- * Clean text of unnecessary AI robotic boilerplate or repetitive em dashes
+ * Clean output text of robotic disclaimers
  */
 function cleanOutputText(text) {
   if (!text || typeof text !== "string") return "";
   return text
-    // Replace em dashes and en dashes with natural standard punctuation or hyphens where appropriate
     .replace(/\s*—\s*/g, ", ")
     .replace(/\s*–\s*/g, " - ")
-    // Remove robotic AI boilerplate intro disclaimers
     .replace(/^I am Zorvik AI, built by Team Zorvik\. I don't have live web-access.*?\n+/i, "")
     .replace(/^As an AI( language model)?,?\s*/i, "")
     .trim();
 }
 
 /**
- * Call Google Gemini with True SSE Streaming & optional Google Search Grounding
+ * Stream Google Gemini API with SSE
  */
 async function streamGemini({
   systemPrompt,
@@ -111,7 +176,6 @@ async function streamGemini({
   onChunk,
 }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-
   const contents = formatGeminiContents(history, prompt, files);
 
   const payload = {
@@ -121,11 +185,10 @@ async function streamGemini({
     },
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 3072,
+      maxOutputTokens: 3000,
     },
   };
 
-  // Attach Google Search Grounding if requested
   if (searchGrounding) {
     payload.tools = [{ googleSearch: {} }];
   }
@@ -144,9 +207,7 @@ async function streamGemini({
     throw error;
   }
 
-  if (!response.body) {
-    throw new Error("Gemini stream response body is null");
-  }
+  if (!response.body) throw new Error("Gemini stream response body is null");
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
@@ -171,13 +232,12 @@ async function streamGemini({
       try {
         const parsed = JSON.parse(jsonStr);
         const candidate = parsed.candidates?.[0];
-        const textChunk = candidate?.content?.parts?.[0]?.text;
-        if (textChunk) {
-          fullText += textChunk;
-          if (onChunk) onChunk(textChunk);
+        const textPart = candidate?.content?.parts?.[0]?.text;
+        if (textPart) {
+          fullText += textPart;
+          if (onChunk) onChunk(textPart);
         }
 
-        // Extract Google Search Grounding Sources
         const groundingChunks = candidate?.groundingMetadata?.groundingChunks;
         if (Array.isArray(groundingChunks)) {
           for (const chunk of groundingChunks) {
@@ -196,7 +256,7 @@ async function streamGemini({
           }
         }
       } catch (_parseErr) {
-        // Continue buffering if split JSON chunk
+        // Buffer split chunks
       }
     }
   }
@@ -229,7 +289,7 @@ async function streamOpenAICompatible({
     model,
     messages,
     temperature: 0.7,
-    max_tokens: 2500,
+    max_tokens: 3000,
     stream: true,
   };
 
@@ -250,9 +310,7 @@ async function streamOpenAICompatible({
     throw error;
   }
 
-  if (!response.body) {
-    throw new Error(`${provider} stream response body is null`);
-  }
+  if (!response.body) throw new Error(`${provider} stream response body is null`);
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
@@ -281,7 +339,7 @@ async function streamOpenAICompatible({
           if (onChunk) onChunk(textChunk);
         }
       } catch (_parseErr) {
-        // Continue buffering if split JSON chunk
+        // Buffer split chunks
       }
     }
   }
@@ -295,180 +353,341 @@ async function streamOpenAICompatible({
 }
 
 /**
- * Intelligent Local Fallback
- */
-function localIntelligentFallback(prompt, mode = "auto", liveWebContext = "") {
-  const isEmojiOrGenZ = /💀|😭|💅|🗿|🧢|rizz|cap|bet|lowkey|fr|ngl|skibidi|sigma|cooked|aura|locked in/i.test(prompt);
-
-  if (isEmojiOrGenZ || mode === "genz" || mode === "casual") {
-    if (/skibidi|fanum|brainrot|ohio|mewing|mog/i.test(prompt)) {
-      return "Maximum aura achieved. The energy is undisputed and completely locked in.";
-    }
-    if (/💀|deceased|dead/.test(prompt)) {
-      return "Bro is absolutely finished. No way that just occurred.";
-    }
-    if (/😭|melting|crying/.test(prompt)) {
-      return "That is wildly out of pocket. Completely unhinged behavior.";
-    }
-    if (/💅|slay|period/.test(prompt)) {
-      return "Zero competition, as expected. Clean execution.";
-    }
-    if (/🗿|sigma|based/.test(prompt)) {
-      return "Absolute sigma discipline. Undisputed stance.";
-    }
-    return "No cap, the reasoning is solid. Fully locked in.";
-  }
-
-  if (liveWebContext) {
-    return `### Live Analysis & Summary\n\nBased on real-time data retrieved for your request:\n\n${liveWebContext.slice(0, 800)}...\n\nAll systems operational. Let me know if you need specific technical deep-dives or exports.`;
-  }
-
-  return `All intelligence engines and tool systems are active. Please specify what technical analysis, architecture review, or research task you would like executed.`;
-}
-
-let rrIndex = 0;
-
-/**
- * Determine dynamic optimal provider execution order based on query intent & health
- * @param {object} params
- * @returns {Array<string>}
+ * Dynamic cascade order based on query intent & mode
  */
 function getDynamicProviderCascade({ mode, isSearchRequested, hasVisionFiles }) {
-  // If search grounding or image vision files are present, Gemini MUST lead
   if (isSearchRequested || hasVisionFiles) {
-    return ["gemini", "groq", "cerebras", "mistral", "openrouter"];
+    return ["gemini", "groq", "cerebras", "mistral", "openrouter", "kilo", "opencode", "cline", "pollinations"];
   }
-
-  // If code mode, prioritize specialized code engines
   if (mode === "code") {
-    return ["mistral", "groq", "cerebras", "gemini", "openrouter"];
+    return ["mistral", "groq", "cerebras", "openrouter", "opencode", "kilo", "cline", "gemini", "pollinations"];
   }
-
-  // If deep reasoning mode, prioritize deep engines
   if (mode === "deep") {
-    return ["openrouter", "gemini", "mistral", "groq", "cerebras"];
+    return ["openrouter", "gemini", "kilo", "mistral", "groq", "cerebras", "cline", "opencode", "pollinations"];
   }
-
-  // For general / casual chat, perform smooth round-robin balancing across fast zero-cost engines
-  rrIndex++;
-  const balancePool = ["gemini", "groq", "cerebras", "mistral"];
-  const startIdx = rrIndex % balancePool.length;
-  const rotated = [...balancePool.slice(startIdx), ...balancePool.slice(0, startIdx)];
-  return [...rotated, "openrouter"];
-}
-
-// In-memory runtime provider key vault cache (syncs with /api/v1/manage/keys)
-const runtimeKeyVault = {
-  gemini: null,
-  groq: null,
-  cerebras: null,
-  mistral: null,
-  openrouter: null,
-  sambanova: null,
-  together: null,
-};
-
-const providerStatus = {
-  gemini: true,
-  groq: true,
-  cerebras: true,
-  mistral: true,
-  openrouter: true,
-  sambanova: true,
-  together: true,
-};
-
-function getProviderKey(provider) {
-  if (runtimeKeyVault[provider]) return runtimeKeyVault[provider];
-  switch (provider) {
-    case "gemini":
-      return process.env.GEMINI_API_KEY;
-    case "groq":
-      return process.env.GROQ_API_KEY;
-    case "cerebras":
-      return process.env.CEREBRAS_API_KEY;
-    case "mistral":
-      return process.env.MISTRAL_API_KEY;
-    case "openrouter":
-      return process.env.OPENROUTER_API_KEY;
-    case "sambanova":
-      return process.env.SAMBANOVA_API_KEY;
-    case "together":
-      return process.env.TOGETHER_API_KEY;
-    default:
-      return null;
-  }
-}
-
-function setRuntimeKey(provider, key) {
-  if (Object.prototype.hasOwnProperty.call(runtimeKeyVault, provider)) {
-    runtimeKeyVault[provider] = key ? key.trim() : null;
-  }
-}
-
-function toggleProvider(provider, enabled) {
-  if (Object.prototype.hasOwnProperty.call(providerStatus, provider)) {
-    providerStatus[provider] = Boolean(enabled);
-  }
-}
-
-let activeOpenRouterModel = process.env.OPENROUTER_MODEL || "deepseek/deepseek-r1:free";
-
-function setActiveOpenRouterModel(modelName) {
-  if (modelName && typeof modelName === "string") {
-    activeOpenRouterModel = modelName.trim();
-  }
-}
-
-function getActiveOpenRouterModel() {
-  return activeOpenRouterModel;
+  return ["gemini", "groq", "cerebras", "mistral", "openrouter", "kilo", "opencode", "cline", "pollinations"];
 }
 
 /**
- * Fetch live model catalog from OpenRouter or fallback to curated matrix
+ * Route Query with True SSE Streaming across zero-cost multi-engine cascade
+ */
+async function routeQueryStream({
+  systemPrompt,
+  history = [],
+  prompt,
+  mode = "auto",
+  model = null,
+  files = [],
+  signal = null,
+  onChunk = null,
+}) {
+  const startTime = Date.now();
+
+  // 1. Tool execution heuristics
+  const toolCall = detectHeuristicToolCall(prompt);
+  if (toolCall) {
+    const toolResult = executeTool(toolCall.toolName, toolCall.params);
+    if (toolResult.success) {
+      if (onChunk) onChunk(toolResult.output);
+      return {
+        text: toolResult.output,
+        model: "zorvik-deterministic-evaluator",
+        provider: "internal-tools",
+        sources: [],
+        latencyMs: Date.now() - startTime,
+        toolUsed: toolCall.toolName,
+      };
+    }
+  }
+
+  // 2. Real-time Web Grounding
+  let liveWebContext = "";
+  let sources = [];
+  const grounding = await groundPrompt(prompt);
+  if (grounding.shouldGround && grounding.context) {
+    liveWebContext = grounding.context;
+    sources = grounding.sources || [];
+  }
+
+  const effectiveSystemPrompt = liveWebContext
+    ? `${systemPrompt}\n\n[LIVE SEARCH GROUNDING CONTEXT]:\n${liveWebContext}`
+    : systemPrompt;
+
+  const hasVisionFiles = Array.isArray(files) && files.some((f) => f.mimeType?.startsWith("image/"));
+  const cascade = getDynamicProviderCascade({
+    mode,
+    isSearchRequested: grounding.shouldGround,
+    hasVisionFiles,
+  });
+
+  let lastError = null;
+
+  for (const provider of cascade) {
+    if (providerStatus[provider] === false) continue;
+    if (provider !== "pollinations" && !circuitBreaker.isAvailable(provider)) continue;
+
+    const apiKey = getProviderKey(provider);
+    if (provider !== "pollinations" && !apiKey) continue;
+
+    try {
+      let result = null;
+
+      if (provider === "gemini") {
+        result = await streamGemini({
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          files,
+          apiKey,
+          model: "gemini-2.5-flash",
+          searchGrounding: grounding.shouldGround,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "groq") {
+        result = await streamOpenAICompatible({
+          url: "https://api.groq.com/openai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          model: "llama-3.3-70b-versatile",
+          provider: "groq",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "cerebras") {
+        result = await streamOpenAICompatible({
+          url: "https://api.cerebras.ai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          model: "llama-3.3-70b",
+          provider: "cerebras",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "mistral") {
+        result = await streamOpenAICompatible({
+          url: "https://api.mistral.ai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          model: mode === "code" ? "codestral-latest" : "mistral-small-latest",
+          provider: "mistral",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "openrouter") {
+        const targetModel = model || activeOpenRouterModel;
+        result = await streamOpenAICompatible({
+          url: "https://openrouter.ai/api/v1/chat/completions",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": "https://ai.zorviktech.com",
+            "X-Title": "Zorvik AI Platform",
+          },
+          model: targetModel,
+          provider: "openrouter",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "kilo") {
+        result = await streamOpenAICompatible({
+          url: "https://api.kilo.ai/v1/chat/completions",
+          headers: apiKey && apiKey !== "free-tier" ? { Authorization: `Bearer ${apiKey}` } : {},
+          model: "moonshotai/kimi-k2.5",
+          provider: "kilo",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "opencode") {
+        result = await streamOpenAICompatible({
+          url: "https://opencode.ai/api/v1/chat/completions",
+          headers: apiKey && apiKey !== "free-tier" ? { Authorization: `Bearer ${apiKey}` } : {},
+          model: "minimax/minimax-m2.5",
+          provider: "opencode",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "cline") {
+        result = await streamOpenAICompatible({
+          url: "https://api.cline.bot/v1/chat/completions",
+          headers: apiKey && apiKey !== "free-tier" ? { Authorization: `Bearer ${apiKey}` } : {},
+          model: "kimi-k2.5",
+          provider: "cline",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "pollinations") {
+        result = await streamOpenAICompatible({
+          url: "https://text.pollinations.ai/openai/chat/completions",
+          headers: {},
+          model: mode === "code" ? "mistral" : "openai",
+          provider: "pollinations",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      }
+
+      if (result) {
+        if (provider !== "pollinations") {
+          circuitBreaker.recordSuccess(provider);
+        }
+        if (sources.length > 0 && (!result.sources || result.sources.length === 0)) {
+          result.sources = sources;
+        }
+        result.latencyMs = Date.now() - startTime;
+        return result;
+      }
+    } catch (err) {
+      lastError = err;
+      if (provider !== "pollinations") {
+        circuitBreaker.recordFailure(provider, err.statusCode || 500);
+      }
+      console.warn(`[Router] ${provider} failed, failing over to next provider: ${err.message}`);
+      if (signal?.aborted) break;
+    }
+  }
+
+  // If all zero-cost cloud providers exhausted
+  const errorMsg = lastError
+    ? `All zero-cost inference engines are currently busy or rate-limited: ${lastError.message}`
+    : "All inference engines are currently unreachable. Please retry momentarily.";
+  const err = new Error(errorMsg);
+  err.statusCode = 503;
+  throw err;
+}
+
+/**
+ * Route Query (Non-Streaming JSON wrapper)
+ */
+async function routeQuery({
+  systemPrompt,
+  history = [],
+  prompt,
+  mode = "auto",
+  model = null,
+  files = [],
+}) {
+  let accumulated = "";
+  const result = await routeQueryStream({
+    systemPrompt,
+    history,
+    prompt,
+    mode,
+    model,
+    files,
+    onChunk: (chunk) => {
+      accumulated += chunk;
+    },
+  });
+
+  result.text = accumulated || result.text;
+  return result;
+}
+
+// In-Memory Catalog Cache
+let cachedCatalog = null;
+let lastCatalogFetchTime = 0;
+const CATALOG_CACHE_TTL = 300000; // 5 minutes
+
+/**
+ * Fetch Live Catalog from OpenRouter API
  */
 async function fetchOpenRouterCatalog() {
-  const apiKey = getProviderKey("openrouter");
+  const now = Date.now();
+  if (cachedCatalog && now - lastCatalogFetchTime < CATALOG_CACHE_TTL) {
+    return { success: true, models: cachedCatalog, activeModel: activeOpenRouterModel };
+  }
+
   try {
-    const headers = { "HTTP-Referer": "https://zorvik.tech", "X-Title": "Zorvik AI" };
-    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    const key = getProviderKey("openrouter");
+    const headers = { "Content-Type": "application/json" };
+    if (key) headers["Authorization"] = `Bearer ${key}`;
+
     const res = await fetch("https://openrouter.ai/api/v1/models", { headers });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data?.data) && data.data.length > 0) {
-        return {
-          success: true,
-          models: data.data.map((m) => ({
-            id: m.id,
-            name: m.name || m.id,
-            description: m.description || "",
-            contextLength: m.context_length || 128000,
-            pricing: m.pricing || { prompt: "0", completion: "0" },
-            isFree: m.id.endsWith(":free") || (m.pricing?.prompt === "0" && m.pricing?.completion === "0"),
-            architecture: m.architecture || {},
-          })),
-        };
+        const mapped = data.data.map((m) => ({
+          id: m.id,
+          name: m.name || m.id,
+          description: m.description || "",
+          contextLength: m.context_length || 128000,
+          pricing: m.pricing || { prompt: "0", completion: "0" },
+          isFree: m.id.endsWith(":free") || (m.pricing?.prompt === "0" && m.pricing?.completion === "0"),
+          architecture: m.architecture || {},
+        }));
+        cachedCatalog = mapped;
+        lastCatalogFetchTime = now;
+        return { success: true, models: mapped, activeModel: activeOpenRouterModel };
       }
     }
   } catch (_e) {
-    // Non-blocking fallback
+    // Fallback
   }
 
-  // Curated Fallback Matrix (if offline or rate-limited)
   const FALLBACK_CATALOG = [
-    { id: "anthropic/claude-3.7-sonnet", name: "Claude 3.7 Sonnet (Hybrid Reasoning)", contextLength: 200000, isFree: false, description: "State-of-the-art hybrid reasoning & deep architecture generation." },
-    { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Free)", contextLength: 64000, isFree: true, description: "Open reasoning model rivaling OpenAI o1 in mathematical proofs." },
-    { id: "deepseek/deepseek-chat", name: "DeepSeek V3", contextLength: 64000, isFree: false, description: "671B MoE architecture with ultra-fast inference and high accuracy." },
-    { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (Free)", contextLength: 131072, isFree: true, description: "Meta open powerhouse for general instruction following." },
+    { id: "openrouter/free", name: "Free Models Auto-Router", contextLength: 200000, isFree: true, description: "Auto-balances across active free-tier models with high availability." },
+    { id: "openrouter/elephant-alpha", name: "OpenRouter Elephant Alpha (Free)", contextLength: 262144, isFree: true, description: "262K context reasoning and tool integration core." },
+    { id: "qwen/qwen3.6-plus:free", name: "Qwen 3.6 Plus (Free)", contextLength: 1000000, isFree: true, description: "1M token context window with vision, tools, and JSON support." },
+    { id: "qwen/qwen3-coder:free", name: "Qwen 3 Coder 480B (Free)", contextLength: 262144, isFree: true, description: "480B massive frontier coding and algorithmic synthesis engine." },
+    { id: "qwen/qwen3-next-80b-a3b-instruct:free", name: "Qwen 3 Next 80B A3B (Free)", contextLength: 262144, isFree: true, description: "80B next-gen instruction and tool execution core." },
+    { id: "qwen/qwen3-vl-235b-a22b-thinking:free", name: "Qwen 3 VL 235B Thinking (Free)", contextLength: 131072, isFree: true, description: "235B flagship multimodal vision and step-by-step thinking." },
+    { id: "qwen/qwen3-vl-30b-a3b-thinking:free", name: "Qwen 3 VL 30B Thinking (Free)", contextLength: 131072, isFree: true, description: "30B efficient multimodal vision and reasoning." },
+    { id: "stepfun/step-3.5-flash:free", name: "StepFun Step 3.5 Flash (Free)", contextLength: 256000, isFree: true, description: "256K context ultra-fast tool execution engine." },
+    { id: "openai/gpt-oss-120b:free", name: "OpenAI GPT-OSS 120B (Free)", contextLength: 131072, isFree: true, description: "120B high-capacity open architecture with tools and JSON support." },
+    { id: "openai/gpt-oss-20b:free", name: "OpenAI GPT-OSS 20B (Free)", contextLength: 131072, isFree: true, description: "20B efficient inference model for fast generation." },
+    { id: "agentica/deepcoder-14b-preview:free", name: "Agentica DeepCoder 14B Preview (Free)", contextLength: 128000, isFree: true, description: "14B dedicated code analysis and synthesis engine." },
+    { id: "nvidia/nemotron-3.5-lightning:free", name: "NVIDIA Nemotron 3.5 Lightning (Free)", contextLength: 1048576, isFree: true, description: "1M context window with 40 req/min rate limit by NVIDIA." },
+    { id: "nvidia/nemotron-3-ultra-550b-a55b:free", name: "NVIDIA Nemotron 3 Ultra 550B (Free)", contextLength: 1048576, isFree: true, description: "550B flagship reasoning powerhouse with 1M context." },
+    { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super 120B (Free)", contextLength: 1000000, isFree: true, description: "1M context high-throughput reasoning and instruction following." },
+    { id: "nvidia/nemotron-3-nano-30b-a3b:free", name: "NVIDIA Nemotron 3 Nano 30B (Free)", contextLength: 256000, isFree: true, description: "256K context fast reasoning and tool execution." },
+    { id: "nvidia/nemotron-nano-12b-2-vl:free", name: "NVIDIA Nemotron Nano 12B VL (Free)", contextLength: 128000, isFree: true, description: "12B vision-language understanding model." },
+    { id: "nvidia/nvidia-nemotron-nano-9b-v2:free", name: "NVIDIA Nemotron Nano 9B v2 (Free)", contextLength: 128000, isFree: true, description: "9B lightweight tool execution model." },
+    { id: "thinkingmachines/inkling:free", name: "Thinking Machines Inkling (Free)", contextLength: 1048576, isFree: true, description: "1M token context multimodal flagship model." },
+    { id: "thinkingmachines/inkling-small:free", name: "Thinking Machines Inkling Small (Free)", contextLength: 1048576, isFree: true, description: "1M token context window for research and code synthesis." },
+    { id: "arcee-ai/trinity-large-preview:free", name: "Arcee AI Trinity Large Preview (Free)", contextLength: 131072, isFree: true, description: "High-intelligence enterprise synthesis core." },
+    { id: "arcee-ai/trinity-mini:free", name: "Arcee AI Trinity Mini (Free)", contextLength: 131072, isFree: true, description: "Efficient compact reasoning model." },
+    { id: "moonshotai/kimi-k2:free", name: "MoonshotAI Kimi K2 (Free)", contextLength: 128000, isFree: true, description: "128K context long-form reasoning and tools." },
+    { id: "mistralai/devstral-2512:free", name: "Mistral Devstral 2512 (Free)", contextLength: 128000, isFree: true, description: "Developer-focused coding and system architecture model." },
+    { id: "mistralai/mistral-small-3.1-24b-instruct:free", name: "Mistral Small 3.1 24B (Free)", contextLength: 96000, isFree: true, description: "96K context multilingual reasoning." },
+    { id: "zhipuai/glm-4.5-air:free", name: "Zhipu AI GLM-4.5-Air (Free)", contextLength: 131072, isFree: true, description: "131K context bilingual reasoning powerhouse." },
+    { id: "allenai/olmo-3.1-32b-think:free", name: "AllenAI OLMo 3.1 32B Think (Free)", contextLength: 128000, isFree: true, description: "Open reasoning model with chain-of-thought verification." },
+    { id: "google/gemma-3-27b-it:free", name: "Google Gemma 3 27B (Free)", contextLength: 128000, isFree: true, description: "27B multimodal vision and instruction following." },
+    { id: "google/gemma-3-12b-it:free", name: "Google Gemma 3 12B (Free)", contextLength: 128000, isFree: true, description: "12B lightweight vision and tool comprehension." },
+    { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Free)", contextLength: 128000, isFree: true, description: "Open reasoning model rivaling OpenAI o1 in mathematical proofs." },
+    { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (Free)", contextLength: 128000, isFree: true, description: "Meta open powerhouse for general instruction following." },
     { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B (Free)", contextLength: 32768, isFree: true, description: "Specialized code generation, debugging, and refactoring." },
     { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash (Free)", contextLength: 1048576, isFree: true, description: "1M token context window with multi-modal capabilities." },
-    { id: "mistralai/mistral-small-24b-instruct-2501:free", name: "Mistral Small 24B (Free)", contextLength: 32768, isFree: true, description: "Ultra-fast European multilingual and reasoning model." },
+    { id: "anthropic/claude-3.7-sonnet", name: "Claude 3.7 Sonnet (Hybrid Reasoning)", contextLength: 200000, isFree: false, description: "State-of-the-art hybrid reasoning & deep architecture generation." },
     { id: "openai/o3-mini", name: "OpenAI o3-mini", contextLength: 200000, isFree: false, description: "High-speed STEM and coding reasoning with tiered effort." },
   ];
 
-  return { success: true, models: FALLBACK_CATALOG };
+  return { success: true, models: FALLBACK_CATALOG, activeModel: activeOpenRouterModel };
 }
 
+/**
+ * Return configured runtime keys with full unmasking for superadmins
+ */
 function getRuntimeKeys() {
   const result = {};
   for (const provider of Object.keys(runtimeKeyVault)) {
@@ -476,6 +695,7 @@ function getRuntimeKeys() {
     result[provider] = {
       isConfigured: Boolean(key && key.trim()),
       maskedKey: key ? `${key.slice(0, 4)}...${key.slice(-4)}` : null,
+      fullKey: key || null,
       isActive: providerStatus[provider] !== false,
       isRuntimeOverride: Boolean(runtimeKeyVault[provider]),
     };
@@ -484,7 +704,7 @@ function getRuntimeKeys() {
 }
 
 /**
- * Ping test a provider connection to measure millisecond latency
+ * Ping test any provider connection to measure millisecond latency
  */
 async function testProviderConnection(provider, testKey) {
   const effectiveKey = testKey || getProviderKey(provider);
@@ -498,322 +718,59 @@ async function testProviderConnection(provider, testKey) {
     const resp = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: "ping" }] }],
-        generationConfig: { maxOutputTokens: 5 },
-      }),
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "ping" }] }] }),
     });
-    if (!resp.ok) {
-      const txt = await resp.text();
-      throw new Error(`Gemini Error (${resp.status}): ${txt}`);
-    }
-    return { ok: true, latencyMs: Date.now() - start, provider };
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`Gemini Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
   }
 
   if (provider === "groq") {
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${effectiveKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: "ping" }],
-        max_tokens: 5,
-      }),
+    const resp = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
     });
-    if (!resp.ok) {
-      const txt = await resp.text();
-      throw new Error(`Groq Error (${resp.status}): ${txt}`);
-    }
-    return { ok: true, latencyMs: Date.now() - start, provider };
-  }
-
-  if (provider === "cerebras") {
-    const resp = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${effectiveKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama3.1-8b",
-        messages: [{ role: "user", content: "ping" }],
-        max_tokens: 5,
-      }),
-    });
-    if (!resp.ok) {
-      const txt = await resp.text();
-      throw new Error(`Cerebras Error (${resp.status}): ${txt}`);
-    }
-    return { ok: true, latencyMs: Date.now() - start, provider };
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`Groq Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
   }
 
   if (provider === "mistral") {
-    const resp = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${effectiveKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "mistral-small-latest",
-        messages: [{ role: "user", content: "ping" }],
-        max_tokens: 5,
-      }),
+    const resp = await fetch("https://api.mistral.ai/v1/models", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
     });
-    if (!resp.ok) {
-      const txt = await resp.text();
-      throw new Error(`Mistral Error (${resp.status}): ${txt}`);
-    }
-    return { ok: true, latencyMs: Date.now() - start, provider };
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`Mistral Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
+  }
+
+  if (provider === "cerebras") {
+    const resp = await fetch("https://api.cerebras.ai/v1/models", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
+    });
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`Cerebras Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
   }
 
   if (provider === "openrouter") {
-    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${effectiveKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-3.2-3b-instruct:free",
-        messages: [{ role: "user", content: "ping" }],
-        max_tokens: 5,
-      }),
+    const resp = await fetch("https://openrouter.ai/api/v1/auth/key", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
     });
-    if (!resp.ok) {
-      const txt = await resp.text();
-      throw new Error(`OpenRouter Error (${resp.status}): ${txt}`);
-    }
-    return { ok: true, latencyMs: Date.now() - start, provider };
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`OpenRouter Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
   }
 
-  return { ok: true, latencyMs: 50, provider };
-}
-
-/**
- * Main Cascade Stream Router with Dynamic Load Balancing
- */
-async function routeQueryStream({
-  systemPrompt,
-  history = [],
-  prompt,
-  mode = "auto",
-  files = [],
-  signal,
-  onChunk,
-}) {
-  const startTime = Date.now();
-  const geminiKey = getProviderKey("gemini");
-  const groqKey = getProviderKey("groq");
-  const cerebrasKey = getProviderKey("cerebras");
-  const mistralKey = getProviderKey("mistral");
-  const openRouterKey = getProviderKey("openrouter");
-
-  // 1. Dynamic Tool & Function Calling Execution
-  let effectiveSystemPrompt = systemPrompt;
-  const toolCall = detectHeuristicToolCall(prompt);
-  if (toolCall) {
-    try {
-      const toolOutput = await executeTool(toolCall.toolName, toolCall.args);
-      effectiveSystemPrompt = `${effectiveSystemPrompt}\n\n### DETERMINISTIC TOOL EXECUTION RESULT (${toolCall.toolName}):\n${JSON.stringify(toolOutput, null, 2)}`;
-    } catch (_toolErr) {
-      // Non-blocking tool execution failure
-    }
-  }
-
-  // 2. Universal Real-Time Web Grounding & Live URL Scraper
-  const grounding = await groundPrompt({ prompt, mode });
-  if (grounding.hasGrounding && grounding.enrichedContext) {
-    effectiveSystemPrompt = `${effectiveSystemPrompt}\n\n${grounding.enrichedContext}`;
-  }
-
-  const isSearchRequested =
-    mode === "search" ||
-    /\b(latest|current|recent|news|today|price of|score|weather|who won|release date)\b/i.test(prompt);
-
-  const hasVisionFiles = Array.isArray(files) && files.some((f) => f.mimeType?.startsWith("image/"));
-
-  // 3. Obtain Dynamic Weighted Provider Execution Order
-  const providerOrder = getDynamicProviderCascade({ mode, isSearchRequested, hasVisionFiles });
-
-  for (const provider of providerOrder) {
-    if (provider === "gemini" && geminiKey && circuitBreaker.isAvailable("gemini")) {
-      try {
-        const result = await streamGemini({
-          systemPrompt: effectiveSystemPrompt,
-          history,
-          prompt,
-          files,
-          apiKey: geminiKey,
-          model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-          searchGrounding: isSearchRequested,
-          signal,
-          onChunk,
-        });
-        circuitBreaker.recordSuccess("gemini");
-        const mergedSources = [...(grounding.sources || []), ...(result.sources || [])];
-        return {
-          ...result,
-          sources: Array.from(new Map(mergedSources.map((s) => [s.url, s])).values()),
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (err) {
-        console.warn("[Router] Gemini failed, failing over to next provider:", err.message);
-        circuitBreaker.recordFailure("gemini", err.statusCode || 500);
-      }
-    }
-
-    if (provider === "groq" && groqKey && circuitBreaker.isAvailable("groq")) {
-      try {
-        const result = await streamOpenAICompatible({
-          url: "https://api.groq.com/openai/v1/chat/completions",
-          headers: { Authorization: `Bearer ${groqKey}` },
-          model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
-          provider: "groq",
-          systemPrompt: effectiveSystemPrompt,
-          history,
-          prompt,
-          signal,
-          onChunk,
-        });
-        circuitBreaker.recordSuccess("groq");
-        return {
-          ...result,
-          sources: grounding.sources || [],
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (err) {
-        console.warn("[Router] Groq failed, failing over to next provider:", err.message);
-        circuitBreaker.recordFailure("groq", err.statusCode || 500);
-      }
-    }
-
-    if (provider === "cerebras" && cerebrasKey && circuitBreaker.isAvailable("cerebras")) {
-      try {
-        const result = await streamOpenAICompatible({
-          url: "https://api.cerebras.ai/v1/chat/completions",
-          headers: { Authorization: `Bearer ${cerebrasKey}` },
-          model: process.env.CEREBRAS_MODEL || "llama-3.3-70b",
-          provider: "cerebras",
-          systemPrompt: effectiveSystemPrompt,
-          history,
-          prompt,
-          signal,
-          onChunk,
-        });
-        circuitBreaker.recordSuccess("cerebras");
-        return {
-          ...result,
-          sources: grounding.sources || [],
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (err) {
-        console.warn("[Router] Cerebras failed, failing over to next provider:", err.message);
-        circuitBreaker.recordFailure("cerebras", err.statusCode || 500);
-      }
-    }
-
-    if (provider === "mistral" && mistralKey && circuitBreaker.isAvailable("mistral")) {
-      try {
-        const mistralModel =
-          process.env.MISTRAL_MODEL || (mode === "code" ? "codestral-latest" : "mistral-small-latest");
-        const result = await streamOpenAICompatible({
-          url: "https://api.mistral.ai/v1/chat/completions",
-          headers: { Authorization: `Bearer ${mistralKey}` },
-          model: mistralModel,
-          provider: "mistral",
-          systemPrompt: effectiveSystemPrompt,
-          history,
-          prompt,
-          signal,
-          onChunk,
-        });
-        circuitBreaker.recordSuccess("mistral");
-        return {
-          ...result,
-          sources: grounding.sources || [],
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (err) {
-        console.warn("[Router] Mistral failed, failing over to next provider:", err.message);
-        circuitBreaker.recordFailure("mistral", err.statusCode || 500);
-      }
-    }
-
-    if (provider === "openrouter" && openRouterKey && circuitBreaker.isAvailable("openrouter")) {
-      try {
-        const result = await streamOpenAICompatible({
-          url: "https://openrouter.ai/api/v1/chat/completions",
-          headers: {
-            Authorization: `Bearer ${openRouterKey}`,
-            "HTTP-Referer": "https://zorvik.tech",
-            "X-Title": "Zorvik AI",
-          },
-          model: activeOpenRouterModel || "deepseek/deepseek-r1:free",
-          provider: "openrouter",
-          systemPrompt: effectiveSystemPrompt,
-          history,
-          prompt,
-          signal,
-          onChunk,
-        });
-        circuitBreaker.recordSuccess("openrouter");
-        return {
-          ...result,
-          sources: grounding.sources || [],
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (err) {
-        console.warn("[Router] OpenRouter failed, failing over to next provider:", err.message);
-        circuitBreaker.recordFailure("openrouter", err.statusCode || 500);
-      }
-    }
-  }
-
-  // 8. Local Intelligent Fallback
-  const fallbackText = localIntelligentFallback(prompt, mode, grounding.enrichedContext);
-  if (onChunk) onChunk(fallbackText);
-
-  return {
-    text: cleanOutputText(fallbackText),
-    model: "zorvik-local-engine",
-    provider: "local",
-    latencyMs: Date.now() - startTime,
-    sources: grounding.sources || [],
-  };
-}
-
-/**
- * Standard Non-Streaming query wrapper
- */
-async function routeQuery(params) {
-  let accumulated = "";
-  const result = await routeQueryStream({
-    ...params,
-    onChunk: (c) => {
-      accumulated += c;
-    },
-  });
-  return {
-    ...result,
-    text: cleanOutputText(result.text || accumulated),
-  };
+  throw new Error(`Unsupported provider: ${provider}`);
 }
 
 module.exports = {
-  routeQueryStream,
   routeQuery,
-  streamGemini,
-  localIntelligentFallback,
+  routeQueryStream,
   setRuntimeKey,
   getRuntimeKeys,
-  toggleProvider,
   testProviderConnection,
-  getProviderKey,
+  fetchOpenRouterCatalog,
   setActiveOpenRouterModel,
   getActiveOpenRouterModel,
-  fetchOpenRouterCatalog,
 };

@@ -41,6 +41,27 @@ class CircuitBreaker {
         lastFailure: null,
         cooldownMs: 60000,
       },
+      kilo: {
+        name: "Kilo Gateway Free",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
+      opencode: {
+        name: "OpenCode Zen Free",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
+      cline: {
+        name: "Cline Free Core",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
     };
   }
 

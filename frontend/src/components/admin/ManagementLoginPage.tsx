@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, KeyRound, ArrowRight, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Shield, KeyRound, ArrowRight, RefreshCw, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { getSupabase } from '../../lib/supabase';
 
 interface ManagementLoginPageProps {
@@ -115,30 +115,37 @@ export const ManagementLoginPage: React.FC<ManagementLoginPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#050510] text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans select-none">
-      {/* Background ambient lighting */}
-      <div className="absolute -top-40 left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-40 right-1/3 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
-
-      <div className="w-full max-w-md bg-[#0a0a14] border border-white/[0.08] rounded-3xl p-8 shadow-2xl relative z-10">
+    <div className="min-h-screen bg-[#f4f1ea] text-[#141310] flex flex-col items-center justify-center p-4 relative font-['IBM_Plex_Sans',sans-serif] select-none antialiased">
+      <div className="w-full max-w-md bg-[#faf8f3] border border-[rgba(20,19,16,0.14)] rounded-lg p-8 shadow-none relative z-10 space-y-6">
         {/* Top Header Lockup */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-purple-600/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 shadow-lg shadow-purple-500/10">
-            <Shield size={24} />
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="w-10 h-10 rounded border border-[#141310] flex items-center justify-center text-[#141310] font-['IBM_Plex_Mono',monospace] text-xs font-semibold">
+            <Shield size={18} />
           </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Management Control Plane</h1>
-          <p className="text-xs text-slate-400 mt-1.5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] font-['IBM_Plex_Mono',monospace]">
+              ZORVIK AI CONTROL PLANE
+            </div>
+            <h1 className="text-base font-semibold text-[#141310] tracking-tight mt-0.5">
+              {requiresMfa
+                ? 'Two-Factor Authentication'
+                : masterKeyMode
+                ? 'Master Secret Key Sign-In'
+                : 'Administrative Authentication'}
+            </h1>
+          </div>
+          <p className="text-xs text-[rgba(20,19,16,0.62)]">
             {requiresMfa
-              ? 'Multi-Factor Authenticator Challenge'
+              ? 'Enter the 6-digit verification code from your Authenticator app.'
               : masterKeyMode
-              ? 'Enter emergency master secret key'
-              : 'Sign in with your verified Superadmin account'}
+              ? 'Provide the emergency system master secret key to proceed.'
+              : 'Sign in to access neural routing, quotas, and key management.'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle size={15} className="shrink-0" />
+          <div className="p-3 rounded border border-[#c8321e]/30 bg-[#c8321e]/10 text-[#c8321e] text-xs flex items-center gap-2 font-['IBM_Plex_Mono',monospace]">
+            <AlertCircle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -147,80 +154,94 @@ export const ManagementLoginPage: React.FC<ManagementLoginPageProps> = ({
         {!requiresMfa && !masterKeyMode && (
           <form onSubmit={handleEmailPasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 font-medium">
+              <label className="block text-[10.5px] font-['IBM_Plex_Mono',monospace] uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
                 Admin Email Address
               </label>
               <input
                 type="email"
+                required
+                placeholder="admin@zorvik.tech"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@zorvik.tech"
-                required
-                className="w-full px-4 py-2.5 rounded-2xl bg-[#0e0e1a] border border-white/[0.08] text-white text-sm placeholder-slate-500 focus:border-purple-500/60 focus:outline-none transition-all"
+                className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-2 text-xs text-[#141310] outline-none focus:border-[#141310] transition-colors font-['IBM_Plex_Mono',monospace]"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 font-medium">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10.5px] font-['IBM_Plex_Mono',monospace] uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)]">
+                  Account Password
+                </label>
+              </div>
               <input
                 type="password"
+                required
+                placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                required
-                className="w-full px-4 py-2.5 rounded-2xl bg-[#0e0e1a] border border-white/[0.08] text-white text-sm placeholder-slate-500 focus:border-purple-500/60 focus:outline-none transition-all"
+                className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-2 text-xs text-[#141310] outline-none focus:border-[#141310] transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20 disabled:opacity-50"
+              className="w-full py-2.5 rounded bg-[#141310] text-[#faf8f3] text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[rgba(20,19,16,0.85)] transition-colors disabled:opacity-50"
             >
               {loading ? (
-                <RefreshCw size={16} className="animate-spin" />
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Validating Credentials...</span>
+                </>
               ) : (
                 <>
-                  <span>Verify Identity</span>
-                  <ArrowRight size={15} />
+                  <span>Sign In with Email</span>
+                  <ArrowRight size={13} />
                 </>
               )}
             </button>
           </form>
         )}
 
-        {/* Step 2: MFA / TOTP 6-Digit Challenge */}
+        {/* Step 2: 2FA / TOTP Challenge */}
         {requiresMfa && (
           <form onSubmit={handleMfaVerifySubmit} className="space-y-4">
+            <div className="p-3 rounded bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] text-xs text-[rgba(20,19,16,0.62)] space-y-1">
+              <div className="font-semibold text-[#141310]">Identity Verification</div>
+              <div className="text-[11px] font-['IBM_Plex_Mono',monospace] text-[rgba(20,19,16,0.42)]">
+                Account: {email}
+              </div>
+            </div>
+
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 font-medium">
-                6-Digit Authenticator Code (TOTP)
+              <label className="block text-[10.5px] font-['IBM_Plex_Mono',monospace] uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                6-Digit Authenticator Code
               </label>
               <input
                 type="text"
+                autoFocus
                 maxLength={6}
+                placeholder="000 000"
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                autoFocus
-                required
-                className="w-full text-center tracking-[0.5em] font-mono text-xl py-3 rounded-2xl bg-[#0e0e1a] border border-purple-500/40 text-purple-300 focus:outline-none transition-all"
+                className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-2 text-center text-lg font-['IBM_Plex_Mono',monospace] tracking-[0.3em] font-bold text-[#141310] outline-none focus:border-[#141310] transition-colors"
               />
             </div>
 
             <button
               type="submit"
-              disabled={loading || mfaCode.length !== 6}
-              className="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20 disabled:opacity-50"
+              disabled={loading || mfaCode.length < 6}
+              className="w-full py-2.5 rounded bg-[#141310] text-[#faf8f3] text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[rgba(20,19,16,0.85)] transition-colors disabled:opacity-50"
             >
               {loading ? (
-                <RefreshCw size={16} className="animate-spin" />
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Verifying Code...</span>
+                </>
               ) : (
                 <>
-                  <CheckCircle2 size={16} />
-                  <span>Authenticate & Enter</span>
+                  <CheckCircle2 size={13} />
+                  <span>Verify Security Code</span>
                 </>
               )}
             </button>
@@ -231,60 +252,62 @@ export const ManagementLoginPage: React.FC<ManagementLoginPageProps> = ({
                 setRequiresMfa(false);
                 setMfaCode('');
               }}
-              className="w-full text-center text-xs text-slate-500 hover:text-slate-300 transition-colors pt-2"
+              className="w-full text-center text-xs text-[rgba(20,19,16,0.62)] hover:text-[#141310] transition-colors pt-1"
             >
-              Back to email login
+              ← Back to password login
             </button>
           </form>
         )}
 
-        {/* Emergency Master Key Form */}
+        {/* Alternative: Master Key Mode */}
         {masterKeyMode && (
           <form onSubmit={handleMasterKeySubmit} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 font-medium">
-                Master Secret Key
+              <label className="block text-[10.5px] font-['IBM_Plex_Mono',monospace] uppercase tracking-[0.08em] text-[rgba(20,19,16,0.42)] mb-1">
+                Emergency Admin Secret Key
               </label>
               <input
                 type="password"
+                required
+                placeholder="zorvik-superadmin-secret-..."
                 value={masterKey}
                 onChange={(e) => setMasterKey(e.target.value)}
-                placeholder="zorvik-superadmin-secret-..."
-                required
-                autoFocus
-                className="w-full px-4 py-2.5 rounded-2xl bg-[#0e0e1a] border border-white/[0.08] text-white text-sm font-mono placeholder-slate-500 focus:border-purple-500/60 focus:outline-none transition-all"
+                className="w-full bg-[#f4f1ea] border border-[rgba(20,19,16,0.14)] rounded px-3 py-2 text-xs font-['IBM_Plex_Mono',monospace] text-[#141310] outline-none focus:border-[#141310] transition-colors"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20"
+              className="w-full py-2.5 rounded bg-[#141310] text-[#faf8f3] text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[rgba(20,19,16,0.85)] transition-colors"
             >
-              <KeyRound size={15} />
-              <span>Authenticate with Secret</span>
+              <KeyRound size={13} />
+              <span>Authenticate with Master Key</span>
             </button>
           </form>
         )}
 
-        {/* Bottom Switcher */}
-        <div className="mt-8 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-500">
+        {/* Footer Navigation & Mode Toggles */}
+        <div className="pt-4 border-t border-[rgba(20,19,16,0.14)] flex items-center justify-between text-xs text-[rgba(20,19,16,0.62)]">
           <button
-            type="button"
             onClick={onNavigateHome}
-            className="hover:text-slate-300 transition-colors"
+            className="flex items-center gap-1 hover:text-[#141310] transition-colors"
           >
-            ← Back to App
+            <ArrowLeft size={12} />
+            <span>Back to Home</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMasterKeyMode(!masterKeyMode);
-              setError(null);
-            }}
-            className="text-purple-400 hover:text-purple-300 transition-colors font-medium"
-          >
-            {masterKeyMode ? 'Standard Login' : 'Use Master Key'}
-          </button>
+
+          {!requiresMfa && (
+            <button
+              type="button"
+              onClick={() => {
+                setMasterKeyMode(!masterKeyMode);
+                setError(null);
+              }}
+              className="hover:text-[#141310] font-['IBM_Plex_Mono',monospace] text-[11px] underline transition-colors"
+            >
+              {masterKeyMode ? 'Use Email Login' : 'Use Master Key'}
+            </button>
+          )}
         </div>
       </div>
     </div>
