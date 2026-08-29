@@ -326,8 +326,39 @@ function localIntelligentFallback(prompt, mode = "auto", liveWebContext = "") {
   return `All intelligence engines and tool systems are active. Please specify what technical analysis, architecture review, or research task you would like executed.`;
 }
 
+let rrIndex = 0;
+
 /**
- * Main Cascade Stream Router
+ * Determine dynamic optimal provider execution order based on query intent & health
+ * @param {object} params
+ * @returns {Array<string>}
+ */
+function getDynamicProviderCascade({ mode, isSearchRequested, hasVisionFiles }) {
+  // If search grounding or image vision files are present, Gemini MUST lead
+  if (isSearchRequested || hasVisionFiles) {
+    return ["gemini", "groq", "cerebras", "mistral", "openrouter"];
+  }
+
+  // If code mode, prioritize specialized code engines
+  if (mode === "code") {
+    return ["mistral", "groq", "cerebras", "gemini", "openrouter"];
+  }
+
+  // If deep reasoning mode, prioritize deep engines
+  if (mode === "deep") {
+    return ["openrouter", "gemini", "mistral", "groq", "cerebras"];
+  }
+
+  // For general / casual chat, perform smooth round-robin balancing across fast zero-cost engines
+  rrIndex++;
+  const balancePool = ["gemini", "groq", "cerebras", "mistral"];
+  const startIdx = rrIndex % balancePool.length;
+  const rotated = [...balancePool.slice(startIdx), ...balancePool.slice(0, startIdx)];
+  return [...rotated, "openrouter"];
+}
+
+/**
+ * Main Cascade Stream Router with Dynamic Load Balancing
  */
 async function routeQueryStream({
   systemPrompt,
@@ -367,166 +398,142 @@ async function routeQueryStream({
     mode === "search" ||
     /\b(latest|current|recent|news|today|price of|score|weather|who won|release date)\b/i.test(prompt);
 
-  // 2. Try Gemini (Primary Engine - with Native Google Search Grounding and Vision)
-  if (geminiKey && circuitBreaker.isAvailable("gemini")) {
-    try {
-      const result = await streamGemini({
-        systemPrompt: effectiveSystemPrompt,
-        history,
-        prompt,
-        files,
-        apiKey: geminiKey,
-        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-        searchGrounding: isSearchRequested,
-        signal,
-        onChunk,
-      });
-      circuitBreaker.recordSuccess("gemini");
-      const mergedSources = [...(grounding.sources || []), ...(result.sources || [])];
-      return {
-        ...result,
-        sources: Array.from(new Map(mergedSources.map((s) => [s.url, s])).values()),
-        latencyMs: Date.now() - startTime,
-      };
-    } catch (err) {
-      console.warn("[Router] Gemini failed, failing over to Groq:", err.message);
-      circuitBreaker.recordFailure("gemini", err.statusCode || 500);
-    }
-  }
+  const hasVisionFiles = Array.isArray(files) && files.some((f) => f.mimeType?.startsWith("image/"));
 
-  // 3. Mode Specialization: Prioritize Codestral/Mistral for code mode
-  if ((mode === "code" || mode === "deep") && mistralKey && circuitBreaker.isAvailable("mistral")) {
-    try {
-      const mistralModel =
-        process.env.MISTRAL_MODEL || (mode === "code" ? "codestral-latest" : "mistral-small-latest");
-      const result = await streamOpenAICompatible({
-        url: "https://api.mistral.ai/v1/chat/completions",
-        headers: { Authorization: `Bearer ${mistralKey}` },
-        model: mistralModel,
-        provider: "mistral",
-        systemPrompt: effectiveSystemPrompt,
-        history,
-        prompt,
-        signal,
-        onChunk,
-      });
-      circuitBreaker.recordSuccess("mistral");
-      return {
-        ...result,
-        sources: grounding.sources || [],
-        latencyMs: Date.now() - startTime,
-      };
-    } catch (err) {
-      console.warn("[Router] Mistral code prioritization failed, continuing cascade:", err.message);
-      circuitBreaker.recordFailure("mistral", err.statusCode || 500);
-    }
-  }
+  // 3. Obtain Dynamic Weighted Provider Execution Order
+  const providerOrder = getDynamicProviderCascade({ mode, isSearchRequested, hasVisionFiles });
 
-  // 4. Try Groq (Fallback 1 - High Speed LPU)
-  if (groqKey && circuitBreaker.isAvailable("groq")) {
-    try {
-      const result = await streamOpenAICompatible({
-        url: "https://api.groq.com/openai/v1/chat/completions",
-        headers: { Authorization: `Bearer ${groqKey}` },
-        model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
-        provider: "groq",
-        systemPrompt: effectiveSystemPrompt,
-        history,
-        prompt,
-        signal,
-        onChunk,
-      });
-      circuitBreaker.recordSuccess("groq");
-      return {
-        ...result,
-        sources: grounding.sources || [],
-        latencyMs: Date.now() - startTime,
-      };
-    } catch (err) {
-      console.warn("[Router] Groq failed, failing over to Cerebras:", err.message);
-      circuitBreaker.recordFailure("groq", err.statusCode || 500);
+  for (const provider of providerOrder) {
+    if (provider === "gemini" && geminiKey && circuitBreaker.isAvailable("gemini")) {
+      try {
+        const result = await streamGemini({
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          files,
+          apiKey: geminiKey,
+          model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+          searchGrounding: isSearchRequested,
+          signal,
+          onChunk,
+        });
+        circuitBreaker.recordSuccess("gemini");
+        const mergedSources = [...(grounding.sources || []), ...(result.sources || [])];
+        return {
+          ...result,
+          sources: Array.from(new Map(mergedSources.map((s) => [s.url, s])).values()),
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (err) {
+        console.warn("[Router] Gemini failed, failing over to next provider:", err.message);
+        circuitBreaker.recordFailure("gemini", err.statusCode || 500);
+      }
     }
-  }
 
-  // 5. Try Cerebras (Fallback 2 - 2,000+ tok/s Ultra-High-Speed LPU)
-  if (cerebrasKey && circuitBreaker.isAvailable("cerebras")) {
-    try {
-      const result = await streamOpenAICompatible({
-        url: "https://api.cerebras.ai/v1/chat/completions",
-        headers: { Authorization: `Bearer ${cerebrasKey}` },
-        model: process.env.CEREBRAS_MODEL || "llama-3.3-70b",
-        provider: "cerebras",
-        systemPrompt: effectiveSystemPrompt,
-        history,
-        prompt,
-        signal,
-        onChunk,
-      });
-      circuitBreaker.recordSuccess("cerebras");
-      return {
-        ...result,
-        sources: grounding.sources || [],
-        latencyMs: Date.now() - startTime,
-      };
-    } catch (err) {
-      console.warn("[Router] Cerebras failed, failing over to Mistral:", err.message);
-      circuitBreaker.recordFailure("cerebras", err.statusCode || 500);
+    if (provider === "groq" && groqKey && circuitBreaker.isAvailable("groq")) {
+      try {
+        const result = await streamOpenAICompatible({
+          url: "https://api.groq.com/openai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${groqKey}` },
+          model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
+          provider: "groq",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+        circuitBreaker.recordSuccess("groq");
+        return {
+          ...result,
+          sources: grounding.sources || [],
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (err) {
+        console.warn("[Router] Groq failed, failing over to next provider:", err.message);
+        circuitBreaker.recordFailure("groq", err.statusCode || 500);
+      }
     }
-  }
 
-  // 6. Try Mistral / Codestral (Fallback 3)
-  if (mistralKey && circuitBreaker.isAvailable("mistral")) {
-    try {
-      const result = await streamOpenAICompatible({
-        url: "https://api.mistral.ai/v1/chat/completions",
-        headers: { Authorization: `Bearer ${mistralKey}` },
-        model: process.env.MISTRAL_MODEL || "mistral-small-latest",
-        provider: "mistral",
-        systemPrompt: effectiveSystemPrompt,
-        history,
-        prompt,
-        signal,
-        onChunk,
-      });
-      circuitBreaker.recordSuccess("mistral");
-      return {
-        ...result,
-        sources: grounding.sources || [],
-        latencyMs: Date.now() - startTime,
-      };
-    } catch (err) {
-      console.warn("[Router] Mistral failed, failing over to OpenRouter:", err.message);
-      circuitBreaker.recordFailure("mistral", err.statusCode || 500);
+    if (provider === "cerebras" && cerebrasKey && circuitBreaker.isAvailable("cerebras")) {
+      try {
+        const result = await streamOpenAICompatible({
+          url: "https://api.cerebras.ai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${cerebrasKey}` },
+          model: process.env.CEREBRAS_MODEL || "llama-3.3-70b",
+          provider: "cerebras",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+        circuitBreaker.recordSuccess("cerebras");
+        return {
+          ...result,
+          sources: grounding.sources || [],
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (err) {
+        console.warn("[Router] Cerebras failed, failing over to next provider:", err.message);
+        circuitBreaker.recordFailure("cerebras", err.statusCode || 500);
+      }
     }
-  }
 
-  // 7. Try OpenRouter (Fallback 4)
-  if (openRouterKey && circuitBreaker.isAvailable("openrouter")) {
-    try {
-      const result = await streamOpenAICompatible({
-        url: "https://openrouter.ai/api/v1/chat/completions",
-        headers: {
-          Authorization: `Bearer ${openRouterKey}`,
-          "HTTP-Referer": "https://zorvik.tech",
-          "X-Title": "Zorvik AI",
-        },
-        model: "deepseek/deepseek-r1:free",
-        provider: "openrouter",
-        systemPrompt: effectiveSystemPrompt,
-        history,
-        prompt,
-        signal,
-        onChunk,
-      });
-      circuitBreaker.recordSuccess("openrouter");
-      return {
-        ...result,
-        sources: grounding.sources || [],
-        latencyMs: Date.now() - startTime,
-      };
-    } catch (err) {
-      console.warn("[Router] OpenRouter failed, using local fallback:", err.message);
-      circuitBreaker.recordFailure("openrouter", err.statusCode || 500);
+    if (provider === "mistral" && mistralKey && circuitBreaker.isAvailable("mistral")) {
+      try {
+        const mistralModel =
+          process.env.MISTRAL_MODEL || (mode === "code" ? "codestral-latest" : "mistral-small-latest");
+        const result = await streamOpenAICompatible({
+          url: "https://api.mistral.ai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${mistralKey}` },
+          model: mistralModel,
+          provider: "mistral",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+        circuitBreaker.recordSuccess("mistral");
+        return {
+          ...result,
+          sources: grounding.sources || [],
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (err) {
+        console.warn("[Router] Mistral failed, failing over to next provider:", err.message);
+        circuitBreaker.recordFailure("mistral", err.statusCode || 500);
+      }
+    }
+
+    if (provider === "openrouter" && openRouterKey && circuitBreaker.isAvailable("openrouter")) {
+      try {
+        const result = await streamOpenAICompatible({
+          url: "https://openrouter.ai/api/v1/chat/completions",
+          headers: {
+            Authorization: `Bearer ${openRouterKey}`,
+            "HTTP-Referer": "https://zorvik.tech",
+            "X-Title": "Zorvik AI",
+          },
+          model: "deepseek/deepseek-r1:free",
+          provider: "openrouter",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+        circuitBreaker.recordSuccess("openrouter");
+        return {
+          ...result,
+          sources: grounding.sources || [],
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (err) {
+        console.warn("[Router] OpenRouter failed, failing over to next provider:", err.message);
+        circuitBreaker.recordFailure("openrouter", err.statusCode || 500);
+      }
     }
   }
 

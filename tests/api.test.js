@@ -198,6 +198,32 @@ describe("Zorvik AI API Microservice Tests", () => {
     assert.strictEqual(deduction.used, 1500);
     assert.ok(deduction.quota > 0);
   });
+
+  test("RAG Engine: Document chunking and semantic cosine retrieval", () => {
+    const { chunkDocument, retrieveRelevantChunks, formatRAGContext } = require("../src/services/ragEngine");
+    const sampleDoc = `
+      Zorvik AI is an autonomous zero-cost intelligence microservice.
+      It routes requests dynamically across Gemini, Groq, and Cerebras.
+      
+      PostgreSQL database architecture uses connection pooling with max 20 connections.
+      Redis is utilized for rate limiting and rolling session summary storage.
+      
+      The design theme follows Glassmorphism 2.0 with Deep Obsidian and Cyber Cyan.
+    `;
+    const chunks = chunkDocument(sampleDoc, { maxChunkSize: 150, overlap: 30 });
+    assert.ok(chunks.length >= 2);
+
+    const relevant = retrieveRelevantChunks({
+      query: "How is database connection pooling configured?",
+      chunks,
+      topK: 1,
+    });
+    assert.strictEqual(relevant.length, 1);
+    assert.ok(relevant[0].text.includes("connection pooling"));
+
+    const formatted = formatRAGContext(relevant);
+    assert.ok(formatted.includes("ATTACHED DOCUMENT SEMANTIC CONTEXT"));
+  });
 });
 
 describe("Zorvik AI Admin Control Plane & Monetization Tests", () => {

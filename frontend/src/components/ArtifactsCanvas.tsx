@@ -11,6 +11,8 @@ import {
   Maximize2,
   Minimize2,
   FileCode,
+  GitCompare,
+  History,
 } from 'lucide-react';
 import { ArtifactContent } from '../types';
 
@@ -26,16 +28,35 @@ interface ParsedFile {
   content: string;
 }
 
+interface ArtifactVersion {
+  id: number;
+  code: string;
+  timestamp: number;
+}
+
 export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
   artifact,
   isOpen,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
+  const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'diff'>('preview');
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [versions, setVersions] = useState<ArtifactVersion[]>([]);
+
+  // Track version history snapshots across artifact edits
+  useEffect(() => {
+    if (artifact?.code) {
+      setVersions((prev) => {
+        if (prev.length === 0 || prev[prev.length - 1].code !== artifact.code) {
+          return [...prev, { id: prev.length + 1, code: artifact.code, timestamp: Date.now() }];
+        }
+        return prev;
+      });
+    }
+  }, [artifact?.code]);
 
   // Parse multi-file code blocks (e.g. // file: index.html or <!-- file: index.html -->)
   const parsedFiles = useMemo<ParsedFile[]>(() => {
@@ -331,6 +352,19 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
               <Code2 size={12} />
               <span>Code</span>
             </button>
+            <button
+              onClick={() => setActiveTab('diff')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs transition-all ${
+                activeTab === 'diff' ? 'bg-iris text-white shadow-sm font-medium' : 'text-silver/50 hover:text-white'
+              }`}
+              title={versions.length > 1 ? `Compare with v${versions.length - 1}` : 'No previous version yet'}
+            >
+              <GitCompare size={12} />
+              <span>Diff</span>
+              {versions.length > 1 && (
+                <span className="text-[9px] px-1 rounded bg-white/20 font-mono">v{versions.length}</span>
+              )}
+            </button>
           </div>
 
           <button
@@ -405,10 +439,52 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
             sandbox="allow-scripts allow-modals"
             className="w-full h-full border-none bg-[#050510]"
           />
-        ) : (
+        ) : activeTab === 'code' ? (
           <pre className="w-full h-full p-4 overflow-auto font-mono text-xs text-silver/90 leading-relaxed select-text">
             <code>{currentFile ? currentFile.content : artifact.code}</code>
           </pre>
+        ) : (
+          /* Diff Viewer */
+          <div className="w-full h-full overflow-auto p-4 font-mono text-xs select-text">
+            {versions.length < 2 ? (
+              <div className="flex flex-col items-center justify-center h-full text-silver/40 text-center gap-2">
+                <History size={24} className="text-iris/50" />
+                <p>Initial revision (v1). Refine or modify the artifact in chat to view side-by-side diffs.</p>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                <div className="text-[11px] text-silver/40 pb-2 mb-2 border-b border-white/[0.06] flex items-center justify-between">
+                  <span>Comparing revision v{versions.length - 1} $\rightarrow$ v{versions.length}</span>
+                  <span className="text-emerald-400">Green = Added</span>
+                </div>
+                {(() => {
+                  const oldL = (versions[versions.length - 2]?.code || '').split('\n');
+                  const newL = artifact.code.split('\n');
+                  return newL.map((line, idx) => {
+                    const isAdded = !oldL.includes(line);
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-start gap-3 px-2 py-0.5 rounded ${
+                          isAdded
+                            ? 'bg-emerald-500/10 text-emerald-300 border-l-2 border-emerald-500'
+                            : 'text-silver/80'
+                        }`}
+                      >
+                        <span className="w-8 text-right text-silver/30 select-none text-[10px] shrink-0 font-mono">
+                          {idx + 1}
+                        </span>
+                        <span className="w-4 select-none text-silver/40 font-mono shrink-0">
+                          {isAdded ? '+' : ' '}
+                        </span>
+                        <span className="whitespace-pre-wrap break-all flex-1">{line || '\u00A0'}</span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

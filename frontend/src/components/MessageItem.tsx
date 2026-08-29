@@ -4,7 +4,6 @@ import {
   Check,
   AlertCircle,
   Globe,
-  Layers,
   ExternalLink,
   Plus,
   RotateCw,
@@ -168,38 +167,59 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <div className="mb-8 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-      {/* 1. Grounded Search Sources */}
+      {/* 1. Grounded Search Sources with Live Favicons */}
       {message.sources && message.sources.length > 0 && (
         <div className="space-y-2 pb-2">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-silver/50">
-            <Layers size={13} className="text-iris" />
-            <span>SOURCES ({message.sources.length})</span>
+          <div className="flex items-center gap-1.5 text-xs font-mono text-silver/50 tracking-wider">
+            <Globe size={13} className="text-cyan-400" />
+            <span>GROUNDED SOURCES ({message.sources.length})</span>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
-            {message.sources.map((src: SourceItem, idx: number) => (
-              <a
-                key={src.id || idx}
-                href={src.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-iris/40 hover:bg-white/[0.04] transition-all shrink-0 max-w-[220px] group"
-              >
-                <span className="w-3.5 h-3.5 rounded-full bg-white/[0.05] group-hover:bg-iris/20 text-[9px] font-mono text-silver/60 group-hover:text-iris flex items-center justify-center shrink-0">
-                  {idx + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs text-white/80 group-hover:text-white font-medium truncate">
-                    {src.title}
+            {message.sources.map((src: SourceItem, idx: number) => {
+              let domain = src.domain;
+              if (!domain && src.url) {
+                try {
+                  domain = new URL(src.url).hostname.replace(/^www\./, '');
+                } catch {
+                  domain = src.url;
+                }
+              }
+              const faviconUrl = domain ? `https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(domain)}` : '';
+              return (
+                <a
+                  key={src.id || idx}
+                  href={src.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#090916]/80 border border-white/[0.08] hover:border-cyan-500/40 hover:bg-white/[0.04] transition-all shrink-0 max-w-[240px] group shadow-lg backdrop-blur-sm"
+                >
+                  <div className="w-5 h-5 rounded-md bg-white/[0.04] flex items-center justify-center shrink-0 overflow-hidden border border-white/[0.06]">
+                    {faviconUrl ? (
+                      <img
+                        src={faviconUrl}
+                        alt=""
+                        className="w-3.5 h-3.5 rounded-sm object-contain opacity-80 group-hover:opacity-100 transition-opacity"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Globe size={10} className="text-cyan-400" />
+                    )}
                   </div>
-                  <div className="text-[10px] font-mono text-silver/40 truncate flex items-center gap-1">
-                    <Globe size={9} />
-                    <span>{src.domain}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-white/90 group-hover:text-white font-medium truncate">
+                      {src.title || domain}
+                    </div>
+                    <div className="text-[10px] font-mono text-silver/40 truncate flex items-center gap-1 group-hover:text-cyan-400/70 transition-colors">
+                      <span>{domain}</span>
+                    </div>
                   </div>
-                </div>
-                <ExternalLink size={10} className="text-silver/20 group-hover:text-iris shrink-0" />
-              </a>
-            ))}
+                  <ExternalLink size={11} className="text-silver/30 group-hover:text-cyan-400 shrink-0 transition-colors" />
+                </a>
+              );
+            })}
           </div>
         </div>
       )}

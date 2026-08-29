@@ -1,0 +1,21 @@
+{
+  "name": "Zorvik AI",
+  "short_name": "Zorvik AI",
+  "description": "Autonomous multi-model intelligence, sub-50ms instant streaming, and deep neural memory.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050510",
+  "theme_color": "#050510",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

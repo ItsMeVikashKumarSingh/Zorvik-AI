@@ -2,6 +2,19 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.9] - 2026-08-29
+### Dynamic Load Balancer, Document Vector RAG, Favicon Source Cards, Artifact Diff Viewer & PWA
+- **Dynamic Multi-Provider Load Balancing ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js))**:
+  - Implemented dynamic weighted round-robin load distribution across healthy zero-cost inference providers (Groq, Cerebras, Gemini, Mistral, OpenRouter) to balance free quotas and maximize throughput.
+- **Document Chunking & Semantic Vector RAG Engine ([`ragEngine.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/ragEngine.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Added sliding-window document chunking and vector cosine similarity retrieval for attached documents (PDF, Markdown, CSV, Text) to provide deep semantic context retrieval.
+- **Rich Grounding Source Cards with Live Favicons ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - Upgraded grounded search results with Google S2 live domain favicons, domain tags, and cyber glassmorphism cards.
+- **Artifact Version History Snapshots & Side-by-Side Diff Viewer ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:
+  - Automatically snapshots artifact revisions and provides an interactive Diff Viewer highlighting additions and modifications.
+- **Progressive Web App (PWA) Standalone Installation ([`manifest.webmanifest`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/public/manifest.webmanifest), [`index.html`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/index.html))**:
+  - Added standalone PWA manifest and mobile app meta tags.
+
 ## [1.0.8] - 2026-08-29
 ### In-Browser Python WASM Runtime, Mermaid Architecture Diagrams, Dynamic Tool Engine & Token Quotas
 - **In-Browser Python WebAssembly Execution ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:

@@ -23,6 +23,7 @@ const {
   clearUserMemories,
 } = require("../services/memoryEngine");
 const { processTurnMemoryAndTone } = require("../services/autoMemoryExtractor");
+const { retrieveRelevantChunks, formatRAGContext } = require("../services/ragEngine");
 const { circuitBreaker } = require("../services/circuitBreaker");
 const { estimateTokens } = require("../lib/utils");
 const { supabase, isConfigured: isSupabaseConfigured } = require("../lib/supabase");
@@ -107,6 +108,35 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
     conversationSummary: sessionSummary,
   });
 
+  // 3.1 Extract document semantic context using RAG engine if document files are attached
+  let ragContext = "";
+  if (Array.isArray(files) && files.length > 0) {
+    let combinedDocText = "";
+    for (const f of files) {
+      if (f.data && typeof f.data === "string" && !f.mimeType?.startsWith("image/")) {
+        try {
+          const decoded = Buffer.from(f.data, "base64").toString("utf-8");
+          const isBinary = Array.from(decoded.slice(0, 100)).some(
+            (c) => c.charCodeAt(0) < 9 || (c.charCodeAt(0) > 13 && c.charCodeAt(0) < 32)
+          );
+          if (decoded && !isBinary) {
+            combinedDocText += `\n\n--- Document: ${f.name || "Attachment"} ---\n${decoded}`;
+          }
+        } catch (_decodeErr) {
+          // Non-blocking binary decoding error
+        }
+      } else if (f.text && typeof f.text === "string") {
+        combinedDocText += `\n\n--- Document: ${f.name || "Attachment"} ---\n${f.text}`;
+      }
+    }
+    if (combinedDocText.trim()) {
+      const topChunks = retrieveRelevantChunks({ query: prompt, documentText: combinedDocText, topK: 3 });
+      ragContext = formatRAGContext(topChunks);
+    }
+  }
+
+  const finalSystemPrompt = ragContext ? `${systemPrompt}\n\n${ragContext}` : systemPrompt;
+
   // 4. Handle Real-Time Streaming Response (True SSE Pipeline)
   if (stream) {
     const abortController = new AbortController();
@@ -124,7 +154,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
 
     try {
       const result = await routeQueryStream({
-        systemPrompt,
+        systemPrompt: finalSystemPrompt,
         history,
         prompt,
         mode,
@@ -215,7 +245,7 @@ router.post(["/chat", "/chat/stream"], async (req, res) => {
   // 5. Standard Non-Streaming JSON Response
   try {
     const result = await routeQuery({
-      systemPrompt,
+      systemPrompt: finalSystemPrompt,
       history,
       prompt,
       mode,
