@@ -10,7 +10,6 @@ interface SidebarProps {
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
   onDeleteSession: (id: string, e: React.MouseEvent) => void;
-  onClearAll: () => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   user: UserProfile;
@@ -27,7 +26,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSession,
   onNewChat,
   onDeleteSession,
-  onClearAll,
   searchQuery,
   onSearchChange,
   user,
@@ -195,15 +193,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-[11px] font-mono truncate">{user.isGuest ? 'Guest' : user.email}</span>
             <span className="text-[10px] font-mono text-iris uppercase">{user.isGuest ? 'Sign In' : 'Account'}</span>
           </div>
-
-          {sessions.length > 0 && (
-            <button
-              onClick={onClearAll}
-              className="w-full text-left px-2.5 py-1 text-[11px] font-mono text-silver/30 hover:text-crimson transition-colors"
-            >
-              Clear All Threads
-            </button>
-          )}
         </div>
       </aside>
     </>

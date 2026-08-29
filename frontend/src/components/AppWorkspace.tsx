@@ -22,11 +22,15 @@ import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
 
 interface AppWorkspaceProps {
   onNavigateHome: () => void;
+  onNavigateSettings?: () => void;
 }
 
 const STORAGE_KEY = 'zorvik_chat_sessions';
 
-export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) => {
+export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
+  onNavigateHome,
+  onNavigateSettings,
+}) => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
@@ -130,23 +134,21 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         const parsed: ChatSession[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setSessions(parsed);
-          setActiveSessionId(parsed[0].id);
+          // Check if a specific chat was explicitly requested in URL query
+          const params = new URLSearchParams(window.location.search);
+          const chatParam = params.get('chat');
+          if (chatParam && parsed.some((s) => s.id === chatParam)) {
+            setActiveSessionId(chatParam);
+          } else {
+            // Default to null so visiting or reopening the link starts a clean, fresh conversation dock
+            setActiveSessionId(null);
+          }
         }
       }
     } catch (err) {
       console.warn('[Storage Load Warning]:', err);
     }
   }, []);
-
-  // Sync active chat param from URL if present (e.g. ?chat=...)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const chatParam = params.get('chat');
-    if (chatParam && sessions.some((s) => s.id === chatParam)) {
-      setActiveSessionId(chatParam);
-    }
-  }, [sessions]);
 
   // Persist sessions helper
   const saveSessions = (updated: ChatSession[]) => {
@@ -206,14 +208,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
     saveSessions(updated);
     if (activeSessionId === id) {
       setActiveSessionId(updated.length > 0 ? updated[0].id : null);
-    }
-  };
-
-  // Clear all sessions
-  const handleClearAll = () => {
-    if (window.confirm('Are you sure you want to clear all thread history?')) {
-      saveSessions([]);
-      setActiveSessionId(null);
     }
   };
 
@@ -607,12 +601,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
         onSelectSession={handleSelectSession}
         onNewChat={handleNewChat}
         onDeleteSession={handleDeleteSession}
-        onClearAll={handleClearAll}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         user={user}
         onOpenAuth={() => handleOpenAuth('signin')}
-        onOpenAccount={() => setAccountModalOpen(true)}
+        onOpenAccount={() => (onNavigateSettings ? onNavigateSettings() : setAccountModalOpen(true))}
         onNavigateHome={onNavigateHome}
       />
 
@@ -623,7 +616,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({ onNavigateHome }) =>
           sidebarOpen={sidebarOpen}
           user={user}
           onOpenAuth={handleOpenAuth}
-          onOpenAccount={() => setAccountModalOpen(true)}
+          onOpenAccount={() => (onNavigateSettings ? onNavigateSettings() : setAccountModalOpen(true))}
           onOpenShare={() => handleOpenShareModal()}
           onSignOut={handleSignOut}
           activeTitle={activeSession?.messages.length ? activeSession.title : undefined}

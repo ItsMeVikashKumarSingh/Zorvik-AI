@@ -3,9 +3,11 @@ import { LandingPage } from './components/LandingPage';
 import { AppWorkspace } from './components/AppWorkspace';
 import { LegalPage, LegalPageType } from './components/LegalPage';
 import { AdminLayout } from './components/admin/AdminLayout';
-import { getSupabase } from './lib/supabase';
+import { ProfileSettingsPage } from './components/ProfileSettingsPage';
+import { getSupabase, getOrCreateGuestId } from './lib/supabase';
+import { UserProfile } from './types';
 
-export type AppView = 'landing' | 'app' | 'admin' | LegalPageType;
+export type AppView = 'landing' | 'app' | 'admin' | 'settings' | LegalPageType;
 
 const getInitialView = (): AppView => {
   if (typeof window === 'undefined') return 'landing';
@@ -26,6 +28,9 @@ const getInitialView = (): AppView => {
   if (path === '/admin' || path.startsWith('/admin/')) {
     return 'admin';
   }
+  if (path === '/settings' || path === '/profile') {
+    return 'settings';
+  }
   if (path === '/app' || path === '/chat' || path.startsWith('/app/')) {
     return 'app';
   }
@@ -37,12 +42,19 @@ const getInitialView = (): AppView => {
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(getInitialView);
+  const [user, setUser] = useState<UserProfile>({
+    id: getOrCreateGuestId(),
+    email: null,
+    isGuest: true,
+  });
 
   useEffect(() => {
     const handlePopState = () => {
       const p = window.location.pathname;
       if (p === '/admin' || p.startsWith('/admin/')) {
         setCurrentView('admin');
+      } else if (p === '/settings' || p === '/profile') {
+        setCurrentView('settings');
       } else if (p === '/app' || p === '/chat' || p.startsWith('/app/')) {
         setCurrentView('app');
       } else if (p === '/privacy') {
@@ -58,16 +70,37 @@ export const App: React.FC = () => {
 
     window.addEventListener('popstate', handlePopState);
 
-    // Listen for OAuth sign-in completion to automatically navigate to app
+    // Sync active session user
     const supabase = getSupabase();
     let authSub: { unsubscribe: () => void } | null = null;
     if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || null,
+            isGuest: false,
+          });
+        }
+      });
+
       const { data } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          if (window.location.pathname !== '/app' && window.location.pathname !== '/admin') {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || null,
+            isGuest: false,
+          });
+          if (window.location.pathname !== '/app' && window.location.pathname !== '/admin' && window.location.pathname !== '/settings') {
             window.history.pushState({}, '', '/app');
             setCurrentView('app');
           }
+        } else if (event === 'SIGNED_OUT') {
+          setUser({
+            id: getOrCreateGuestId(),
+            email: null,
+            isGuest: true,
+          });
         }
       });
       authSub = data.subscription;
@@ -82,6 +115,11 @@ export const App: React.FC = () => {
   const navigateToApp = () => {
     window.history.pushState({}, '', '/app');
     setCurrentView('app');
+  };
+
+  const navigateToSettings = () => {
+    window.history.pushState({}, '', '/settings');
+    setCurrentView('settings');
   };
 
   const navigateToAdmin = () => {
@@ -103,8 +141,23 @@ export const App: React.FC = () => {
     return <AdminLayout onNavigateHome={navigateToLanding} onNavigateApp={navigateToApp} />;
   }
 
+  if (currentView === 'settings') {
+    return (
+      <ProfileSettingsPage
+        user={user}
+        onNavigateBack={navigateToApp}
+        onNavigateHome={navigateToLanding}
+      />
+    );
+  }
+
   if (currentView === 'app') {
-    return <AppWorkspace onNavigateHome={navigateToLanding} />;
+    return (
+      <AppWorkspace
+        onNavigateHome={navigateToLanding}
+        onNavigateSettings={navigateToSettings}
+      />
+    );
   }
 
   if (currentView === 'privacy' || currentView === 'terms' || currentView === 'security') {

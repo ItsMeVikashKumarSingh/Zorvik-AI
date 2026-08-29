@@ -2,6 +2,17 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.10] - 2026-08-29
+### Auto-Expanding Prompt Input, Dedicated Profile & Control Center, Clean Link Opens & UX Hardening
+- **Auto-Expanding Multi-Line Prompt Input ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx))**:
+  - Dynamically calculates `scrollHeight` to smoothly expand the prompt input box from 1 up to 5+ lines (~180px) with custom cyber scrollbars.
+- **Dedicated Full-Page Profile & Control Center ([`ProfileSettingsPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ProfileSettingsPage.tsx), [`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx))**:
+  - Built a comprehensive full-page control center at `/settings` and `/profile` providing Profile Security, Custom Instructions & Persona modifiers, Autonomous Neural Memory management, Engine & Token Matrix, Appearance customizers, and Data/Privacy JSON archive export.
+- **Fresh Conversation Experience on Link Opening ([`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx))**:
+  - Reopening the web app link now always starts with a fresh, clean conversation prompt and welcome dock rather than force-loading the last thread, while preserving all thread history in the sidebar.
+- **Removed Destructive Clear All Threads Action ([`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx), [`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx))**:
+  - Removed accidental bulk-deletion button from sidebar footer.
+
 ## [1.0.9] - 2026-08-29
 ### Dynamic Load Balancer, Document Vector RAG, Favicon Source Cards, Artifact Diff Viewer & PWA
 - **Dynamic Multi-Provider Load Balancing ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js))**:

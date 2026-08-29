@@ -77,11 +77,13 @@ export const InputDock: React.FC<InputDockProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isDropdownOpen]);
 
-  // Auto resize textarea
+  // Auto resize textarea to support at least 5 lines of multi-line input
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
+      const scrollH = textareaRef.current.scrollHeight;
+      const nextH = Math.min(Math.max(scrollH, 26), 180);
+      textareaRef.current.style.height = `${nextH}px`;
     }
   }, [input]);
 
@@ -283,7 +285,7 @@ export const InputDock: React.FC<InputDockProps> = ({
           onPaste={handlePaste}
           placeholder={isListening ? 'Speak now, transcribing in real-time...' : 'Ask anything, attach code/images, or search...'}
           rows={1}
-          className="w-full bg-transparent text-sm sm:text-base font-light text-white placeholder-silver/30 resize-none outline-none py-0.5 px-1 max-h-36 overflow-y-auto leading-relaxed"
+          className="w-full bg-transparent text-sm sm:text-base font-light text-white placeholder-silver/30 resize-none outline-none py-1 px-1 min-h-[26px] max-h-48 overflow-y-auto leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
         />
 
         {/* Hidden File Input */}
