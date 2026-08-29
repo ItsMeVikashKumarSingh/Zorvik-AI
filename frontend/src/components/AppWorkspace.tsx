@@ -16,9 +16,10 @@ import {
   UserProfile,
   FileAttachment,
   ArtifactContent,
+  ProjectWorkspace,
 } from '../types';
 import { streamChat } from '../lib/api';
-import { getOrCreateGuestId, getSupabase, signOutUser } from '../lib/supabase';
+import { getOrCreateGuestId, getSupabase, signOutUser, saveUserWorkspaces, loadUserWorkspaces } from '../lib/supabase';
 
 interface AppWorkspaceProps {
   onNavigateHome: () => void;
@@ -33,6 +34,8 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
 }) => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [workspaces, setWorkspaces] = useState<ProjectWorkspace[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<ModelMode>('auto');
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
@@ -58,6 +61,40 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load workspaces on mount
+  useEffect(() => {
+    loadUserWorkspaces().then((loaded) => {
+      if (Array.isArray(loaded)) {
+        setWorkspaces(loaded as ProjectWorkspace[]);
+      }
+    });
+  }, []);
+
+  const handleCreateWorkspace = async (name: string, description: string) => {
+    const newWs: ProjectWorkspace = {
+      id: 'proj_' + Date.now(),
+      name,
+      description,
+      documents: [],
+      sessionIds: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const updated = [newWs, ...workspaces];
+    setWorkspaces(updated);
+    setActiveWorkspaceId(newWs.id);
+    await saveUserWorkspaces(updated);
+  };
+
+  const handleDeleteWorkspace = async (id: string) => {
+    const updated = workspaces.filter((w) => w.id !== id);
+    setWorkspaces(updated);
+    if (activeWorkspaceId === id) {
+      setActiveWorkspaceId(null);
+    }
+    await saveUserWorkspaces(updated);
+  };
 
   const closeSidebarIfMobile = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -608,6 +645,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         onOpenAccount={() => (onNavigateSettings ? onNavigateSettings() : setAccountModalOpen(true))}
         onOpenPromptLibrary={() => setPromptLibraryOpen(true)}
         onNavigateHome={onNavigateHome}
+        workspaces={workspaces}
+        activeWorkspaceId={activeWorkspaceId}
+        onSelectWorkspace={setActiveWorkspaceId}
+        onCreateWorkspace={handleCreateWorkspace}
+        onDeleteWorkspace={handleDeleteWorkspace}
       />
 
       {/* Main Workspace Canvas */}

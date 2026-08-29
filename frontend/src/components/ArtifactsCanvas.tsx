@@ -45,6 +45,14 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
   const [iframeKey, setIframeKey] = useState(0);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [versions, setVersions] = useState<ArtifactVersion[]>([]);
+  const [editableCode, setEditableCode] = useState(artifact?.code || '');
+
+  // Sync editable code when artifact changes
+  useEffect(() => {
+    if (artifact?.code) {
+      setEditableCode(artifact.code);
+    }
+  }, [artifact?.id, artifact?.code]);
 
   // Track version history snapshots across artifact edits
   useEffect(() => {
@@ -129,6 +137,8 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
   // Generate safe sandboxed HTML page for iframe
   const generatePreviewSrcDoc = () => {
     const lang = artifact.language.toLowerCase();
+    const activeCode = editableCode || artifact.code;
+
     if (lang === 'svg') {
       return `
         <!DOCTYPE html>
@@ -139,19 +149,19 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
               svg { max-width: 90vw; max-height: 90vh; }
             </style>
           </head>
-          <body>${artifact.code}</body>
+          <body>${activeCode}</body>
         </html>
       `;
     }
 
     if (lang === 'html' || lang === 'htm') {
-      return artifact.code;
+      return activeCode;
     }
 
     // Interactive React / TSX / JSX Sandboxed Runner
     if (['react', 'tsx', 'jsx', 'typescript', 'ts'].includes(lang)) {
       // Clean import statements from raw code so Babel standalone executes in single script scope
-      const sanitizedCode = artifact.code
+      const sanitizedCode = activeCode
         .replace(/import\s+(?:React\s*,?\s*)?(?:\{[^}]*\}\s*from\s*)?['"][^'"]+['"];?/g, '')
         .replace(/export\s+default\s+/g, 'window.__MainComponent = ')
         .replace(/export\s+(?:const|function|class)\s+([A-Z]\w+)/g, 'window.__MainComponent = $1;');
@@ -217,7 +227,7 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
                 out.appendChild(el);
               };
               try {
-                ${artifact.code}
+                ${activeCode}
               } catch (e) {
                 const err = document.createElement('div');
                 err.className = 'console-error';
@@ -440,9 +450,47 @@ export const ArtifactsCanvas: React.FC<ArtifactsCanvasProps> = ({
             className="w-full h-full border-none bg-[#050510]"
           />
         ) : activeTab === 'code' ? (
-          <pre className="w-full h-full p-4 overflow-auto font-mono text-xs text-silver/90 leading-relaxed select-text">
-            <code>{currentFile ? currentFile.content : artifact.code}</code>
-          </pre>
+          <div className="w-full h-full flex flex-col bg-[#07070f]">
+            <div className="px-4 py-2 bg-white/[0.02] border-b border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Live Interactive Code Editor</span>
+                </span>
+                <span className="text-[10px] text-slate-500 hidden sm:inline">• Live edits sync directly to preview</span>
+              </div>
+              {editableCode !== artifact.code && (
+                <button
+                  type="button"
+                  onClick={() => setEditableCode(artifact.code)}
+                  className="text-[11px] font-mono text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Reset to Original
+                </button>
+              )}
+            </div>
+            <textarea
+              value={editableCode}
+              onChange={(e) => setEditableCode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Tab') {
+                  e.preventDefault();
+                  const target = e.currentTarget;
+                  const start = target.selectionStart;
+                  const end = target.selectionEnd;
+                  const val = target.value;
+                  setEditableCode(val.substring(0, start) + '  ' + val.substring(end));
+                  setTimeout(() => {
+                    if (target) {
+                      target.selectionStart = target.selectionEnd = start + 2;
+                    }
+                  }, 0);
+                }
+              }}
+              spellCheck={false}
+              className="w-full flex-1 p-4 font-mono text-xs text-slate-100 bg-transparent outline-none resize-none leading-relaxed select-text scrollbar-thin scrollbar-thumb-white/10"
+            />
+          </div>
         ) : (
           /* Diff Viewer */
           <div className="w-full h-full overflow-auto p-4 font-mono text-xs select-text">

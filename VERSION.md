@@ -2,6 +2,32 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.13] - 2026-08-29
+### Administrative Security Hardening, Supabase MFA & Dynamic Neural Key Vault
+- **URL Obfuscation & Hardened Management Routes ([`App.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/App.tsx), [`AdminLayout.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminLayout.tsx), [`server.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/server.js))**:
+  - Migrated the administration control plane from `/admin` to **`/manage`**.
+  - Created a dedicated superadmin login portal at **`/management-login/`**.
+  - Unauthenticated access attempts to `/manage` are automatically redirected to `/management-login/`.
+- **Supabase Real Superadmin Auth & TOTP MFA Enforcement ([`ManagementLoginPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/ManagementLoginPage.tsx), [`MfaSecurityModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/MfaSecurityModal.tsx))**:
+  - Authenticates real admin users via Supabase Auth with strict role verification (`user.app_metadata.role === 'admin' || user_metadata.role === 'superadmin'`).
+  - Added dedicated **MFA / TOTP Authenticator Enrollment Modal** with QR code generation (supporting Google Authenticator, 1Password, and Authy).
+  - Enforces mandatory 6-digit TOTP challenge during management login when MFA is enabled.
+- **Dynamic Neural Engine Key Vault & OmniRoute Engine ([`KeyVaultManager.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/KeyVaultManager.tsx), [`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`admin.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/admin.js))**:
+  - Added a dedicated **"Neural Key Vault"** tab in `/manage` to view, paste, rotate, and mask API keys for **Google Gemini, Groq, Cerebras, Mistral, OpenRouter, SambaNova, and Together AI**.
+  - Keys are saved directly into the in-memory runtime cache and Supabase with zero redeployments or Vercel environment edits required.
+  - Added 1-click **"Ping Test"** measuring live millisecond latency (e.g. `🟢 Groq: 38ms`) and 1-click **Provider Toggle Switches**.
+- **Deep Reasoning "Thinking Process" Visualizer ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx), [`types/index.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/types/index.ts))**:
+  - Real-time detection and parsing of `<thought>...</thought>` tokens during live SSE stream generation and final completion.
+  - Renders a collapsible accordion with pulsing thought animation, multi-step counter, elapsed time badge, and inspect toggle.
+- **Perplexity-Grade Web Source Cards & Exploration Pills ([`MessageItem.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/MessageItem.tsx))**:
+  - High-res domain favicon cards (Google S2 API), external links, and related search exploration pills.
+- **Live In-Canvas Interactive Code Editor ([`ArtifactsCanvas.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ArtifactsCanvas.tsx))**:
+  - In-canvas editable textarea with tab indentation, instant hot-reloading inside the sandbox iframe preview, and "Reset to Original" capability.
+- **1-Click "Magic Prompt Enhancer" ([`InputDock.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/InputDock.tsx), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Added ✨ polish button that turns short raw queries into comprehensive, structured master prompts with sub-50ms execution.
+- **Project Workspaces & Persistent Knowledge Folders ([`Sidebar.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/Sidebar.tsx), [`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx), [`supabase.ts`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/lib/supabase.ts))**:
+  - Added dedicated Workspaces accordion in the sidebar with folder creation, workspace-scoped chat sessions, and cloud metadata synchronization.
+
 ## [1.0.12] - 2026-08-29
 ### Enterprise UI/UX Overhaul, Character Studio & Luxury Dark Palette
 - **Enterprise Dark Palette & Surface Tokens ([`tailwind.config.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/tailwind.config.js), [`index.css`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/styles/index.css))**:
@@ -18,6 +44,9 @@ All notable changes to the Zorvik AI standalone microservice will be documented 
   - **Domain-Accurate Sliders**: Replaced romantic sliders on serious personas with tailored axes (e.g. Diagnostic Rigor, Evidence-Based Lab Depth, Strategic Leverage, Code Type Strictness, Zero-Trust Security).
   - **Custom System Prompt Textarea**: Added a dedicated directives editor to write custom persona rules, domain knowledge, and behavioral constraints.
   - **Account Cloud Synchronization**: Synced custom personas directly to Supabase account user metadata (`user_metadata.custom_personas`) with automatic local fallback for guests.
+- **Proprietary Neural Engine Branding & Internal Provider Masking ([`ProfileSettingsPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/ProfileSettingsPage.tsx), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - Completely removed all internal third-party provider names (Google, Groq, Llama, Mistral, DeepSeek) from the user-facing settings page and public API responses.
+  - Standardized under proprietary **Zorvik AI Neural Modules** (*Zorvik Omni-Neural Core*, *Zorvik Ultra-Fast Stream Matrix*, *Zorvik Code & Architecture Synthesis*, *Zorvik Deep Mathematical Reasoning*).
 - **Custom Character Top Showcase & Deduplication System ([`PromptLibraryModal.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/PromptLibraryModal.tsx))**:
   - Elevated custom-created personas to a prominent **Top Showcase** section at the very top of the "All Personas", "My Characters", and "Companions & Romance" tabs.
   - Added dedicated **"⭐ My Characters"** tab with real-time count badge and custom archetype stat badges.

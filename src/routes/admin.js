@@ -9,6 +9,12 @@ const { recordAuditLog, getRecentAuditLogs } = require("../services/auditLogger"
 const { circuitBreaker } = require("../services/circuitBreaker");
 const { redis } = require("../lib/redis");
 const { supabase, isConfigured: isSupabaseConfigured } = require("../lib/supabase");
+const {
+  setRuntimeKey,
+  getRuntimeKeys,
+  toggleProvider,
+  testProviderConnection,
+} = require("../services/modelRouter");
 
 // Apply admin authentication across all admin endpoints
 router.use(adminAuthMiddleware);
@@ -354,6 +360,100 @@ router.post("/circuit-breaker/toggle", async (req, res) => {
   });
 
   return res.json({ success: true, status: circuitBreaker.getStatus() });
+});
+
+/**
+ * GET /api/v1/manage/keys (or /admin/keys)
+ * List configured providers and masked API keys
+ */
+router.get("/keys", async (_req, res) => {
+  try {
+    const keys = getRuntimeKeys();
+    return res.json({ success: true, keys });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to retrieve provider keys: " + err.message });
+  }
+});
+
+/**
+ * POST /api/v1/manage/keys
+ * Save or rotate a provider's API key
+ */
+router.post("/keys", async (req, res) => {
+  const { provider, apiKey } = req.body;
+  if (!provider) {
+    return res.status(400).json({ error: "Provider name is required." });
+  }
+
+  try {
+    setRuntimeKey(provider, apiKey);
+
+    // If Supabase is configured, also persist to settings table
+    if (isSupabaseConfigured() && apiKey) {
+      await supabase.from("tbl_provider_keys").upsert({
+        provider,
+        api_key_masked: `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}`,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    await recordAuditLog({
+      adminId: req.admin.id,
+      adminEmail: req.admin.email,
+      actionType: "UPDATE_API_KEY",
+      targetEntity: `key_vault:${provider}`,
+      details: { provider, masked: apiKey ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : "cleared" },
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    return res.json({ success: true, message: `Key for ${provider} updated successfully in runtime vault.` });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to update key: " + err.message });
+  }
+});
+
+/**
+ * POST /api/v1/manage/keys/test
+ * Test connection and latency for a provider
+ */
+router.post("/keys/test", async (req, res) => {
+  const { provider, testKey } = req.body;
+  if (!provider) {
+    return res.status(400).json({ error: "Provider name is required." });
+  }
+
+  try {
+    const result = await testProviderConnection(provider, testKey);
+    return res.json({ success: true, result });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/manage/keys/toggle
+ * Toggle active state of a provider
+ */
+router.post("/keys/toggle", async (req, res) => {
+  const { provider, enabled } = req.body;
+  if (!provider) {
+    return res.status(400).json({ error: "Provider name is required." });
+  }
+
+  toggleProvider(provider, enabled);
+
+  await recordAuditLog({
+    adminId: req.admin.id,
+    adminEmail: req.admin.email,
+    actionType: "TOGGLE_PROVIDER",
+    targetEntity: `provider:${provider}`,
+    details: { provider, enabled: Boolean(enabled) },
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  return res.json({ success: true, enabled: Boolean(enabled) });
 });
 
 /**

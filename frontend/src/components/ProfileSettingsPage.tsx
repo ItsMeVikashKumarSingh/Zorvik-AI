@@ -662,13 +662,13 @@ export const ProfileSettingsPage: React.FC<ProfileSettingsPageProps> = ({
               </div>
 
               <div>
-                <h4 className="text-xs font-mono uppercase text-slate-400 mb-3">Multi-Engine Neural Matrix</h4>
+                <h4 className="text-xs font-mono uppercase text-slate-400 mb-3">Zorvik AI Neural Engine Matrix</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { name: 'Google Gemini 2.5 Flash', role: 'Primary Vision & Web Grounding Engine', status: 'Operational' },
-                    { name: 'Groq LPU (Llama 3.3 70B)', role: 'Ultra-Fast 500+ tok/s Cascade', status: 'Operational' },
-                    { name: 'Mistral & Codestral', role: 'Specialized Code Intelligence', status: 'Operational' },
-                    { name: 'OpenRouter (DeepSeek R1)', role: 'Deep Multi-Step Mathematical Reasoning', status: 'Operational' },
+                    { name: 'Zorvik Omni-Neural Core', role: 'Multi-Modal Vision & Reasoning Engine', status: 'Operational' },
+                    { name: 'Zorvik Ultra-Fast Inference Matrix', role: 'Sub-50ms Low-Latency Stream Architecture', status: 'Operational' },
+                    { name: 'Zorvik Code & Architecture Synthesis', role: 'Deterministic Code & Security Auditing', status: 'Operational' },
+                    { name: 'Zorvik Deep Mathematical Reasoning', role: 'Multi-Step Logic & Analytical Synthesis', status: 'Operational' },
                   ].map((eng, idx) => (
                     <div key={idx} className="p-3.5 rounded-2xl bg-[#080810] border border-white/[0.06] flex items-center justify-between">
                       <div>

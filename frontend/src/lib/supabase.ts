@@ -190,3 +190,66 @@ export async function loadUserPersonas(): Promise<unknown[]> {
   return [];
 }
 
+/**
+ * Sync project workspaces & knowledge folders to user's Supabase account metadata and localStorage
+ */
+export async function saveUserWorkspaces(workspaces: unknown[]) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('zorvik_project_workspaces', JSON.stringify(workspaces));
+    } catch (_e) {
+      // Non-blocking
+    }
+  }
+
+  const client = getSupabase();
+  if (!client) return;
+
+  try {
+    const { data } = await client.auth.getUser();
+    if (data?.user) {
+      await client.auth.updateUser({
+        data: { project_workspaces: workspaces },
+      });
+    }
+  } catch (err) {
+    console.warn('[Workspace Cloud Sync Warning]:', err);
+  }
+}
+
+/**
+ * Load project workspaces from Supabase account metadata (or fallback to localStorage)
+ */
+export async function loadUserWorkspaces(): Promise<unknown[]> {
+  const client = getSupabase();
+  if (client) {
+    try {
+      const { data } = await client.auth.getUser();
+      const cloudWorkspaces = data?.user?.user_metadata?.project_workspaces;
+      if (Array.isArray(cloudWorkspaces) && cloudWorkspaces.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('zorvik_project_workspaces', JSON.stringify(cloudWorkspaces));
+        }
+        return cloudWorkspaces;
+      }
+    } catch {
+      // Fall through to localStorage
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('zorvik_project_workspaces');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // Return empty array
+    }
+  }
+
+  return [];
+}
+
+

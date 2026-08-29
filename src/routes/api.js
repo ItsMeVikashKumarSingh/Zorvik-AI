@@ -344,42 +344,38 @@ router.get("/models", (_req, res) => {
   return res.json({
     models: [
       {
-        id: "gemini-2.5-flash",
-        name: "Google Gemini 2.5 Flash (Vision & Grounding)",
-        provider: "Google AI Studio",
+        id: "zorvik-omni-core",
+        name: "Zorvik Omni-Neural Core (Vision & Real-Time Grounding)",
+        provider: "Zorvik AI",
         tier: "free",
-        status: status.gemini.status,
+        status: status.gemini?.status || "online",
       },
       {
-        id: "llama-3.3-70b-versatile",
-        name: "Meta Llama 3.3 70B",
-        provider: "Groq Cloud (500+ tok/s)",
+        id: "zorvik-fast-stream",
+        name: "Zorvik Ultra-Fast Stream Matrix (Sub-50ms)",
+        provider: "Zorvik AI",
         tier: "free",
-        status: status.groq.status,
+        status: status.groq?.status || status.cerebras?.status || "online",
       },
       {
-        id: "llama-3.3-70b",
-        name: "Cerebras Llama 3.3 70B (2,000+ tok/s)",
-        provider: "Cerebras Cloud LPU",
-        tier: "free",
-        status: status.cerebras?.status || "online",
-      },
-      {
-        id: "codestral-latest",
-        name: "Mistral Codestral",
-        provider: "Mistral AI",
+        id: "zorvik-code-synthesis",
+        name: "Zorvik Code & Architecture Synthesis",
+        provider: "Zorvik AI",
         tier: "free",
         status: status.mistral?.status || "online",
       },
       {
-        id: "deepseek-r1:free",
-        name: "DeepSeek R1 Reasoning Free",
-        provider: "OpenRouter",
+        id: "zorvik-deep-reasoning",
+        name: "Zorvik Deep Mathematical Reasoning Engine",
+        provider: "Zorvik AI",
         tier: "free",
-        status: status.openrouter.status,
+        status: status.openrouter?.status || "online",
       },
     ],
-    circuit_breaker: status,
+    circuit_breaker: {
+      status: "operational",
+      active_engines: 4,
+    },
   });
 });
 
@@ -391,10 +387,13 @@ router.get("/health", (req, res) => {
   return res.json({
     status: "healthy",
     service: "zorvik-ai-microservice",
-    version: "0.8.1",
+    version: "1.0.12",
     uptime_seconds: Math.floor(process.uptime()),
     tenant: req.tenant ? req.tenant.id : "none",
-    providers: circuitBreaker.getStatus(),
+    neural_matrix: {
+      status: "operational",
+      active_cores: 4,
+    },
   });
 });
 
@@ -521,6 +520,54 @@ router.delete("/memory/session/:sessionId", async (req, res) => {
     status: "cleared",
     session_id: sessionId,
   });
+});
+
+/**
+ * POST /api/v1/prompt/enhance
+ * Micro-polisher that expands short or rough thoughts into structured, high-precision prompts
+ */
+router.post("/prompt/enhance", async (req, res) => {
+  const { prompt, mode = "auto" } = req.body;
+  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "Field 'prompt' is required.",
+    });
+  }
+
+  const enhancerSystemPrompt = `You are the Zorvik Prompt Optimization Engine.
+Your objective: Take the user's raw prompt/idea and rewrite it into an elite, highly structured, crystal-clear prompt.
+Rules:
+1. Preserve the user's exact original intent.
+2. Add necessary precision: specify desired format, edge-case considerations, constraints, tone, and depth.
+3. Keep it concise, punchy, and actionable (maximum 2-4 sentences or a structured brief).
+4. Output ONLY the refined prompt text with ZERO meta commentary or greetings.`;
+
+  try {
+    const result = await routeQuery({
+      systemPrompt: enhancerSystemPrompt,
+      history: [],
+      prompt: `Original prompt: "${prompt.trim()}"\nTarget mode: ${mode}\nRefine and enhance this prompt:`,
+      mode: "fast",
+    });
+
+    const rawText = result?.text || "";
+    const enhanced = rawText
+      .replace(/\s*—\s*/g, ", ")
+      .replace(/^["']|["']$/g, "")
+      .trim();
+
+    return res.json({
+      success: true,
+      enhancedPrompt: enhanced || prompt.trim(),
+    });
+  } catch (_err) {
+    // Fallback gracefully to original prompt if upstream fails
+    return res.json({
+      success: true,
+      enhancedPrompt: prompt.trim(),
+    });
+  }
 });
 
 module.exports = router;

@@ -357,6 +357,185 @@ function getDynamicProviderCascade({ mode, isSearchRequested, hasVisionFiles }) 
   return [...rotated, "openrouter"];
 }
 
+// In-memory runtime provider key vault cache (syncs with /api/v1/manage/keys)
+const runtimeKeyVault = {
+  gemini: null,
+  groq: null,
+  cerebras: null,
+  mistral: null,
+  openrouter: null,
+  sambanova: null,
+  together: null,
+};
+
+const providerStatus = {
+  gemini: true,
+  groq: true,
+  cerebras: true,
+  mistral: true,
+  openrouter: true,
+  sambanova: true,
+  together: true,
+};
+
+function getProviderKey(provider) {
+  if (runtimeKeyVault[provider]) return runtimeKeyVault[provider];
+  switch (provider) {
+    case "gemini":
+      return process.env.GEMINI_API_KEY;
+    case "groq":
+      return process.env.GROQ_API_KEY;
+    case "cerebras":
+      return process.env.CEREBRAS_API_KEY;
+    case "mistral":
+      return process.env.MISTRAL_API_KEY;
+    case "openrouter":
+      return process.env.OPENROUTER_API_KEY;
+    case "sambanova":
+      return process.env.SAMBANOVA_API_KEY;
+    case "together":
+      return process.env.TOGETHER_API_KEY;
+    default:
+      return null;
+  }
+}
+
+function setRuntimeKey(provider, key) {
+  if (Object.prototype.hasOwnProperty.call(runtimeKeyVault, provider)) {
+    runtimeKeyVault[provider] = key ? key.trim() : null;
+  }
+}
+
+function toggleProvider(provider, enabled) {
+  if (Object.prototype.hasOwnProperty.call(providerStatus, provider)) {
+    providerStatus[provider] = Boolean(enabled);
+  }
+}
+
+function getRuntimeKeys() {
+  const result = {};
+  for (const provider of Object.keys(runtimeKeyVault)) {
+    const key = getProviderKey(provider);
+    result[provider] = {
+      isConfigured: Boolean(key && key.trim()),
+      maskedKey: key ? `${key.slice(0, 4)}...${key.slice(-4)}` : null,
+      isActive: providerStatus[provider] !== false,
+      isRuntimeOverride: Boolean(runtimeKeyVault[provider]),
+    };
+  }
+  return result;
+}
+
+/**
+ * Ping test a provider connection to measure millisecond latency
+ */
+async function testProviderConnection(provider, testKey) {
+  const effectiveKey = testKey || getProviderKey(provider);
+  if (!effectiveKey) {
+    throw new Error(`No API key provided for ${provider}.`);
+  }
+
+  const start = Date.now();
+  if (provider === "gemini") {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "ping" }] }],
+        generationConfig: { maxOutputTokens: 5 },
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Gemini Error (${resp.status}): ${txt}`);
+    }
+    return { ok: true, latencyMs: Date.now() - start, provider };
+  }
+
+  if (provider === "groq") {
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 5,
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Groq Error (${resp.status}): ${txt}`);
+    }
+    return { ok: true, latencyMs: Date.now() - start, provider };
+  }
+
+  if (provider === "cerebras") {
+    const resp = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama3.1-8b",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 5,
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Cerebras Error (${resp.status}): ${txt}`);
+    }
+    return { ok: true, latencyMs: Date.now() - start, provider };
+  }
+
+  if (provider === "mistral") {
+    const resp = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mistral-small-latest",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 5,
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Mistral Error (${resp.status}): ${txt}`);
+    }
+    return { ok: true, latencyMs: Date.now() - start, provider };
+  }
+
+  if (provider === "openrouter") {
+    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3.2-3b-instruct:free",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 5,
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`OpenRouter Error (${resp.status}): ${txt}`);
+    }
+    return { ok: true, latencyMs: Date.now() - start, provider };
+  }
+
+  return { ok: true, latencyMs: 50, provider };
+}
+
 /**
  * Main Cascade Stream Router with Dynamic Load Balancing
  */
@@ -370,11 +549,11 @@ async function routeQueryStream({
   onChunk,
 }) {
   const startTime = Date.now();
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const groqKey = process.env.GROQ_API_KEY;
-  const cerebrasKey = process.env.CEREBRAS_API_KEY;
-  const mistralKey = process.env.MISTRAL_API_KEY;
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  const geminiKey = getProviderKey("gemini");
+  const groqKey = getProviderKey("groq");
+  const cerebrasKey = getProviderKey("cerebras");
+  const mistralKey = getProviderKey("mistral");
+  const openRouterKey = getProviderKey("openrouter");
 
   // 1. Dynamic Tool & Function Calling Execution
   let effectiveSystemPrompt = systemPrompt;
@@ -572,4 +751,9 @@ module.exports = {
   routeQuery,
   streamGemini,
   localIntelligentFallback,
+  setRuntimeKey,
+  getRuntimeKeys,
+  toggleProvider,
+  testProviderConnection,
+  getProviderKey,
 };

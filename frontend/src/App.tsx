@@ -3,11 +3,12 @@ import { LandingPage } from './components/LandingPage';
 import { AppWorkspace } from './components/AppWorkspace';
 import { LegalPage, LegalPageType } from './components/LegalPage';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { ManagementLoginPage } from './components/admin/ManagementLoginPage';
 import { ProfileSettingsPage } from './components/ProfileSettingsPage';
 import { getSupabase, getOrCreateGuestId } from './lib/supabase';
 import { UserProfile } from './types';
 
-export type AppView = 'landing' | 'app' | 'admin' | 'settings' | LegalPageType;
+export type AppView = 'landing' | 'app' | 'manage' | 'manage-login' | 'settings' | LegalPageType;
 
 const getInitialView = (): AppView => {
   if (typeof window === 'undefined') return 'landing';
@@ -25,8 +26,11 @@ const getInitialView = (): AppView => {
     return 'app';
   }
 
-  if (path === '/admin' || path.startsWith('/admin/')) {
-    return 'admin';
+  if (path === '/management-login' || path === '/management-login/' || path === '/admin-login') {
+    return 'manage-login';
+  }
+  if (path === '/manage' || path.startsWith('/manage/') || path === '/admin' || path.startsWith('/admin/')) {
+    return 'manage';
   }
   if (path === '/settings' || path === '/profile') {
     return 'settings';
@@ -38,15 +42,7 @@ const getInitialView = (): AppView => {
   if (path === '/terms') return 'terms';
   if (path === '/security') return 'security';
 
-  // First time visiting root '/' in this session: go straight to /app
-  const hasVisited = sessionStorage.getItem('zorvik_visited_session');
-  if (!hasVisited && path === '/') {
-    sessionStorage.setItem('zorvik_visited_session', 'true');
-    window.history.replaceState({}, '', '/app');
-    return 'app';
-  }
-
-  // If manually navigating back or removing /app from the URL, let it stay on landing
+  // Root '/' and any unmatched path strictly renders the marketing Landing Page
   return 'landing';
 };
 
@@ -61,8 +57,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const p = window.location.pathname;
-      if (p === '/admin' || p.startsWith('/admin/')) {
-        setCurrentView('admin');
+      if (p === '/management-login' || p === '/management-login/' || p === '/admin-login') {
+        setCurrentView('manage-login');
+      } else if (p === '/manage' || p.startsWith('/manage/') || p === '/admin' || p.startsWith('/admin/')) {
+        setCurrentView('manage');
       } else if (p === '/settings' || p === '/profile') {
         setCurrentView('settings');
       } else if (p === '/app' || p === '/chat' || p.startsWith('/app/')) {
@@ -156,9 +154,14 @@ export const App: React.FC = () => {
     setCurrentView('settings');
   };
 
-  const navigateToAdmin = () => {
-    window.history.pushState({}, '', '/admin');
-    setCurrentView('admin');
+  const navigateToManage = () => {
+    window.history.pushState({}, '', '/manage');
+    setCurrentView('manage');
+  };
+
+  const navigateToManageLogin = () => {
+    window.history.pushState({}, '', '/management-login');
+    setCurrentView('manage-login');
   };
 
   const navigateToLanding = () => {
@@ -172,8 +175,25 @@ export const App: React.FC = () => {
     setCurrentView(type);
   };
 
-  if (currentView === 'admin') {
-    return <AdminLayout onNavigateHome={navigateToLanding} onNavigateApp={navigateToApp} />;
+  if (currentView === 'manage-login') {
+    return (
+      <ManagementLoginPage
+        onLoginSuccess={(_token, _email) => {
+          navigateToManage();
+        }}
+        onNavigateHome={navigateToLanding}
+      />
+    );
+  }
+
+  if (currentView === 'manage') {
+    return (
+      <AdminLayout
+        onNavigateHome={navigateToLanding}
+        onNavigateApp={navigateToApp}
+        onNavigateLogin={navigateToManageLogin}
+      />
+    );
   }
 
   if (currentView === 'settings') {
@@ -210,7 +230,7 @@ export const App: React.FC = () => {
     <LandingPage
       onLaunchApp={navigateToApp}
       onNavigateLegal={navigateToLegal}
-      onNavigateAdmin={navigateToAdmin}
+      onNavigateAdmin={navigateToManage}
     />
   );
 };

@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Plus, Trash2, Search, Clock, MessageSquare, PanelLeftClose, BookOpen } from 'lucide-react';
-import { ChatSession, UserProfile } from '../types';
+import React, { useMemo, useState } from 'react';
+import { Plus, Trash2, Search, Clock, MessageSquare, PanelLeftClose, BookOpen, Folder, FolderPlus, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChatSession, UserProfile, ProjectWorkspace } from '../types';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,6 +17,11 @@ interface SidebarProps {
   onOpenAccount?: () => void;
   onOpenPromptLibrary?: () => void;
   onNavigateHome: () => void;
+  workspaces?: ProjectWorkspace[];
+  activeWorkspaceId?: string | null;
+  onSelectWorkspace?: (id: string | null) => void;
+  onCreateWorkspace?: (name: string, description: string) => void;
+  onDeleteWorkspace?: (id: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,12 +39,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenAccount,
   onOpenPromptLibrary,
   onNavigateHome,
+  workspaces = [],
+  activeWorkspaceId = null,
+  onSelectWorkspace,
+  onCreateWorkspace,
+  onDeleteWorkspace,
 }) => {
+  const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(true);
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+
+  const handleCreateWorkspaceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkspaceName.trim() || !onCreateWorkspace) return;
+    onCreateWorkspace(newWorkspaceName.trim(), 'Project workspace for scoped documents and chats');
+    setNewWorkspaceName('');
+    setIsCreatingWorkspace(false);
+  };
+
   const filteredSessions = useMemo(() => {
-    return sessions.filter(s =>
-      s.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [sessions, searchQuery]);
+    return sessions.filter(s => {
+      const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesWorkspace = !activeWorkspaceId || s.projectId === activeWorkspaceId;
+      return matchesSearch && matchesWorkspace;
+    });
+  }, [sessions, searchQuery, activeWorkspaceId]);
 
   // Group sessions by date
   const groupedSessions = useMemo(() => {
@@ -130,6 +154,100 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </button>
           )}
+
+          {/* Project Workspaces & Folders Header */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between px-1 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+              <button
+                onClick={() => setIsWorkspacesOpen(!isWorkspacesOpen)}
+                className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
+              >
+                {isWorkspacesOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                <Folder size={11} className="text-purple-400" />
+                <span>Workspaces ({workspaces.length})</span>
+              </button>
+              <button
+                onClick={() => setIsCreatingWorkspace(true)}
+                className="p-0.5 rounded text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+                title="Create New Project Workspace"
+              >
+                <FolderPlus size={12} />
+              </button>
+            </div>
+
+            {/* Create Workspace Inline Form */}
+            {isCreatingWorkspace && (
+              <form onSubmit={handleCreateWorkspaceSubmit} className="mt-1 space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                <input
+                  type="text"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  placeholder="Workspace name (e.g. Fintech App)..."
+                  className="w-full bg-[#080810] border border-white/[0.1] rounded-lg px-2 py-1 text-xs text-white outline-none"
+                  autoFocus
+                />
+                <div className="flex items-center justify-end gap-1 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingWorkspace(false)}
+                    className="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-2.5 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-medium"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Workspaces List */}
+            {isWorkspacesOpen && workspaces.length > 0 && (
+              <div className="space-y-0.5 mt-1">
+                <div
+                  onClick={() => onSelectWorkspace && onSelectWorkspace(null)}
+                  className={`flex items-center justify-between px-2.5 py-1 rounded-xl text-xs cursor-pointer transition-all ${
+                    activeWorkspaceId === null
+                      ? 'bg-white/[0.06] text-white font-medium'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+                  }`}
+                >
+                  <span className="truncate">All Threads</span>
+                </div>
+                {workspaces.map((w) => (
+                  <div
+                    key={w.id}
+                    onClick={() => onSelectWorkspace && onSelectWorkspace(w.id)}
+                    className={`group flex items-center justify-between px-2.5 py-1 rounded-xl text-xs cursor-pointer transition-all ${
+                      activeWorkspaceId === w.id
+                        ? 'bg-purple-900/30 border border-purple-500/40 text-white font-medium shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Folder size={11} className={activeWorkspaceId === w.id ? 'text-purple-400' : 'text-slate-500'} />
+                      <span className="truncate">{w.name}</span>
+                    </div>
+                    {onDeleteWorkspace && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteWorkspace(w.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-rose-400 transition-opacity"
+                        title="Delete Workspace"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search History Filter */}

@@ -70,6 +70,7 @@ if (fs.existsSync(distPath)) {
 app.use(express.static(path.join(__dirname)));
 
 // Mount API routes
+app.use("/api/v1/manage", adminRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1", apiRoutes);
 

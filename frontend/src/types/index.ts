@@ -47,11 +47,14 @@ export interface Message {
   error?: boolean;
   sources?: SourceItem[];
   reasoningSteps?: ReasoningStep[];
+  thought?: string;
+  thoughtDuration?: number;
   relatedQuestions?: string[];
   durationMs?: number;
   attachments?: FileAttachment[];
   variants?: MessageVariant[];
   activeVariantIndex?: number;
+  projectId?: string;
 }
 
 export interface ChatSession {
@@ -60,6 +63,7 @@ export interface ChatSession {
   createdAt: number;
   updatedAt: number;
   messages: Message[];
+  projectId?: string;
 }
 
 export interface UserProfile {
@@ -74,3 +78,25 @@ export interface ArtifactContent {
   language: string;
   code: string;
 }
+
+export interface ProjectDocument {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  content: string;
+  uploadedAt: number;
+}
+
+export interface ProjectWorkspace {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  systemInstructions?: string;
+  documents: ProjectDocument[];
+  sessionIds: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+

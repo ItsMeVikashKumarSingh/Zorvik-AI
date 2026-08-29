@@ -302,3 +302,48 @@ export async function deleteUserMemory(id: string): Promise<{ memories: UserMemo
 
   return fetchUserMemories();
 }
+
+/**
+ * Enhance and polish a raw user prompt into a high-precision structured brief
+ */
+export async function enhancePrompt(prompt: string, mode: ModelMode = 'auto'): Promise<string> {
+  if (!prompt || !prompt.trim()) return prompt;
+
+  const guestId = getOrCreateGuestId();
+  const supabase = getSupabase();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-guest-uuid': guestId,
+    'x-user-id': guestId,
+  };
+
+  if (supabase) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        headers['Authorization'] = `Bearer ${data.session.access_token}`;
+      }
+    } catch {
+      // Non-blocking
+    }
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/prompt/enhance`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ prompt, mode }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.enhancedPrompt) {
+        return data.enhancedPrompt;
+      }
+    }
+  } catch (err) {
+    console.warn('[Enhance Prompt Warning]:', err);
+  }
+
+  return prompt;
+}
+

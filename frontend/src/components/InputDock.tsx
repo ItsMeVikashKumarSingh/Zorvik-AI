@@ -14,8 +14,11 @@ import {
   MicOff,
   ChevronDown,
   BookOpen,
+  Wand2,
+  RefreshCw,
 } from 'lucide-react';
 import { ModelMode, FileAttachment } from '../types';
+import { enhancePrompt } from '../lib/api';
 
 interface InputDockProps {
   input: string;
@@ -62,7 +65,23 @@ export const InputDock: React.FC<InputDockProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isListening, setIsListening] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  const handleEnhancePrompt = async () => {
+    if (!input.trim() || isEnhancing || isStreaming) return;
+    setIsEnhancing(true);
+    try {
+      const refined = await enhancePrompt(input.trim(), mode);
+      if (refined && refined !== input.trim()) {
+        onInputChange(refined);
+      }
+    } catch {
+      // Non-blocking
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -371,8 +390,28 @@ export const InputDock: React.FC<InputDockProps> = ({
             )}
           </div>
 
-          {/* Right Side: Mic & Send / Stop Button */}
+          {/* Right Side: Magic Prompt Enhancer, Mic & Send / Stop Button */}
           <div className="flex items-center gap-1.5">
+            {/* 1-Click Magic Prompt Enhancer */}
+            {input.trim().length > 0 && !isStreaming && (
+              <button
+                type="button"
+                onClick={handleEnhancePrompt}
+                disabled={isEnhancing}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-purple-300 hover:text-purple-200 text-xs font-medium transition-all shadow-sm group"
+                title="✨ Polish & Expand Prompt into Structured Master Prompt"
+              >
+                {isEnhancing ? (
+                  <RefreshCw size={12} className="animate-spin text-purple-400" />
+                ) : (
+                  <Wand2 size={12} className="text-purple-400 group-hover:rotate-12 transition-transform" />
+                )}
+                <span className="text-[11px] font-mono font-medium hidden sm:inline">
+                  {isEnhancing ? 'Polishing...' : 'Polish'}
+                </span>
+              </button>
+            )}
+
             <button
               onClick={toggleListening}
               className={`p-1.5 rounded-xl transition-all flex items-center justify-center ${

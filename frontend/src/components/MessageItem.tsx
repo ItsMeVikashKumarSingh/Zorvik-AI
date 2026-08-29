@@ -15,6 +15,9 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  Brain,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Message, SourceItem, ArtifactContent } from '../types';
 import { renderMarkdown } from '../lib/markdown';
@@ -36,6 +39,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isThoughtExpanded, setIsThoughtExpanded] = useState(true);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const isUser = message.role === 'user';
 
@@ -125,7 +129,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const detectedArtifact = detectArtifact();
-  const htmlContent = isUser ? message.content : renderMarkdown(message.content);
+
+  // Parse reasoning / thought stream (<thought>...</thought>)
+  const rawContent = message.content || '';
+  const thoughtMatch = rawContent.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/i);
+  const thoughtText = (message.thought || (thoughtMatch ? thoughtMatch[1] : '')).trim();
+  const isThoughtStillStreaming = message.isStreaming && thoughtMatch && !rawContent.includes('</thought>');
+  const cleanedContent = rawContent.replace(/<thought>[\s\S]*?(?:<\/thought>|$)/i, '').trim();
+  const htmlContent = isUser ? rawContent : renderMarkdown(cleanedContent || (isThoughtStillStreaming ? '' : rawContent));
 
   // Variant pagination calculations
   const totalVariants = message.variants && message.variants.length > 0 ? message.variants.length : 1;
@@ -221,6 +232,44 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* 🧠 Thinking Process Accordion (DeepSeek R1 / Claude 3.7 Style) */}
+      {thoughtText && !isUser && (
+        <div className="rounded-2xl bg-[#090912] border border-indigo-500/20 overflow-hidden shadow-sm">
+          <button
+            type="button"
+            onClick={() => setIsThoughtExpanded(!isThoughtExpanded)}
+            className="w-full px-3.5 py-2.5 bg-indigo-950/20 hover:bg-indigo-950/35 border-b border-indigo-500/15 flex items-center justify-between transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-indigo-500/15 text-indigo-400">
+                <Brain size={13} className={isThoughtStillStreaming ? 'animate-pulse' : ''} />
+              </div>
+              <span className="text-xs font-mono font-medium text-indigo-300">
+                {isThoughtStillStreaming ? 'Reasoning through problem...' : 'Thought Process (Multi-Step Reasoning)'}
+              </span>
+              {message.thoughtDuration ? (
+                <span className="text-[10px] font-mono text-slate-500">
+                  {message.thoughtDuration}s
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-mono text-indigo-400">
+              <span>{isThoughtExpanded ? 'Hide' : 'Inspect'}</span>
+              {isThoughtExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </div>
+          </button>
+
+          {isThoughtExpanded && (
+            <div className="p-3.5 text-xs font-mono text-slate-400 bg-[#06060c] leading-relaxed whitespace-pre-wrap select-text border-l-2 border-indigo-500/40 ml-3 my-2 mr-3 rounded-r-xl">
+              {thoughtText}
+              {isThoughtStillStreaming && (
+                <span className="inline-block w-1.5 h-3.5 bg-indigo-400 ml-1 animate-pulse" />
+              )}
+            </div>
+          )}
         </div>
       )}
 
