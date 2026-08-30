@@ -8,6 +8,7 @@ const { tenantAuthMiddleware, deductTenantTokens } = require("../middleware/tena
 const { userAuthMiddleware } = require("../middleware/userAuth");
 const { securityShield } = require("../middleware/securityShield");
 const { routeQueryStream, routeQuery, fetchOpenRouterCatalog } = require("../services/modelRouter");
+const { generateImage, generateVideo, getAvailableMediaModels } = require("../services/mediaRouter");
 const { buildSystemPrompt } = require("../services/intentEngine");
 const {
   getSessionHistory,
@@ -547,6 +548,66 @@ Rules:
       enhancedPrompt: prompt.trim(),
     });
   }
+});
+
+/**
+ * POST /api/v1/generate/image
+ * High-fidelity FLUX.1 & SDXL image synthesis
+ */
+router.post("/generate/image", async (req, res) => {
+  const { prompt, model, width, height, style, seed } = req.body;
+  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+    return res.status(400).json({ error: "Bad Request", message: "Field 'prompt' is required." });
+  }
+
+  try {
+    const result = await generateImage({ prompt, model, width, height, style, seed });
+
+    // Deduct 1,000 quota tokens for image generation
+    if (req.tenant?.id) {
+      deductTenantTokens(req.tenant.id, 1000).catch((err) =>
+        console.warn("[Quota Deduction Non-Blocking]", err.message)
+      );
+    }
+
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: "Image Generation Error", message: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/generate/video
+ * Motion video clip synthesis using Wan 2.1 / CogVideoX / Motion Core
+ */
+router.post("/generate/video", async (req, res) => {
+  const { prompt, model, duration, aspectRatio } = req.body;
+  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+    return res.status(400).json({ error: "Bad Request", message: "Field 'prompt' is required." });
+  }
+
+  try {
+    const result = await generateVideo({ prompt, model, duration, aspectRatio });
+
+    // Deduct 5,000 quota tokens for video generation
+    if (req.tenant?.id) {
+      deductTenantTokens(req.tenant.id, 5000).catch((err) =>
+        console.warn("[Quota Deduction Non-Blocking]", err.message)
+      );
+    }
+
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: "Video Generation Error", message: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/generate/models
+ * Catalog of supported multi-modal generation engines
+ */
+router.get("/generate/models", (_req, res) => {
+  return res.json(getAvailableMediaModels());
 });
 
 module.exports = router;

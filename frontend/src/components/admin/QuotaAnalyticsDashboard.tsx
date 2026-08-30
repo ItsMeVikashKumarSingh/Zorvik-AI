@@ -55,14 +55,19 @@ interface AnalyticsData extends TimeframeData {
 
 const PROVIDER_FLEET = [
   { id: 'gemini', name: 'Google Gemini AI', freeDailyReqs: '1,500 req/day', estDailyTokens: '1.5M', status: 'Healthy · Closed' },
+  { id: 'github', name: 'GitHub Models (Azure AI)', freeDailyReqs: '1,000 req/day', estDailyTokens: '5.0M', status: 'GPT-4o & R1' },
   { id: 'groq', name: 'Groq Cloud LPU', freeDailyReqs: '14,400 req/day', estDailyTokens: '10.0M', status: 'Healthy · Closed' },
+  { id: 'sambanova', name: 'SambaNova Systems', freeDailyReqs: 'High RPS Tier', estDailyTokens: '8.0M', status: '300+ tok/s' },
   { id: 'cerebras', name: 'Cerebras Wafer LPU', freeDailyReqs: '14,400 req/day', estDailyTokens: '10.0M', status: 'Healthy · Closed' },
   { id: 'mistral', name: 'Mistral AI Engine', freeDailyReqs: '1M tokens/mo', estDailyTokens: '33k', status: 'Healthy · Closed' },
+  { id: 'huggingface', name: 'Hugging Face Serverless', freeDailyReqs: '1,000+ req/day', estDailyTokens: '1.0M', status: 'Serverless Router' },
   { id: 'openrouter', name: 'OpenRouter Free Matrix', freeDailyReqs: '6,000+ req/day', estDailyTokens: '6.0M', status: '35+ Free Models' },
   { id: 'kilo', name: 'Kilo Gateway Free', freeDailyReqs: '1,000+ req/day', estDailyTokens: '1.0M', status: '5 Free Models' },
   { id: 'opencode', name: 'OpenCode Zen Gateway', freeDailyReqs: '500+ req/day', estDailyTokens: '500k', status: '2 Free Models' },
   { id: 'cline', name: 'Cline Free Core', freeDailyReqs: '500+ req/day', estDailyTokens: '500k', status: '2 Free Models' },
-  { id: 'pollinations', name: 'Pollinations AI', freeDailyReqs: 'Unlimited', estDailyTokens: 'Unlimited', status: 'Zero-Auth Core' },
+  { id: 'flux', name: 'FLUX.1 Image Synthesis', freeDailyReqs: 'Unlimited / Free', estDailyTokens: 'Image Engine', status: 'FLUX.1 Schnell' },
+  { id: 'wan2.1', name: 'Wan 2.1 Video Generator', freeDailyReqs: 'Unlimited / Free', estDailyTokens: 'Video Engine', status: 'Alibaba Open Video' },
+  { id: 'pollinations', name: 'Pollinations AI Backup', freeDailyReqs: 'Unlimited', estDailyTokens: 'Unlimited', status: 'Zero-Auth Core' },
 ];
 
 export const QuotaAnalyticsDashboard: React.FC<QuotaAnalyticsProps> = ({ token }) => {

@@ -62,6 +62,27 @@ class CircuitBreaker {
         lastFailure: null,
         cooldownMs: 60000,
       },
+      github: {
+        name: "GitHub Models (Azure AI)",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
+      sambanova: {
+        name: "SambaNova Systems Free",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
+      huggingface: {
+        name: "Hugging Face Serverless",
+        status: "CLOSED",
+        failureCount: 0,
+        lastFailure: null,
+        cooldownMs: 60000,
+      },
     };
   }
 

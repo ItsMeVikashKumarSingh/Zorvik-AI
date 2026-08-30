@@ -21,6 +21,9 @@ const runtimeKeyVault = {
   kilo: null,
   opencode: null,
   cline: null,
+  github: null,
+  sambanova: null,
+  huggingface: null,
 };
 
 const providerStatus = {
@@ -32,6 +35,9 @@ const providerStatus = {
   kilo: true,
   opencode: true,
   cline: true,
+  github: true,
+  sambanova: true,
+  huggingface: true,
 };
 
 function setActiveOpenRouterModel(modelId) {
@@ -73,6 +79,12 @@ function getProviderKey(provider) {
       return process.env.OPENCODE_API_KEY || "free-tier";
     case "cline":
       return process.env.CLINE_API_KEY || "free-tier";
+    case "github":
+      return process.env.GITHUB_TOKEN || process.env.GITHUB_MODELS_KEY || "";
+    case "sambanova":
+      return process.env.SAMBANOVA_API_KEY || "";
+    case "huggingface":
+      return process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || "";
     default:
       return "";
   }
@@ -357,15 +369,67 @@ async function streamOpenAICompatible({
  */
 function getDynamicProviderCascade({ mode, isSearchRequested, hasVisionFiles }) {
   if (isSearchRequested || hasVisionFiles) {
-    return ["gemini", "groq", "cerebras", "mistral", "openrouter", "kilo", "opencode", "cline", "pollinations"];
+    return [
+      "gemini",
+      "github",
+      "groq",
+      "sambanova",
+      "cerebras",
+      "mistral",
+      "huggingface",
+      "openrouter",
+      "kilo",
+      "opencode",
+      "cline",
+      "pollinations",
+    ];
   }
   if (mode === "code") {
-    return ["mistral", "groq", "cerebras", "openrouter", "opencode", "kilo", "cline", "gemini", "pollinations"];
+    return [
+      "github",
+      "sambanova",
+      "mistral",
+      "groq",
+      "cerebras",
+      "huggingface",
+      "openrouter",
+      "opencode",
+      "kilo",
+      "cline",
+      "gemini",
+      "pollinations",
+    ];
   }
   if (mode === "deep") {
-    return ["openrouter", "gemini", "kilo", "mistral", "groq", "cerebras", "cline", "opencode", "pollinations"];
+    return [
+      "github",
+      "sambanova",
+      "openrouter",
+      "gemini",
+      "huggingface",
+      "kilo",
+      "mistral",
+      "groq",
+      "cerebras",
+      "cline",
+      "opencode",
+      "pollinations",
+    ];
   }
-  return ["gemini", "groq", "cerebras", "mistral", "openrouter", "kilo", "opencode", "cline", "pollinations"];
+  return [
+    "gemini",
+    "github",
+    "sambanova",
+    "groq",
+    "cerebras",
+    "mistral",
+    "huggingface",
+    "openrouter",
+    "kilo",
+    "opencode",
+    "cline",
+    "pollinations",
+  ];
 }
 
 /**
@@ -441,6 +505,42 @@ async function routeQueryStream({
           apiKey,
           model: "gemini-2.5-flash",
           searchGrounding: grounding.shouldGround,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "github") {
+        result = await streamOpenAICompatible({
+          url: "https://models.inference.ai.azure.com/chat/completions",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          model: mode === "code" ? "Codestral-2501" : mode === "deep" ? "DeepSeek-R1" : "gpt-4o",
+          provider: "github",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "sambanova") {
+        result = await streamOpenAICompatible({
+          url: "https://api.sambanova.ai/v1/chat/completions",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          model: mode === "code" ? "Qwen2.5-Coder-32B-Instruct" : "DeepSeek-R1",
+          provider: "sambanova",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
+          signal,
+          onChunk,
+        });
+      } else if (provider === "huggingface") {
+        result = await streamOpenAICompatible({
+          url: "https://router.huggingface.co/hf-inference/v1/chat/completions",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          model: mode === "code" ? "Qwen/Qwen2.5-Coder-32B-Instruct" : "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+          provider: "huggingface",
+          systemPrompt: effectiveSystemPrompt,
+          history,
+          prompt,
           signal,
           onChunk,
         });
@@ -759,6 +859,38 @@ async function testProviderConnection(provider, testKey) {
     const latencyMs = Date.now() - start;
     if (!resp.ok) throw new Error(`OpenRouter Ping Error (${resp.status})`);
     return { success: true, provider, latencyMs };
+  }
+
+  if (provider === "github") {
+    const resp = await fetch("https://models.inference.ai.azure.com/models", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
+    });
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`GitHub Models Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
+  }
+
+  if (provider === "sambanova") {
+    const resp = await fetch("https://api.sambanova.ai/v1/models", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
+    });
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`SambaNova Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
+  }
+
+  if (provider === "huggingface") {
+    const resp = await fetch("https://huggingface.co/api/whoami-v2", {
+      headers: { Authorization: `Bearer ${effectiveKey}` },
+    });
+    const latencyMs = Date.now() - start;
+    if (!resp.ok) throw new Error(`Hugging Face Ping Error (${resp.status})`);
+    return { success: true, provider, latencyMs };
+  }
+
+  if (provider === "kilo" || provider === "opencode" || provider === "cline") {
+    const latencyMs = Date.now() - start;
+    return { success: true, provider, latencyMs: Math.max(25, latencyMs) };
   }
 
   throw new Error(`Unsupported provider: ${provider}`);

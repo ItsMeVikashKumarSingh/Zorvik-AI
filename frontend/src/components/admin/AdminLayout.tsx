@@ -12,6 +12,7 @@ import {
   Key,
   BarChart2,
   Users,
+  Sparkles,
 } from 'lucide-react';
 import { OpenRouterCatalog } from './OpenRouterCatalog';
 import { AdminDashboard } from './AdminDashboard';
@@ -20,6 +21,7 @@ import { AuditLogViewer } from './AuditLogViewer';
 import { KeyVaultManager } from './KeyVaultManager';
 import { QuotaAnalyticsDashboard } from './QuotaAnalyticsDashboard';
 import { UserManager } from './UserManager';
+import { MediaStudio } from './MediaStudio';
 import { MfaSecurityModal } from './MfaSecurityModal';
 import { getSupabase } from '../../lib/supabase';
 
@@ -32,6 +34,7 @@ interface AdminLayoutProps {
 export type AdminTab =
   | 'overview'
   | 'analytics'
+  | 'media'
   | 'users'
   | 'openrouter'
   | 'keys'
@@ -176,6 +179,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const NAV_ITEMS: { id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
     { id: 'overview', label: 'Neural Operations', icon: Activity },
     { id: 'analytics', label: 'Quota Analytics', icon: BarChart2 },
+    { id: 'media', label: 'Media Studio', icon: Sparkles },
     { id: 'users', label: 'User Directory', icon: Users },
     { id: 'openrouter', label: 'OpenRouter Matrix', icon: Compass },
     { id: 'keys', label: 'Neural Key Vault', icon: Key },
@@ -297,6 +301,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#f4f1ea] p-6 lg:p-8">
         {activeTab === 'overview' && <AdminDashboard token={adminToken} onSwitchTab={setActiveTab} />}
         {activeTab === 'analytics' && <QuotaAnalyticsDashboard token={adminToken} />}
+        {activeTab === 'media' && <MediaStudio adminToken={adminToken} />}
         {activeTab === 'users' && <UserManager token={adminToken} />}
         {activeTab === 'openrouter' && <OpenRouterCatalog token={adminToken} />}
         {activeTab === 'keys' && <KeyVaultManager adminToken={adminToken} />}

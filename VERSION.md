@@ -2,6 +2,21 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.28] - 2026-08-30
+### GitHub Models, SambaNova, Hugging Face & Zero-Cost Multi-Modal Media Studio
+- **11-Engine Cloud Cascade Integration ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`circuitBreaker.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/circuitBreaker.js), [`KeyVaultManager.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/KeyVaultManager.tsx))**:
+  - Integrated **GitHub Models (Azure AI)** with official `gpt-4o`, `DeepSeek-R1`, `Phi-4`, and `Meta-Llama-3.3-70B`.
+  - Integrated **SambaNova Systems (300+ tok/s)** with ultra-fast `DeepSeek-R1` and `Qwen2.5-Coder-32B`.
+  - Integrated **Hugging Face Serverless** across open-weights frontier models.
+- **Zero-Cost Multi-Modal Generation Subsystem ([`mediaRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/mediaRouter.js), [`api.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/routes/api.js))**:
+  - `POST /api/v1/generate/image`: High-res FLUX.1 & SDXL synthesis across customizable aspect ratios (`1:1`, `16:9`, `9:16`, `4:3`) and style modifiers.
+  - `POST /api/v1/generate/video`: 5–10s motion video generation powered by Alibaba Wan 2.1, CogVideoX, and Pollinations Motion.
+  - `GET /api/v1/generate/models`: Multi-modal model discovery catalog.
+- **In-Chat Slash Commands ([`AppWorkspace.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/AppWorkspace.tsx))**:
+  - Native `/image <prompt>` and `/video <prompt>` syntax in the chat workspace rendering rich media directly in the timeline.
+- **Dedicated Media Studio Tab ([`MediaStudio.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/MediaStudio.tsx), [`AdminLayout.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/AdminLayout.tsx))**:
+  - Visual generation canvas with prompt magic optimizer, aspect ratio selectors, live viewport, direct downloads, and creation history gallery.
+
 ## [1.0.27] - 2026-08-30
 ### Light E-Ink 2FA Security Challenge & Management Login Redesign
 - **2FA Challenge Screen & Login Page ([`ManagementLoginPage.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/ManagementLoginPage.tsx))**:

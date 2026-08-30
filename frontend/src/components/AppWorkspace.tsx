@@ -322,12 +322,76 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    let accumulatedContent = '';
+    // Handle /image and /video slash commands directly
+    if (textToSend.startsWith('/image ') || textToSend.startsWith('/video ')) {
+      const isVideo = textToSend.startsWith('/video ');
+      const mediaPrompt = textToSend.replace(/^\/(image|video)\s+/, '').trim();
+      const endpoint = isVideo ? '/api/v1/generate/video' : '/api/v1/generate/image';
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: mediaPrompt, model: isVideo ? 'wan2.1' : 'flux' }),
+        });
+        const json = await res.json();
+        setIsStreaming(false);
+        abortControllerRef.current = null;
+
+        if (json.success && json.url) {
+          const mediaMarkdown = `![${isVideo ? 'Generated Video' : 'Generated Image'}](${json.url})\n\n**${isVideo ? '🎬 Wan 2.1 Video Motion' : '🎨 FLUX.1 Neural Synthesis'}**\n> "${mediaPrompt}"\n\n[Direct Link / Download](${json.url})`;
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== currentSession?.id) return s;
+              return {
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === assistantMessageId
+                    ? {
+                        ...m,
+                        content: mediaMarkdown,
+                        isStreaming: false,
+                        model: isVideo ? 'Wan 2.1 Video Engine' : 'FLUX.1 Schnell Engine',
+                        responseType: isVideo ? 'Motion Video Synthesis' : 'Neural Image Synthesis',
+                      }
+                    : m
+                ),
+              };
+            })
+          );
+        } else {
+          throw new Error(json.message || 'Generation failed.');
+        }
+      } catch (err: any) {
+        setIsStreaming(false);
+        abortControllerRef.current = null;
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id !== currentSession?.id) return s;
+            return {
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === assistantMessageId
+                  ? {
+                      ...m,
+                      content: `Failed to generate media: ${err.message}`,
+                      isStreaming: false,
+                    }
+                  : m
+              ),
+            };
+          })
+        );
+      }
+      return;
+    }
 
     // Pass prior conversation history for multi-turn conversational memory
     const priorHistory = currentSession.messages
       .filter((m) => m.content && !m.isStreaming)
       .map((m) => ({ role: m.role, content: m.content }));
+
+    let accumulatedContent = '';
 
     await streamChat({
       message: textToSend,

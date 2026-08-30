@@ -99,6 +99,30 @@ const PROVIDER_METADATA: Record<
     envVar: 'CLINE_API_KEY',
     freeTierInfo: '2 Free Models ($0.00)',
   },
+  github: {
+    name: 'GitHub Models (Azure AI)',
+    description: 'Free frontier inference via GitHub Token: official GPT-4o, DeepSeek R1, Llama 3.3 70B.',
+    docsUrl: 'https://github.com/marketplace/models',
+    placeholder: 'ghp_... or github_pat_...',
+    envVar: 'GITHUB_TOKEN',
+    freeTierInfo: '150–1,000 req/day per model ($0.00)',
+  },
+  sambanova: {
+    name: 'SambaNova Systems Cloud',
+    description: 'Ultra-fast 300+ tokens/sec inference: DeepSeek R1, Meta Llama 3.3 70B, Qwen 2.5 Coder.',
+    docsUrl: 'https://cloud.sambanova.ai/apis',
+    placeholder: 'sambanova-...',
+    envVar: 'SAMBANOVA_API_KEY',
+    freeTierInfo: 'High RPS Zero-Cost Tier ($0.00)',
+  },
+  huggingface: {
+    name: 'Hugging Face Serverless',
+    description: 'Serverless inference across open-weight frontier models (DeepSeek R1 Distill, Qwen 2.5 Coder).',
+    docsUrl: 'https://huggingface.co/settings/tokens',
+    placeholder: 'hf_...',
+    envVar: 'HF_TOKEN',
+    freeTierInfo: '1,000+ req/day free ($0.00)',
+  },
 };
 
 export const KeyVaultManager: React.FC<KeyVaultManagerProps> = ({ adminToken }) => {

@@ -224,6 +224,41 @@ describe("Zorvik AI API Microservice Tests", () => {
     const formatted = formatRAGContext(relevant);
     assert.ok(formatted.includes("ATTACHED DOCUMENT SEMANTIC CONTEXT"));
   });
+
+  test("Media Engine: POST /api/v1/generate/image should synthesize image URL", async () => {
+    const res = await fetch(`${BASE_URL}/generate/image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "A neon cyberpunk samurai in Tokyo rain", model: "flux" }),
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.ok(data.url.includes("image.pollinations.ai"));
+    assert.strictEqual(data.format, "png");
+  });
+
+  test("Media Engine: POST /api/v1/generate/video should synthesize motion video URL", async () => {
+    const res = await fetch(`${BASE_URL}/generate/video`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Drone flyover across futuristic glowing skyscrapers", model: "wan2.1" }),
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.ok(data.url);
+    assert.strictEqual(data.format, "mp4");
+  });
+
+  test("Media Engine: GET /api/v1/generate/models should list supported image and video models", async () => {
+    const res = await fetch(`${BASE_URL}/generate/models`);
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.ok(Array.isArray(data.imageModels));
+    assert.ok(Array.isArray(data.videoModels));
+  });
 });
 
 describe("Zorvik AI Admin Control Plane & Monetization Tests", () => {
