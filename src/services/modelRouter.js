@@ -107,11 +107,12 @@ function formatGeminiContents(history, prompt, files = []) {
   const userParts = [];
   if (Array.isArray(files) && files.length > 0) {
     for (const file of files) {
-      if (file.base64 && file.mimeType) {
+      const fileData = file.base64 || file.data;
+      if (fileData && file.mimeType) {
         userParts.push({
           inlineData: {
             mimeType: file.mimeType,
-            data: file.base64,
+            data: fileData,
           },
         });
       }
@@ -214,6 +215,19 @@ async function streamGemini({
 
   if (!response.ok) {
     const errorText = await response.text();
+    if (response.status === 429 && model === "gemini-2.5-flash") {
+      return streamGemini({
+        systemPrompt,
+        history,
+        prompt,
+        files,
+        apiKey,
+        model: "gemini-2.5-flash-lite",
+        searchGrounding,
+        signal,
+        onChunk,
+      });
+    }
     const error = new Error(`Gemini API Error (${response.status}): ${errorText}`);
     error.statusCode = response.status;
     throw error;
@@ -477,11 +491,15 @@ async function routeQueryStream({
     ? `${systemPrompt}\n\n[LIVE SEARCH GROUNDING CONTEXT]:\n${liveWebContext}`
     : systemPrompt;
 
-  const hasVisionFiles = Array.isArray(files) && files.some((f) => f.mimeType?.startsWith("image/"));
+  const hasMultimodalFiles = Array.isArray(files) && files.some((f) => 
+    f.mimeType?.startsWith("image/") || 
+    f.mimeType === "application/pdf" || 
+    f.mimeType?.includes("pdf")
+  );
   const cascade = getDynamicProviderCascade({
     mode,
     isSearchRequested: grounding.shouldGround,
-    hasVisionFiles,
+    hasVisionFiles: hasMultimodalFiles,
   });
 
   let lastError = null;
@@ -648,6 +666,13 @@ async function routeQueryStream({
       }
 
       if (result) {
+        if (
+          result.text &&
+          (result.text.includes("reached its budget") ||
+            result.text.includes("raise the key budget"))
+        ) {
+          throw new Error("Provider API key budget limit reached");
+        }
         if (provider !== "pollinations") {
           circuitBreaker.recordSuccess(provider);
         }

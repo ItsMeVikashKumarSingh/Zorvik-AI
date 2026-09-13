@@ -57,8 +57,8 @@ app.use(
 
 app.use(cors({ origin: "*" }));
 app.use(compression());
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 const fs = require("fs");
 const distPath = path.join(__dirname, "frontend", "dist");
