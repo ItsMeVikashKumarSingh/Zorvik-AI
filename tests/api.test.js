@@ -6,12 +6,14 @@ const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert");
 const http = require("node:http");
 
+process.env.ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "test-admin-secret-2026-suite";
+const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
+
 const app = require("../server");
 
 let server;
 const TEST_PORT = 3199;
 const BASE_URL = `http://localhost:${TEST_PORT}/api/v1`;
-const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY || "zorvik-superadmin-secret-2026";
 
 before(() => {
   return new Promise((resolve) => {

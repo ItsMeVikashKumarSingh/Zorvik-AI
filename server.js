@@ -55,7 +55,23 @@ app.use(
   })
 );
 
-app.use(cors({ origin: "*" }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.toLowerCase();
+      const isLocal = cleanOrigin.includes("localhost") || cleanOrigin.includes("127.0.0.1");
+      const isPlatform = cleanOrigin.endsWith(".zorviktech.com") || cleanOrigin === "https://zorviktech.com";
+      const isPreview = cleanOrigin.endsWith(".vercel.app") || cleanOrigin.endsWith(".pages.dev");
+
+      if (isLocal || isPlatform || isPreview) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
+    credentials: true,
+  })
+);
 app.use(compression());
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));

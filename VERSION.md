@@ -2,6 +2,17 @@
 
 All notable changes to the Zorvik AI standalone microservice will be documented in this file.
 
+## [1.0.29] - 2026-11-13
+### Security Hardening: Static Secret Removal, Timing-Safe Auth & CORS Guard
+- **Static Fallback Secret Elimination (`src/middleware/adminAuth.js`)**:
+  - Eliminated hardcoded fallback secret `"zorvik-superadmin-secret-2026"`; admin operations fail securely if `ADMIN_SECRET_KEY` is not defined in environment variables.
+  - Implemented `safeSecretCompare` using `crypto.timingSafeEqual` to protect against timing attacks.
+  - Removed hardcoded personal email address bypass; authorization strictly depends on RBAC roles and `tbl_admins`.
+- **CORS Domain Restriction (`server.js`)**:
+  - Replaced wildcard `origin: "*"` with dynamic origin validation restricted to platform (`*.zorviktech.com`, `zorviktech.com`), local development, and preview environments.
+- **Automated Security Test Suite (`tests/security.test.js`)**:
+  - Added 8 automated tests validating fallback secret elimination, rejecting unset `ADMIN_SECRET_KEY`, and verifying timing-safe secret comparisons (30/30 total tests passing).
+
 ## [1.0.28] - 2026-08-30
 ### GitHub Models, SambaNova, Hugging Face & Zero-Cost Multi-Modal Media Studio
 - **11-Engine Cloud Cascade Integration ([`modelRouter.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/modelRouter.js), [`circuitBreaker.js`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/src/services/circuitBreaker.js), [`KeyVaultManager.tsx`](file:///c:/Users/vikas/OneDrive/Desktop/projects/zorvik-tech/Zorvik-AI/frontend/src/components/admin/KeyVaultManager.tsx))**:

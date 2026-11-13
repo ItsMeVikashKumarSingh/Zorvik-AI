@@ -2,15 +2,24 @@
  * Admin Authentication & RBAC Middleware
  * Validates administrative session tokens, enforces expiry, and checks admin role.
  */
+const crypto = require("crypto");
 const { supabase, isConfigured: isSupabaseConfigured } = require("../lib/supabase");
+
+function safeSecretCompare(provided, expected) {
+  if (!provided || !expected) return false;
+  const providedBuf = Buffer.from(String(provided));
+  const expectedBuf = Buffer.from(String(expected));
+  if (providedBuf.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(providedBuf, expectedBuf);
+}
 
 async function adminAuthMiddleware(req, res, next) {
   const authHeader = req.headers["authorization"];
   const adminSecretHeader = req.headers["x-admin-secret"] || req.headers["x-admin-key"];
-  const adminSecretEnv = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_API_KEY || "zorvik-superadmin-secret-2026";
+  const adminSecretEnv = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_API_KEY;
 
   // 1. Direct Master Key Authentication (for microservice/system admin tasks)
-  if (adminSecretHeader && adminSecretHeader === adminSecretEnv) {
+  if (adminSecretEnv && adminSecretHeader && safeSecretCompare(adminSecretHeader, adminSecretEnv)) {
     req.admin = {
       id: "admin-master-key",
       email: "superadmin@zorvik.tech",
@@ -24,7 +33,7 @@ async function adminAuthMiddleware(req, res, next) {
     const token = authHeader.replace("Bearer ", "").trim();
 
     // Check if token directly matches admin secret
-    if (token === adminSecretEnv) {
+    if (adminSecretEnv && safeSecretCompare(token, adminSecretEnv)) {
       req.admin = {
         id: "admin-master-key",
         email: "superadmin@zorvik.tech",
@@ -55,12 +64,12 @@ async function adminAuthMiddleware(req, res, next) {
           .eq("is_active", true)
           .single();
 
-        const isSuperadminEmail =
-          user.email === "admin@zorvik.tech" ||
-          user.email === "vikash@zorvik.tech" ||
-          user.app_metadata?.role === "admin";
+        const hasAdminRole =
+          user.app_metadata?.role === "admin" ||
+          user.app_metadata?.role === "superadmin" ||
+          user.user_metadata?.role === "admin";
 
-        if (!adminRecord && !isSuperadminEmail) {
+        if (!adminRecord && !hasAdminRole) {
           return res.status(403).json({
             error: "Forbidden",
             message: "Access denied. Administrative privileges required.",
@@ -98,4 +107,5 @@ async function adminAuthMiddleware(req, res, next) {
 
 module.exports = {
   adminAuthMiddleware,
+  safeSecretCompare,
 };
